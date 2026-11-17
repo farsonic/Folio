@@ -1,5 +1,7 @@
 # Folio 0.1.2
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-farsonic-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/farsonic)
+
 Folio is a PDF viewer and editor for the Amiga, laid out the way PDFCraft is. Tabs for Home,
 Tools and each open document run along the top. Under them is the toolbar: open, save, find,
 the page number, the select and hand tools, the zoom and quick comment tools. Page thumbnails
