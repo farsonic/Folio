@@ -1,0 +1,96 @@
+# CLAUDE.md - working on Folio
+
+Folio is a PDF viewer and editor for AmigaOS 3.x (68040/68060 with FPU, MUI 3.8, AROS or MorphOS),
+written in C and laid out the way PDFCraft is: Home/Tools/document tabs, a toolbar, thumbnails or
+bookmarks on the left, tools or comments on the right, pages in the middle. It reads PDF 1.0-2.0
+(object and cross-reference streams, every standard filter, RC4/AES encryption), draws pages with its
+own renderer and fonts (Type1, TrueType, CFF/OpenType, Type3), extracts and finds text, and edits:
+comments (notes, highlights, ink, shapes), page organising (insert, delete, rotate, reorder) and
+saving. GPL-2.0-only (see `LICENSE`). This file is for anyone, person or agent, picking the work up.
+Read it first, then `README.md` (what Folio does).
+
+## Layout
+
+| Path | What |
+|---|---|
+| `core/` | Portable C99, no AmigaOS calls: `pdf.c` (objects, xref, page tree), `filters.c` (Flate, LZW, ASCII85/Hex, RunLength, CCITT, DCT), `crypto.c` (RC4, AES, MD5, SHA-2, the standard security handler), `font.c`/`pfont.c`/`cmap.c`/`pdfenc.c`/`fonts.c`/`ttraster.c` (fonts), `render.c`/`raster.c`/`shade.c`/`pimage.c`/`func.c` (content interpreter and rasteriser), `textpage.c` (text extraction and search), `pdfwrite.c`/`pdfedit.c` (writing and editing), `pngout.c`. |
+| `amiga/` | The MUI front end: `main.c`, `view.c` (the page view: off-screen buffer, blitter scrolling, background rendering of the next page), `bars.c`, `panes.c`, `edits.c` (comments and page editing), `dialogs.c`, `lang.c`/`lang_table.h` (interface strings). |
+| `tests/` | Native tests (`filtertest.c`, `fonttest.c`, `edittest.c`, `annotdrawtest.c`), generated PDFs (`gen/`, made by `make_pdfs.py`), PDFs made by Quill (`pdfs/`), test fonts (`fonts/`), `compare.py` (compares rendered pages with poppler's). |
+| `tools/` | `test.sh` (the native tests; what CI runs), `pdfrender.c` (renders a page to PNG on the host), `Install-Folio` (Installer script), `mkicons.py`, `vbcc-aos68k-fpu` (the vbcc config for the 68040+FPU build). |
+| `sample/` | `Welcome.pdf`, shipped in the package. |
+
+## Build and test
+
+Native tests (need only a C compiler; CI runs them and they must stay green):
+
+    sh tools/test.sh            # TMP=<dir> to build somewhere other than /tmp
+
+Amiga binary: `./build.sh` (`./build.sh fast` skips the tests). It needs, at these default paths (or set
+`VBCC`, `NDK`, `MUI`):
+
+- **vbcc** 0.9h with vasm and vlink and the m68k-amigaos target, in `/opt/amiga/vbcc`
+  (http://www.compilers.de/vbcc.html), with the 68040 FPU maths library (`-lm040`); Folio uses the
+  config in `tools/vbcc-aos68k-fpu`.
+- **NDK 3.2** C headers in `/opt/amiga/ndk/Include_H` (Aminet `dev/misc/NDK3.2.lha`).
+- **MUI 3.8 developer headers** in `/opt/amiga/mui/include` (Aminet `dev/mui/mui38dev.lha`, its
+  `C/Include`; not in this repository because it may only be redistributed whole).
+
+Rendering a page on the host to look at it: build `tools/pdfrender.c` with the core (see `tools/test.sh`)
+and run it on a PDF; `tests/compare.py` compares against poppler's `pdftoppm` where installed.
+
+Release package: the `Folio` drawer holds Folio, README.md, Install-Folio, `sample/Welcome.pdf`, the
+Fonts drawer (Amiga screen fonts, shared with Quill) and the TrueType drawer (Liberation, Carlito,
+Caladea, SIL OFL, with `LICENSE-fonts.txt`), Source/ and LICENSE, each with an icon (`tools/mkicons.py`).
+Packages are `.lha`, not committed (attach them to GitHub releases). Before a package ships, search it
+for certificate or key material (`BEGIN CERTIFICATE`, `PRIVATE KEY`, `*.crt`, `*.pem`, `*.key`).
+
+## Rules of the project
+
+- C99 that vbcc compiles (watch for: `memchr` with bytes > 0x7F passed as int, `%.*s` with precision 0
+  printing everything, rare `-O2` miscompiles). 68040 + FPU code.
+- The window fits 640x480. Rendering never blocks the interface: the view renders in steps and keeps
+  what was drawn on screen until a later try gets further.
+- Every interface string goes through `amiga/lang.c`/`lang_table.h`.
+- Folio leaves out printing, ARexx, forms, JavaScript, sound/video and editing a page's own text or
+  pictures on purpose. JBIG2 and JPEG 2000 images show blank.
+- Test documents must be ours or generated: don't commit PDFs made by others. (Two third-party PDFs
+  used locally are listed in `.gitignore`.)
+- Don't use `rm -rf` in scripts or by hand on shared machines; move things aside.
+- Never put a personal email address in commits, code or docs.
+
+## Where work stands
+
+Folio 0.1.2 is released: viewing, finding, comments, page organising and saving, with smooth scrolling
+and comment drawing (0.1.1/0.1.2). Its PDF engine is also used, as a patched copy, by pdf.datatype
+(`farsonic/pdfdt`, where it was fuzzed). That work found bugs which are **not yet fixed here**; porting
+the fixes is the obvious next task:
+
+- heap overread while rebuilding the cross-reference table (`trailer` matched past the end of the buffer);
+- tokens freed uninitialised in `parse_at` (Folio crashes on a file with wrong object offsets);
+- use after free: a dangling pattern pointer after `sc`/`scn` with a name operand and no resources;
+- a dash pattern with a negative entry (endless loop), or far finer than the line (practically endless);
+- integer overflow in the number lexer with a 32-bit `long`;
+- a shift by 32 in the mesh shadings' bit reader (gives 0 on the 68k, the value on x86/ARM);
+- names lost when memory runs out (`expand_name` returning NULL; an array item retyped on failure);
+- an over-full JPEG Huffman table writing past its lookup table;
+- out-of-range double-to-integer conversions in the rasteriser, glyph cache, clip and shading code.
+
+Each fix should come with a test that fails before it. A fuzzer (mutating the files in `tests/gen/`,
+with ASan/UBSan and a work bound per file) would be a good addition.
+
+## Issues
+
+Bugs and requests come in as GitHub issues (templates in `.github/ISSUE_TEMPLATE/`). To work on them:
+
+1. `gh issue list --repo farsonic/Folio` and `gh issue view N --repo farsonic/Folio --comments`.
+2. Reproduce first. Most PDF problems can be reproduced natively with the core (render the page with
+   `tools/pdfrender.c`, or load it in a test), then write a failing test in `tests/` and fix it in
+   `core/`. Interface bugs need the Amiga build; say what you could and couldn't verify.
+3. Fix on a branch named `issue-N-short-name`, keep `tools/test.sh` green, and open a pull request whose
+   description says `Fixes #N`, what changed and how it was tested. Ask on the issue when information is
+   missing rather than guessing. Don't close issues by hand unless asked; merging the PR closes them.
+4. Attached PDFs may be private: never commit them; reproduce with a small PDF of your own (extend
+   `tests/make_pdfs.py`).
+
+`.github/workflows/claude.yml` lets people mention `@claude` in an issue or pull request to have Claude
+Code look at it (it needs the `ANTHROPIC_API_KEY` repository secret or the Claude GitHub App).

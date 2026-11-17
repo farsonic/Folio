@@ -1,0 +1,229 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 2
+/Kids [ 4 0 R 9 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Outlines 17 0 R
+>>
+endobj
+4 0 obj
+<<
+/Contents 5 0 R
+/MediaBox [ 0 0 595 842 ]
+/Resources <<
+/ExtGState <<
+/gRLs0 <<
+/ca 0.5
+>>
+/gRLs1 <<
+/ca 1
+>>
+>>
+/Font 6 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Parent 2 0 R
+>>
+endobj
+5 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ]
+/Length 750
+>>
+stream
+GarW8_/A!]%#45"$6HZc:dp8IU`BhZ"bp@7#2#Wj+`Q0]D:3RK@BVmfPYs.L!o"FfnL+8c&;$/hQM\#o\6?]0G6B0n49;`r=PU^$`DH+.A94>S=f_[@+^00'LJQNWe_=[t*P]J_n*TH2$V[T[\Nd0US&`1qD;UAG@IXbaM_'GgIg6A-Er?h]@C-S6BFfn3a_D&_F1^C+BbVHn9s3Fh)t)K!:4cE\ff#@K_nCK=S^@*U\>=T%_dEb/!u'Ye=pH!,Q[74r#C")!35m#l;EX/Cd&DV#"o+onoO*#tD2%9u$"PCl_I5#Ab34:*(0NCA"DNqR:l(k\&WOe"p@;L*!f6q>#gO^f*9T=U_-!EkYMBUg(MD!uA(o0&O3KY3D!%[<q_-"FD)V<S%PHG?H2A478g[XnHb_3=P*IKeErtp`:gu%M_HB02A=Z::=1M61-Ip5al!;$!e#]4e1Vp7&Ga3cTnPIK'>V<4c^4_83GS7cmc\P0,6J-oeR>OfW;4Z?]>Rr#i.`,IZF[FRI4if'NOg0hCcId5*%q9*"'"`tbpnj7$:h:>\?(\ecgn:grUG<SKqE1d<CH>anK/+2+qA`IiRSMJtW(]Xk5"F/>VUP2u.8uA3cUi7qe*6]+F3',Z5."\hbfKjMLB;djMnnHNp?$$sIEX'6p(>VA4o+3g?BiFG%\1QU9D9A#?q+ZV-U8"/86kn#)I+KHU5rmMjoqpQ#a6K;\PkeZ.4Q_8S=J&U&s7`Rp]of1C=<~>
+endstream
+endobj
+6 0 obj
+<<
+/F1 7 0 R
+/F2 8 0 R
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Name /F2
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+9 0 obj
+<<
+/Contents 10 0 R
+/MediaBox [ 0 0 595 842 ]
+/Resources <<
+/Font 6 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+/Shading <<
+/Sh0 11 0 R
+/Sh1 15 0 R
+>>
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Parent 2 0 R
+>>
+endobj
+10 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ]
+/Length 226
+>>
+stream
+GaqKgbmo=Z&;9M#ME*-kfPMEQ<td`B0f8E:n-;Z1;;OOBXT_:cG'8'&b;.-\Nc-iV4,;h2?k%;b9.k0Rm%'Sn)gonUp%LHiKOBYp#&N#mEd`t/BaaZeb<k^#7[2se6(/G?ld$%'%&5<+ShTj&'LUkAg(K.=9Vle\\q[I]M",AUpqQF$e2`l'M']>13,uO.\4O5BJ.m\_B>K@$ecW3sk%4@t/CYK')*rc~>
+endstream
+endobj
+11 0 obj
+<<
+/ColorSpace /DeviceRGB
+/Coords [ 50 500 545 750 ]
+/Extend [ false false ]
+/Function 12 0 R
+/ShadingType 2
+>>
+endobj
+12 0 obj
+<<
+/Bounds [ 0.5 ]
+/Domain [ 0.0 1 ]
+/Encode [ 0 1 0 1 ]
+/FunctionType 3
+/Functions [ 13 0 R 14 0 R ]
+>>
+endobj
+13 0 obj
+<<
+/C0 [ 1 0 0 ]
+/C1 [ 1 1 0 ]
+/Domain [ 0 1 ]
+/FunctionType 2
+/N 1
+>>
+endobj
+14 0 obj
+<<
+/C0 [ 1 1 0 ]
+/C1 [ 0 0 1 ]
+/Domain [ 0 1 ]
+/FunctionType 2
+/N 1
+>>
+endobj
+15 0 obj
+<<
+/ColorSpace /DeviceRGB
+/Coords [ 300 280 0 300 280 150 ]
+/Extend [ false false ]
+/Function 16 0 R
+/ShadingType 3
+>>
+endobj
+16 0 obj
+<<
+/C0 [ 1 1 1 ]
+/C1 [ 0 0.392157 0 ]
+/Domain [ 0 1 ]
+/FunctionType 2
+/N 1
+>>
+endobj
+17 0 obj
+<<
+/First 19 0 R
+/Count 2
+/Last 19 0 R
+>>
+endobj
+18 0 obj
+<<
+/D [ 4 0 R /Fit ]
+/S /GoTo
+>>
+endobj
+19 0 obj
+<<
+/A 18 0 R
+/Title (Graphics)
+/Parent 17 0 R
+/Count 1
+/First 21 0 R
+/Last 21 0 R
+>>
+endobj
+20 0 obj
+<<
+/D [ 9 0 R /Fit ]
+/S /GoTo
+>>
+endobj
+21 0 obj
+<<
+/A 20 0 R
+/Title (Shadings)
+/Parent 19 0 R
+/Count 0
+>>
+endobj
+xref
+0 22
+0000000000 65535 f 
+0000000015 00000 n 
+0000000054 00000 n 
+0000000119 00000 n 
+0000000185 00000 n 
+0000000431 00000 n 
+0000001272 00000 n 
+0000001313 00000 n 
+0000001420 00000 n 
+0000001532 00000 n 
+0000001761 00000 n 
+0000002079 00000 n 
+0000002207 00000 n 
+0000002328 00000 n 
+0000002415 00000 n 
+0000002502 00000 n 
+0000002637 00000 n 
+0000002731 00000 n 
+0000002789 00000 n 
+0000002838 00000 n 
+0000002939 00000 n 
+0000002988 00000 n 
+trailer
+<<
+/Size 22
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+3062
+%%EOF

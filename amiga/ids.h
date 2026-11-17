@@ -1,0 +1,34 @@
+/*
+ * ids.h - the commands of Folio's menus, toolbars, panes and keys: each a MUIM_Application_ReturnID
+ * value main.c's loop acts on. The toolbars send them straight through (a strip item's id is its
+ * command), so every button is also a menu item or a key.
+ */
+#ifndef FOLIO_IDS_H
+#define FOLIO_IDS_H
+
+enum {
+  ID_NONE = 0,
+  /* File */
+  ID_OPEN = 100, ID_CLOSE, ID_CLOSEALL, ID_SAVE, ID_SAVEAS, ID_EXPTEXT, ID_EXPPAGE, ID_EXTRACT, ID_PROPS, ID_ABOUT,
+  ID_QUIT, ID_HOME, ID_TOOLS,
+  ID_RECENT0 = 140,                    /* .. ID_RECENT0 + MAXRECENT - 1 */
+  /* Edit */
+  ID_UNDO = 200, ID_COPY, ID_SELALL, ID_DESELECT, ID_FIND, ID_FINDNEXT, ID_FINDPREV, ID_DELETE, ID_EDITNOTE, ID_AUTHOR,
+  /* View */
+  ID_ZOOMIN = 300, ID_ZOOMOUT, ID_ZOOM100, ID_FITWIDTH, ID_FITPAGE, ID_ZOOMMENU, ID_ROTVIEWL, ID_ROTVIEWR, ID_NAVPANE,
+  ID_TOOLSPANE, ID_THUMBS, ID_BOOKMARKS, ID_DARKUI, ID_FIRST, ID_PREV, ID_NEXT, ID_LAST, ID_GOTO, ID_PAGELABEL,
+  /* tools: ID_TOOL0 + TL_ */
+  ID_TOOL0 = 400,
+  ID_COMMENTMODE = 430, ID_ORGANIZE, ID_COLOR, ID_WIDTH, ID_DONE, ID_COMBINE, ID_EXPORTTOOL,
+  /* pages */
+  ID_ROTL = 500, ID_ROTR, ID_DELPAGES, ID_INSBLANK, ID_INSFILE, ID_MOVEUP, ID_MOVEDOWN, ID_PICKALL,
+  /* Window */
+  ID_NEXTDOC = 600, ID_PREVDOC,
+  /* the parts of the window telling main.c something happened */
+  ID_VIEWCHG = 900, ID_PAGECHG, ID_ZOOMED, ID_ANPICK, ID_TABPICK, ID_TABCLOSE, ID_NAVGO, ID_HOMEPICK, ID_GRIDPICK,
+  ID_PAGEFIELD, ID_FINDSTR, ID_ZOOMCHOSEN, ID_WIDTHCHOSEN, ID_COMMENTPICK, ID_FINDCLOSE, ID_NAVTAB, ID_ACTION,
+  ID_LINK, ID_ORGPICK,
+  /* dialogs */
+  ID_DLGOK = 1000, ID_DLGCANCEL, ID_DLGCHANGE
+};
+#endif

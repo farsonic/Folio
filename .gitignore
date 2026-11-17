@@ -1,0 +1,7 @@
+/Folio
+*.lha
+*.o
+__pycache__/
+# third-party test documents kept out of the public repository
+tests/pdfs/SANA-II.pdf
+tests/pdfs/theme-showcase.pdf
