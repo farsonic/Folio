@@ -1,0 +1,693 @@
+# lang/strings.txt - the words of Folio's interface: tools/mklang.py makes amiga/lang_table.h from it,
+# tools/langcheck.py checks the C source against it (both run by tools/test.sh).
+# One row per English string, five columns split by a TAB: English (exactly as the C source has it),
+# German, French, Spanish, Italian. UTF-8, but only Latin-1 letters (the Amiga's fonts). C escapes
+# \n \t \\ allowed. Lines starting "# " are notes; "## title" starts a section (a comment in the table).
+# The terms are PDFCraft's, as Acrobat words them in each language (Lesezeichen, Signets, Marcadores,
+# Segnalibri; Schwärzen, Biffer, Censurar, Oscura ...).
+
+## common words
+Home	Start	Accueil	Inicio	Home
+Tools	Tools	Outils	Herramientas	Strumenti
+Title	Titel	Titre	Título	Titolo
+Author	Autor	Auteur	Autor	Autore
+Subject	Thema	Objet	Asunto	Oggetto
+Keywords	Stichwörter	Mots clés	Palabras clave	Parole chiave
+None	Keine	Aucun	Ninguno	Nessuno
+Description	Beschreibung	Description	Descripción	Descrizione
+Title:	Titel:	Titre :	Título:	Titolo:
+Author:	Autor:	Auteur :	Autor:	Autore:
+Subject:	Thema:	Objet :	Asunto:	Oggetto:
+Keywords:	Stichwörter:	Mots clés :	Palabras clave:	Parole chiave:
+Document	Dokument	Document	Documento	Documento
+File:	Datei:	Fichier:	Archivo:	File:
+Pages:	Seiten:	Pages :	Páginas:	Pagine:
+Created:	Erstellt:	Création:	Creado:	Data creazione:
+Modified:	Geändert:	Modification:	Modificado:	Data modifica:
+OK	OK	OK	Aceptar	OK
+Letter	Letter	Lettre US	Carta	Lettera
+Portrait	Hochformat	Portrait	Vertical	Verticale
+Landscape	Querformat	Paysage	Horizontal	Orizzontale
+Orientation:	Ausrichtung:	Orientation :	Orientación:	Orientamento:
+Insert	Einfügen	Insertion	Insertar	Inserisci
+Resolution:	Auflösung:	Résolution:	Resolución:	Risoluzione:
+Export	Exportieren	Exporter	Exportar	Esporta
+Password	Kennwort	Mot de passe	Contraseña	Password
+Password:	Kennwort:	Mot de passe :	Contraseña:	Password:
+Open	Öffnen	Ouvrir	Abrir	Apri
+Yes|No	Ja|Nein	Oui|Non	Sí|No	Sì|No
+Text:	Text:	Texte :	Texto:	Testo:
+Text	Text	Texte	Texto	Testo
+List	Liste	Liste	Lista	Elenco
+Left	Links	Gauche	Izquierda	Sinistra
+Centre	Zentriert	Centre	Centro	Al centro
+Right	Rechts	Droite	Derecha	Destra
+Name:	Name:	Nom :	Nombre:	Nome:
+Alignment:	Ausrichtung:	Alignement :	Alineación:	Allineamento:
+Add Text	Text hinzufügen	Ajouter le texte	Agregar texto	Aggiungi testo
+Your initials:	Ihre Initialen:	Vos initiales:	Sus iniciales:	Le tue iniziali:
+Table	Tabelle	Tableau	Tabla	Tabella
+Date	Datum	Date	Fecha	Data
+Picture	Bild	Image	Imagen	Immagine
+Text size:	Textgröße:	Taille du texte :	Tamaño del texto:	Dimensione testo:
+Header & Footer	Kopf- und Fußzeile	En-tête et pied de page	Encabezado y pie de página	Intestazione e piè di pagina
+Add	Hinzufügen	Ajouter	Agregar	Aggiungi
+Watermark:	Wasserzeichen:	Filigrane:	Marca de agua:	Filigrana:
+Angle:	Winkel:	Angle:	Ángulo:	Angolo:
+Watermark	Wasserzeichen	Filigrane	Marca de agua	Filigrana
+Background	Hintergrund	Arrière-plan	Fondo	Sfondo
+Delete	Löschen	Supprimer	Eliminar	Elimina
+Page	Seite	Page	Página	Pagina
+Style:	Stil:	Style :	Estilo:	Stile:
+Start at:	Beginnen mit:	Commencer à:	Iniciar en:	Inizia da:
+Crop	Zuschneiden	Recadrer	Recortar	Ritaglia
+Box:	Rahmen:	Zone :	Cuadro:	Riquadro:
+Split:	Teilen:	Fractionner :	Dividir:	Dividi:
+Split	Teilen	Fractionner	Dividir	Dividi
+Save...	Speichern...	Enregistrer...	Guardar...	Salva...
+Filling in forms	Ausfüllen von Formularen	Remplissage des formulaires	Rellenar formularios	Compilazione moduli
+Comments	Kommentare	Commentaires	Comentarios	Commenti
+Remove	Entfernen	Supprimer	Quitar	Rimuovi
+Pictures:	Bilder:	Images:	Imágenes:	Immagini:
+File	Datei	Fichier	Archivo	File
+Pictures	Bilder	Images	Imágenes	Immagini
+Figure	Abbildung	Figure	Figura	Figura
+Header & Footer...	Kopf- und Fußzeile...	En-tête et pied de page...	Encabezado y pie de página...	Intestazione e piè di pagina...
+Watermark...	Wasserzeichen...	Filigrane...	Marca de agua...	Filigrana...
+Background...	Hintergrund...	Arrière-plan...	Fondo...	Sfondo...
+Cross	Kreuz	Croix	Cruz	Croce
+Line	Linie	Ligne	Línea	Linea
+Field List...	Feldliste...	Liste de champs...	Lista de campos...	Elenco campi...
+Distance	Abstand	Distance	Distancia	Distanza
+Area	Fläche	Aire	Área	Area
+Text...	Text...	Texte...	Texto...	Testo...
+Delete Comment	Kommentar löschen	Supprimer le commentaire	Eliminar comentario	Elimina commento
+Delete|Cancel	Löschen|Abbrechen	Supprimer|Annuler	Eliminar|Cancelar	Elimina|Annulla
+Strikethrough	Durchstreichen	Barré	Tachado	Barrato
+Draw	Zeichnen	Dessiner	Dibujar	Disegna
+Rectangle	Rechteck	Rectangle	Rectángulo	Rettangolo
+Oval	Ellipse	Ovale	Óvalo	Ovale
+Arrow	Pfeil	Flèche	Flecha	Freccia
+Cloud	Wolke	Nuage	Nube	Nuvola
+Open...	Öffnen...	Ouvrir...	Abrir...	Apri...
+Close	Schließen	Fermer	Cerrar	Chiudi
+Save	Speichern	Enregistrer	Guardar	Salva
+Save As...	Speichern unter...	Enregistrer sous...	Guardar como...	Salva con nome...
+Properties...	Eigenschaften...	Propriétés...	Propiedades...	Proprietà...
+Word Count	Wörter zählen	Nombre de mots	Contar palabras	Conteggio parole
+Quit	Beenden	Quitter	Salir	Esci
+Edit	Bearbeiten	Édition	Edición	Modifica
+Undo	Rückgängig	Annuler	Deshacer	Annulla
+Copy	Kopieren	Copier	Copiar	Copia
+Select All	Alles markieren	Tout sélectionner	Seleccionar todo	Seleziona tutto
+Find...	Suchen...	Rechercher...	Buscar...	Trova...
+Find Next	Weitersuchen	Rechercher le suivant	Buscar siguiente	Trova successivo
+View	Ansicht	Affichage	Vista	Visualizza
+Zoom In	Vergrößern	Zoom avant	Acercar	Ingrandisci
+Zoom Out	Verkleinern	Zoom arrière	Alejar	Riduci
+Comment	Kommentar	Commenter	Comentario	Commento
+Pages	Seiten	Pages	Páginas	Pagine
+Accessibility	Barrierefreiheit	Accessibilité	Accesibilidad	Accessibilità
+Check...	Prüfen...	Vérifier...	Comprobar...	Verifica...
+Add Field	Feld hinzufügen	Ajouter un champ	Agregar campo	Aggiungi campo
+Check Box	Kontrollkästchen	Case à cocher	Casilla de verificación	Casella di controllo
+Protect	Schützen	Protéger	Proteger	Proteggi
+Window	Fenster	Fenêtre	Ventana	Finestra
+Zoom	Zoom	Zoom	Zoom	Zoom
+Colour	Farbe	Couleur	Color	Colore
+Cancel	Abbrechen	Annuler	Cancelar	Annulla
+%s couldn't be read.	%s konnte nicht gelesen werden.	Impossible de lire %s.	No se pudo leer %s.	Impossibile leggere %s.
+Save|Don't Save|Cancel	Speichern|Nicht speichern|Abbrechen	Enregistrer|Ne pas enregistrer|Annuler	Guardar|No guardar|Cancelar	Salva|Non salvare|Annulla
+Page number	Seitenzahl	Numéro de page	Número de página	Numero di pagina
+Find:	Suchen:	Rechercher :	Buscar:	Trova:
+Preparing	Vorbereitung	Préparation	Preparando	Preparazione
+Building the window	Fenster wird aufgebaut	Construction de la fenêtre	Construyendo la ventana	Costruzione della finestra
+Opening %s	%s wird geöffnet	Ouverture de %s	Abriendo %s	Apertura di %s
+Properties	Eigenschaften	Propriétés	Propiedades	Proprietà
+Highlight	Hervorhebung	Surlignage	Resaltado	Evidenziazione
+Underline	Unterstrichen	Souligné	Subrayado	Sottolineato
+Text Box	Textfeld	Zone de texte	Cuadro de texto	Casella di testo
+Choose a tool	Werkzeug wählen	Choisissez un outil	Elija una herramienta	Scegli uno strumento
+Page %d of %d	Seite %d von %d	Page %d sur %d	Página %d de %d	Pagina %d di %d
+Go to page %d	Gehe zu Seite %d	Aller à la page %d	Ir a la página %d	Vai a pagina %d
+Password protected (AES-256)	Kennwortgeschützt (AES-256)	Protégé par mot de passe (AES-256)	Protegido con contraseña (AES-256)	Protetto da password (AES-256)
+Password protected (AES-128)	Kennwortgeschützt (AES-128)	Protégé par mot de passe (AES-128)	Protegido con contraseña (AES-128)	Protetto da password (AES-128)
+Password protected (RC4)	Kennwortgeschützt (RC4)	Protégé par mot de passe (RC4)	Protegido con contraseña (RC4)	Protetto da password (RC4)
+Page size:	Seitengröße:	Format de page :	Tamaño de página:	Formato pagina:
+PDF version:	PDF-Version:	Version PDF :	Versión de PDF:	Versione PDF:
+Application:	Anwendung:	Application :	Aplicación:	Applicazione:
+PDF producer:	PDF erstellt mit:	Producteur PDF :	Productor de PDF:	Produttore PDF:
+Security:	Sicherheit:	Sécurité :	Seguridad:	Sicurezza:
+Document Properties	Dokumenteigenschaften	Propriétés du document	Propiedades del documento	Proprietà documento
+Page (1 to %d):	Seite (1 bis %d):	Page (1 à %d) :	Página (1 a %d):	Pagina (da 1 a %d):
+Go to Page	Gehe zu Seite	Aller à la page	Ir a la página	Vai a pagina
+Same as the page in view	Wie die angezeigte Seite	Comme la page affichée	Igual que la página visible	Come la pagina visualizzata
+Insert Blank Page	Leere Seite einfügen	Insérer une page vierge	Insertar página en blanco	Inserisci pagina vuota
+72 dpi (screen)	72 dpi (Bildschirm)	72 ppp (écran)	72 ppp (pantalla)	72 dpi (schermo)
+300 dpi (print)	300 dpi (Druck)	300 ppp (impression)	300 ppp (impresión)	300 dpi (stampa)
+Export Page as PNG	Seite als PNG exportieren	Exporter la page en PNG	Exportar página como PNG	Esporta pagina come PNG
+Export the page as	Seite exportieren als	Exporter la page sous	Exportar la página como	Esporta la pagina come
+The page couldn't be exported (out of memory, or the disk is full or write-protected).	Die Seite konnte nicht exportiert werden (zu wenig Speicher, oder der Datenträger ist voll oder schreibgeschützt).	Impossible d'exporter la page (mémoire insuffisante, ou disque plein ou protégé en écriture).	No se pudo exportar la página (memoria insuficiente, o el disco está lleno o protegido contra escritura).	Impossibile esportare la pagina (memoria insufficiente, o disco pieno o protetto da scrittura).
+Save the text as	Text speichern unter	Enregistrer le texte sous	Guardar el texto como	Salva il testo come
+The text couldn't be saved (out of memory, or the disk is full or write-protected).	Der Text konnte nicht gespeichert werden (zu wenig Speicher, oder der Datenträger ist voll oder schreibgeschützt).	Impossible d'enregistrer le texte (mémoire insuffisante, ou disque plein ou protégé en écriture).	No se pudo guardar el texto (memoria insuficiente, o el disco está lleno o protegido contra escritura).	Impossibile salvare il testo (memoria insufficiente, o disco pieno o protetto da scrittura).
+Extract Pages	Seiten extrahieren	Extraire des pages	Extraer páginas	Estrai pagine
+Pages (for example 2-5, 8):	Seiten (zum Beispiel 2-5, 8):	Pages (par exemple 2-5, 8) :	Páginas (por ejemplo 2-5, 8):	Pagine (ad esempio 2-5, 8):
+No pages were given.	Es wurden keine Seiten angegeben.	Aucune page n'a été indiquée.	No se indicó ninguna página.	Nessuna pagina indicata.
+Save the pages as	Seiten speichern unter	Enregistrer les pages sous	Guardar las páginas como	Salva le pagine come
+The pages couldn't be saved (out of memory, or the disk is full or write-protected).	Die Seiten konnten nicht gespeichert werden (zu wenig Speicher, oder der Datenträger ist voll oder schreibgeschützt).	Impossible d'enregistrer les pages (mémoire insuffisante, ou disque plein ou protégé en écriture).	No se pudieron guardar las páginas (memoria insuficiente, o el disco está lleno o protegido contra escritura).	Impossibile salvare le pagine (memoria insufficiente, o disco pieno o protetto da scrittura).
+That password isn't right.\nEnter the password that opens %s:	Das Kennwort ist falsch.\nGeben Sie das Kennwort zum Öffnen von %s ein:	Ce mot de passe est incorrect.\nSaisissez le mot de passe qui ouvre %s :	La contraseña no es correcta.\nEscriba la contraseña que abre %s:	La password non è corretta.\nInserisci la password che apre %s:
+%s is protected.\nEnter the password that opens it:	%s ist geschützt.\nGeben Sie das Kennwort zum Öffnen ein:	%s est protégé.\nSaisissez le mot de passe qui l'ouvre :	%s está protegido.\nEscriba la contraseña que lo abre:	%s è protetto.\nInserisci la password che lo apre:
+That change is too far back to undo.	Diese Änderung liegt zu weit zurück, um sie rückgängig zu machen.	Cette modification est trop ancienne pour être annulée.	Ese cambio es demasiado antiguo para deshacerlo.	Questa modifica è troppo vecchia per essere annullata.
+all	alle	toutes	todas	tutte
+The file couldn't be saved (out of memory, or the disk is full or write-protected).	Die Datei konnte nicht gespeichert werden (zu wenig Speicher, oder der Datenträger ist voll oder schreibgeschützt).	Impossible d'enregistrer le fichier (mémoire insuffisante, ou disque plein ou protégé en écriture).	No se pudo guardar el archivo (memoria insuficiente, o el disco está lleno o protegido contra escritura).	Impossibile salvare il file (memoria insufficiente, o disco pieno o protetto da scrittura).
+The document couldn't be made (out of memory, or nothing could be read).	Das Dokument konnte nicht erstellt werden (zu wenig Speicher, oder nichts war lesbar).	Impossible de créer le document (mémoire insuffisante, ou rien n'a pu être lu).	No se pudo crear el documento (memoria insuficiente, o no se pudo leer nada).	Impossibile creare il documento (memoria insufficiente, o non è stato possibile leggere nulla).
+The new document couldn't be written to T:.	Das neue Dokument konnte nicht nach T: geschrieben werden.	Impossible d'écrire le nouveau document dans T:.	No se pudo escribir el nuevo documento en T:.	Impossibile scrivere il nuovo documento in T:.
+This field is read-only.	Dieses Feld ist schreibgeschützt.	Ce champ est en lecture seule.	Este campo es de solo lectura.	Questo campo è di sola lettura.
+Text (\\n: new line):	Text (\\n: neue Zeile):	Texte (\\n : nouvelle ligne) :	Texto (\\n: nueva línea):	Testo (\\n: nuova riga):
+(unchanged since signing)	(seit dem Unterschreiben unverändert)	(inchangé depuis la signature)	(sin cambios desde la firma)	(invariato dalla firma)
+(CHANGED since signing)	(seit dem Unterschreiben GEÄNDERT)	(MODIFIÉ depuis la signature)	(MODIFICADO desde la firma)	(MODIFICATO dopo la firma)
+Signatures	Unterschriften	Signatures	Firmas	Firme
+This signature field isn't signed. Folio can't sign with a certificate.	Dieses Unterschriftsfeld ist nicht unterschrieben. Folio kann nicht mit einem Zertifikat unterschreiben.	Ce champ de signature n'est pas signé. Folio ne sait pas signer avec un certificat.	Este campo de firma no está firmado. Folio no puede firmar con un certificado.	Questo campo firma non è firmato. Folio non può firmare con un certificato.
+This document has no form fields.	Dieses Dokument hat keine Formularfelder.	Ce document ne contient aucun champ de formulaire.	Este documento no tiene campos de formulario.	Questo documento non ha campi modulo.
+Check box	Kontrollkästchen	Case à cocher	Casilla de verificación	Casella di controllo
+Radio	Optionsfeld	Bouton radio	Botón de opción	Pulsante di scelta
+Button	Schaltfläche	Bouton	Botón	Pulsante
+Drop-down	Dropdown	Liste déroulante	Desplegable	Elenco a discesa
+Signature	Unterschrift	Signature	Firma	Firma
+Field Properties	Feldeigenschaften	Propriétés du champ	Propiedades del campo	Proprietà campo
+Tooltip:	QuickInfo:	Info-bulle :	Información sobre herramientas:	Descrizione comando:
+Read-only:	Schreibgeschützt:	Lecture seule :	Solo lectura:	Sola lettura:
+Required:	Erforderlich:	Obligatoire :	Obligatorio:	Obbligatorio:
+Most characters (0 any):	Höchstens Zeichen (0 beliebig):	Caractères au plus (0 illimité) :	Máximo de caracteres (0 sin límite):	Numero massimo di caratteri (0 nessun limite):
+Text size (0 auto):	Schriftgröße (0 automatisch):	Taille du texte (0 auto) :	Tamaño del texto (0 automático):	Dimensione testo (0 automatica):
+Import form data (FDF or XFDF)	Formulardaten importieren (FDF oder XFDF)	Importer les données du formulaire (FDF ou XFDF)	Importar datos del formulario (FDF o XFDF)	Importa dati modulo (FDF o XFDF)
+That isn't an FDF or XFDF file.	Das ist keine FDF- oder XFDF-Datei.	Ce n'est pas un fichier FDF ou XFDF.	No es un archivo FDF o XFDF.	Non è un file FDF o XFDF.
+%ld fields were filled in.	%ld Felder wurden ausgefüllt.	%ld champs ont été remplis.	Se rellenaron %ld campos.	Sono stati compilati %ld campi.
+XFDF|FDF|Cancel	XFDF|FDF|Abbrechen	XFDF|FDF|Annuler	XFDF|FDF|Cancelar	XFDF|FDF|Annulla
+Export the form's data as XFDF (XML) or FDF?	Formulardaten als XFDF (XML) oder FDF exportieren?	Exporter les données du formulaire en XFDF (XML) ou en FDF ?	¿Exportar los datos del formulario como XFDF (XML) o FDF?	Esportare i dati del modulo come XFDF (XML) o FDF?
+Export form data	Formulardaten exportieren	Exporter les données du formulaire	Exportar datos del formulario	Esporta dati modulo
+APPROVED	GENEHMIGT	APPROUVÉ	APROBADO	APPROVATO
+NOT APPROVED	NICHT GENEHMIGT	NON APPROUVÉ	NO APROBADO	NON APPROVATO
+DRAFT	ENTWURF	BROUILLON	BORRADOR	BOZZA
+FINAL	ENDGÜLTIG	FINAL	FINAL	DEFINITIVO
+CONFIDENTIAL	VERTRAULICH	CONFIDENTIEL	CONFIDENCIAL	RISERVATO
+FOR COMMENT	ZUR KOMMENTIERUNG	POUR COMMENTAIRE	PARA COMENTARIOS	PER COMMENTI
+COMPLETED	ABGESCHLOSSEN	TERMINÉ	COMPLETADO	COMPLETATO
+VOID	UNGÜLTIG	ANNULÉ	ANULADO	ANNULLATO
+REVISED	ÜBERARBEITET	RÉVISÉ	REVISADO	RIVEDUTO
+RECEIVED	EMPFANGEN	REÇU	RECIBIDO	RICEVUTO
+SIGN HERE	HIER UNTERSCHREIBEN	SIGNER ICI	FIRME AQUÍ	FIRMARE QUI
+WITNESS	ZEUGE	TÉMOIN	TESTIGO	TESTIMONE
+Your own text...	Eigener Text...	Votre propre texte...	Su propio texto...	Testo personalizzato...
+Stamp	Stempel	Tampon	Sello	Timbro
+Stamp text:	Stempeltext:	Texte du tampon :	Texto del sello:	Testo del timbro:
+Initials	Initialen	Initiales	Iniciales	Iniziali
+Your name, to sign with:	Ihr Name zum Unterschreiben:	Votre nom, pour signer :	Su nombre, para firmar:	Il tuo nome, per firmare:
+Add Link	Verknüpfung hinzufügen	Ajouter un lien	Añadir vínculo	Aggiungi collegamento
+A page number, or a web address:	Eine Seitenzahl oder eine Webadresse:	Un numéro de page ou une adresse web :	Un número de página o una dirección web:	Un numero di pagina o un indirizzo web:
+Choose a picture (JPEG or PNG)	Bild wählen (JPEG oder PNG)	Choisissez une image (JPEG ou PNG)	Elija una imagen (JPEG o PNG)	Scegli un'immagine (JPEG o PNG)
+That picture couldn't be read (Folio takes JPEG and PNG).	Das Bild konnte nicht gelesen werden (Folio liest JPEG und PNG).	Impossible de lire cette image (Folio accepte JPEG et PNG).	No se pudo leer la imagen (Folio admite JPEG y PNG).	Impossibile leggere l'immagine (Folio accetta JPEG e PNG).
+Crop this page to the box drawn?	Diese Seite auf den gezeichneten Rahmen zuschneiden?	Recadrer cette page selon le cadre tracé ?	¿Recortar esta página al cuadro dibujado?	Ritagliare questa pagina sul riquadro disegnato?
+One, Two, Three	Eins, Zwei, Drei	Un, Deux, Trois	Uno, Dos, Tres	Uno, Due, Tre
+Choices	Optionen	Choix	Opciones	Opzioni
+The choices, separated by commas:	Die Optionen, durch Kommas getrennt:	Les choix, séparés par des virgules :	Las opciones, separadas por comas:	Le opzioni, separate da virgole:
+Radio Button	Optionsfeld	Bouton radio	Botón de opción	Pulsante di scelta
+The group's name (buttons of one name go together):	Name der Gruppe (Felder mit gleichem Namen gehören zusammen):	Nom du groupe (les boutons de même nom vont ensemble) :	Nombre del grupo (los botones con el mismo nombre van juntos):	Nome del gruppo (i pulsanti con lo stesso nome vanno insieme):
+Text Field Table	Textfeldtabelle	Tableau de champs de texte	Tabla de campos de texto	Tabella di campi di testo
+Rows x columns:	Zeilen x Spalten:	Lignes x colonnes :	Filas x columnas:	Righe x colonne:
+The field couldn't be added.	Das Feld konnte nicht hinzugefügt werden.	Impossible d'ajouter le champ.	No se pudo añadir el campo.	Impossibile aggiungere il campo.
+Prefix:	Präfix:	Préfixe :	Prefijo:	Prefisso:
+Start number:	Startnummer:	Numéro de début :	Número inicial:	Numero iniziale:
+Digits:	Stellen:	Chiffres :	Dígitos:	Cifre:
+Header left:	Kopfzeile links:	En-tête gauche :	Encabezado izquierdo:	Intestazione a sinistra:
+Header centre:	Kopfzeile Mitte:	En-tête centre :	Encabezado central:	Intestazione al centro:
+Header right:	Kopfzeile rechts:	En-tête droite :	Encabezado derecho:	Intestazione a destra:
+Footer left:	Fußzeile links:	Pied de page gauche :	Pie izquierdo:	Piè di pagina a sinistra:
+Footer centre:	Fußzeile Mitte:	Pied de page centre :	Pie central:	Piè di pagina al centro:
+Footer right:	Fußzeile rechts:	Pied de page droite :	Pie derecho:	Piè di pagina a destra:
+Tokens:	Platzhalter:	Codes :	Códigos:	Segnaposto:
+Pages (e.g. 2-5, or all):	Seiten (z. B. 2-5, oder alle):	Pages (p. ex. 2-5, ou toutes) :	Páginas (p. ej. 2-5, o todas):	Pagine (ad es. 2-5, o tutte):
+Bates Numbering	Bates-Nummerierung	Numérotation Bates	Numeración Bates	Numerazione Bates
+Those pages aren't in the document.	Diese Seiten gibt es im Dokument nicht.	Ces pages ne figurent pas dans le document.	Esas páginas no están en el documento.	Queste pagine non sono nel documento.
+Size (points, or % of the page for a picture):	Größe (Punkt, oder % der Seite bei einem Bild):	Taille (points, ou % de la page pour une image) :	Tamaño (puntos, o % de la página para una imagen):	Dimensione (punti, o % della pagina per un'immagine):
+Opacity (%):	Deckkraft (%):	Opacité (%) :	Opacidad (%):	Opacità (%):
+Behind the page:	Hinter der Seite:	Derrière la page :	Detrás de la página:	Dietro la pagina:
+The watermark couldn't be added.	Das Wasserzeichen konnte nicht hinzugefügt werden.	Impossible d'ajouter le filigrane.	No se pudo añadir la marca de agua.	Impossibile aggiungere la filigrana.
+Colour...|Picture...|Cancel	Farbe...|Bild...|Abbrechen	Couleur...|Image...|Annuler	Color...|Imagen...|Cancelar	Colore...|Immagine...|Annulla
+A colour or a picture behind the pages?	Eine Farbe oder ein Bild hinter den Seiten?	Une couleur ou une image derrière les pages ?	¿Un color o una imagen detrás de las páginas?	Un colore o un'immagine dietro le pagine?
+This document has no %s that Folio added.	Dieses Dokument hat keine von Folio hinzugefügten %s.	Ce document ne contient pas de %s ajoutés par Folio.	Este documento no tiene %s añadidos por Folio.	Questo documento non ha %s aggiunti da Folio.
+Attach a file	Datei anhängen	Joindre un fichier	Adjuntar un archivo	Allega un file
+The file couldn't be attached (out of memory?).	Die Datei konnte nicht angehängt werden (zu wenig Speicher?).	Impossible de joindre le fichier (mémoire insuffisante ?).	No se pudo adjuntar el archivo (¿memoria insuficiente?).	Impossibile allegare il file (memoria insufficiente?).
+This document has no attachments.	Dieses Dokument hat keine Anlagen.	Ce document n'a pas de pièces jointes.	Este documento no tiene archivos adjuntos.	Questo documento non ha allegati.
+%s (%ld bytes)	%s (%ld Byte)	%s (%ld octets)	%s (%ld bytes)	%s (%ld byte)
+Attachments: double-click to save one	Anlagen: zum Speichern doppelklicken	Pièces jointes : double-cliquez pour en enregistrer une	Archivos adjuntos: doble clic para guardar uno	Allegati: doppio clic per salvarne uno
+Delete this attachment?	Diese Anlage löschen?	Supprimer cette pièce jointe ?	¿Eliminar este archivo adjunto?	Eliminare questo allegato?
+Save the attachment as	Anlage speichern unter	Enregistrer la pièce jointe sous	Guardar el archivo adjunto como	Salva l'allegato come
+The attachment couldn't be saved.	Die Anlage konnte nicht gespeichert werden.	Impossible d'enregistrer la pièce jointe.	No se pudo guardar el archivo adjunto.	Impossibile salvare l'allegato.
+Add Bookmark	Lesezeichen hinzufügen	Ajouter un signet	Añadir marcador	Aggiungi segnalibro
+Bookmark title:	Titel des Lesezeichens:	Titre du signet :	Título del marcador:	Titolo del segnalibro:
+No headings were found (no text set larger than the body text).	Keine Überschriften gefunden (kein Text größer als der Fließtext).	Aucun titre trouvé (aucun texte plus grand que le corps du texte).	No se encontraron títulos (ningún texto mayor que el cuerpo).	Nessun titolo trovato (nessun testo più grande del corpo).
+Replace the bookmarks with those made from the headings?	Die Lesezeichen durch die aus den Überschriften ersetzen?	Remplacer les signets par ceux créés à partir des titres ?	¿Reemplazar los marcadores por los creados a partir de los títulos?	Sostituire i segnalibri con quelli creati dai titoli?
+This document has no bookmarks.	Dieses Dokument hat keine Lesezeichen.	Ce document n'a pas de signets.	Este documento no tiene marcadores.	Questo documento non ha segnalibri.
+Rename Bookmark	Lesezeichen umbenennen	Renommer le signet	Cambiar nombre del marcador	Rinomina segnalibro
+Delete Bookmark	Lesezeichen löschen	Supprimer le signet	Eliminar marcador	Elimina segnalibro
+From page:	Ab Seite:	À partir de la page :	Desde la página:	Dalla pagina:
+Page Labels	Seitenbeschriftungen	Étiquettes de page	Etiquetas de página	Etichette di pagina
+That page isn't in the document.	Diese Seite gibt es im Dokument nicht.	Cette page ne figure pas dans le document.	Esa página no está en el documento.	Questa pagina non è nel documento.
+Left (mm):	Links (mm):	Gauche (mm) :	Izquierda (mm):	Sinistra (mm):
+Bottom (mm):	Unten (mm):	Bas (mm) :	Inferior (mm):	In basso (mm):
+Right (mm):	Rechts (mm):	Droite (mm) :	Derecha (mm):	Destra (mm):
+Top (mm):	Oben (mm):	Haut (mm) :	Superior (mm):	In alto (mm):
+Crop Pages	Seiten zuschneiden	Recadrer les pages	Recortar páginas	Ritaglia pagine
+Media box	Medienrahmen	Zone de média	Cuadro de medios	Riquadro supporto
+Crop box	Maskenrahmen	Zone de recadrage	Cuadro de recorte	Riquadro ritaglio
+Bleed box	Anschnittrahmen	Zone de fond perdu	Cuadro de sangrado	Riquadro pivello
+Trim box	Endformatrahmen	Zone de rognage	Cuadro de recorte final	Riquadro rifilo
+Art box	Objektrahmen	Zone graphique	Cuadro de material gráfico	Riquadro grafica
+Left (pt):	Links (pt):	Gauche (pt) :	Izquierda (pt):	Sinistra (pt):
+Bottom (pt):	Unten (pt):	Bas (pt) :	Inferior (pt):	In basso (pt):
+Right (pt):	Rechts (pt):	Droite (pt) :	Derecha (pt):	Destra (pt):
+Top (pt):	Oben (pt):	Haut (pt) :	Superior (pt):	In alto (pt):
+Set Page Boxes (this page)	Seitenrahmen festlegen (diese Seite)	Définir les zones de page (cette page)	Establecer cuadros de página (esta página)	Imposta riquadri pagina (questa pagina)
+Set	Festlegen	Définir	Establecer	Imposta
+That box is too small.	Dieser Rahmen ist zu klein.	Cette zone est trop petite.	Ese cuadro es demasiado pequeño.	Il riquadro è troppo piccolo.
+Every so many pages	Alle so viele Seiten	Toutes les N pages	Cada N páginas	Ogni N pagine
+At each top-level bookmark	An jedem Lesezeichen der obersten Ebene	À chaque signet de premier niveau	En cada marcador de nivel superior	A ogni segnalibro di primo livello
+Into so many files	In so viele Dateien	En N fichiers	En N archivos	In N file
+Pages, or files:	Seiten oder Dateien:	Pages ou fichiers :	Páginas o archivos:	Pagine o file:
+Split Document	Dokument teilen	Fractionner le document	Dividir documento	Dividi documento
+That gives only one part: nothing to split.	Das ergibt nur einen Teil: nichts zu teilen.	Cela ne donne qu'une partie : rien à fractionner.	Eso da una sola parte: nada que dividir.	Ne risulta una sola parte: niente da dividere.
+Split: the parts' name (a number is added)	Teilen: Name der Teile (eine Nummer wird angehängt)	Fractionner : nom des parties (un numéro est ajouté)	Dividir: nombre de las partes (se añade un número)	Dividi: nome delle parti (viene aggiunto un numero)
+A part couldn't be saved.	Ein Teil konnte nicht gespeichert werden.	Impossible d'enregistrer une partie.	No se pudo guardar una parte.	Impossibile salvare una parte.
+The document was split into %ld files.	Das Dokument wurde in %ld Dateien geteilt.	Le document a été fractionné en %ld fichiers.	El documento se dividió en %ld archivos.	Il documento è stato diviso in %ld file.
+Replace pages with those of	Seiten ersetzen durch die von	Remplacer les pages par celles de	Reemplazar páginas por las de	Sostituisci pagine con quelle di
+Replace Pages	Seiten ersetzen	Remplacer des pages	Reemplazar páginas	Sostituisci pagine
+Its pages to put in (e.g. 1-3):	Einzusetzende Seiten (z. B. 1-3):	Ses pages à insérer (p. ex. 1-3) :	Sus páginas que se insertan (p. ej. 1-3):	Le sue pagine da inserire (ad es. 1-3):
+Those pages aren't in that document.	Diese Seiten gibt es in jenem Dokument nicht.	Ces pages ne figurent pas dans ce document.	Esas páginas no están en ese documento.	Queste pagine non sono in quel documento.
+The pages couldn't be replaced.	Die Seiten konnten nicht ersetzt werden.	Impossible de remplacer les pages.	No se pudieron reemplazar las páginas.	Impossibile sostituire le pagine.
+AES-256 (Acrobat X and later)	AES-256 (Acrobat X und höher)	AES-256 (Acrobat X et ultérieur)	AES-256 (Acrobat X y posterior)	AES-256 (Acrobat X e successivi)
+AES-128 (Acrobat 7 and later)	AES-128 (Acrobat 7 und höher)	AES-128 (Acrobat 7 et ultérieur)	AES-128 (Acrobat 7 y posterior)	AES-128 (Acrobat 7 e successivi)
+Password to open:	Kennwort zum Öffnen:	Mot de passe d'ouverture :	Contraseña de apertura:	Password di apertura:
+Password for permissions:	Berechtigungskennwort:	Mot de passe des autorisations :	Contraseña de permisos:	Password autorizzazioni:
+Encryption:	Verschlüsselung:	Chiffrement :	Cifrado:	Crittografia:
+Allow printing:	Drucken zulassen:	Autoriser l'impression :	Permitir impresión:	Consenti stampa:
+Allow copying text:	Kopieren von Text zulassen:	Autoriser la copie du texte :	Permitir copiar texto:	Consenti copia del testo:
+Allow changes:	Änderungen zulassen:	Autoriser les modifications :	Permitir cambios:	Consenti modifiche:
+Allow comments:	Kommentare zulassen:	Autoriser les commentaires :	Permitir comentarios:	Consenti commenti:
+Allow filling in forms:	Ausfüllen von Formularen zulassen:	Autoriser le remplissage des formulaires :	Permitir rellenar formularios:	Consenti compilazione moduli:
+Protect with Password	Mit Kennwort schützen	Protéger par mot de passe	Proteger con contraseña	Proteggi con password
+Give a password to open the document, or one for its permissions.	Geben Sie ein Kennwort zum Öffnen des Dokuments oder eines für seine Berechtigungen an.	Indiquez un mot de passe d'ouverture du document, ou un pour ses autorisations.	Indique una contraseña para abrir el documento, o una para sus permisos.	Indica una password per aprire il documento, o una per le sue autorizzazioni.
+Save the protected copy as	Geschützte Kopie speichern unter	Enregistrer la copie protégée sous	Guardar la copia protegida como	Salva la copia protetta come
+The protected copy was saved. The document open here stays as it was.	Die geschützte Kopie wurde gespeichert. Das hier geöffnete Dokument bleibt, wie es war.	La copie protégée a été enregistrée. Le document ouvert ici reste inchangé.	Se guardó la copia protegida. El documento abierto aquí no cambia.	La copia protetta è stata salvata. Il documento aperto qui resta com'era.
+Security	Sicherheit	Sécurité	Seguridad	Sicurezza
+No security: anyone can open, print, copy and change this document.\n\nProtect with Password saves a protected copy.	Keine Sicherheit: Jeder kann dieses Dokument öffnen, drucken, kopieren und ändern.\n\nMit Kennwort schützen speichert eine geschützte Kopie.	Aucune sécurité : tout le monde peut ouvrir, imprimer, copier et modifier ce document.\n\nProtéger par mot de passe enregistre une copie protégée.	Sin seguridad: cualquiera puede abrir, imprimir, copiar y cambiar este documento.\n\nProteger con contraseña guarda una copia protegida.	Nessuna sicurezza: chiunque può aprire, stampare, copiare e modificare questo documento.\n\nProteggi con password salva una copia protetta.
+Encryption	Verschlüsselung	Chiffrement	Cifrado	Crittografia
+Printing	Drucken	Impression	Impresión	Stampa
+allowed	zulässig	autorisé	permitido	consentito
+not allowed	nicht zulässig	non autorisé	no permitido	non consentito
+Copying text	Kopieren von Text	Copie du texte	Copia de texto	Copia del testo
+Changing the document	Ändern des Dokuments	Modification du document	Cambios en el documento	Modifica del documento
+Commenting	Kommentieren	Commentaires	Comentarios	Commenti
+Assembling pages	Zusammenstellen von Seiten	Assemblage des pages	Ensamblado de páginas	Assemblaggio pagine
+Remove Security saves the document without its protection.	Sicherheit entfernen speichert das Dokument ohne seinen Schutz.	Supprimer la sécurité enregistre le document sans sa protection.	Quitar seguridad guarda el documento sin su protección.	Rimuovi sicurezza salva il documento senza la sua protezione.
+Metadata and document information	Metadaten und Dokumentinformationen	Métadonnées et informations du document	Metadatos e información del documento	Metadati e informazioni sul documento
+Scripts and actions	Skripte und Aktionen	Scripts et actions	Scripts y acciones	Script e azioni
+Attachments	Anlagen	Pièces jointes	Archivos adjuntos	Allegati
+Form fields (flattened)	Formularfelder (reduziert)	Champs de formulaire (aplatis)	Campos de formulario (acoplados)	Campi modulo (appiattiti)
+Hidden layers	Ausgeblendete Ebenen	Calques masqués	Capas ocultas	Livelli nascosti
+Invisible text	Unsichtbarer Text	Texte invisible	Texto invisible	Testo invisibile
+Page thumbnails	Seitenminiaturen	Vignettes de page	Miniaturas de página	Miniature di pagina
+Private application data	Private Anwendungsdaten	Données privées d'application	Datos privados de aplicación	Dati privati dell'applicazione
+Links to the web and files	Verknüpfungen ins Web und zu Dateien	Liens vers le web et des fichiers	Vínculos a la web y a archivos	Collegamenti al web e a file
+Bookmarks	Lesezeichen	Signets	Marcadores	Segnalibri
+Sanitize: remove metadata, scripts, attachments, comments, form fields, hidden layers, invisible text, thumbnails, private data and links?	Bereinigen: Metadaten, Skripte, Anlagen, Kommentare, Formularfelder, ausgeblendete Ebenen, unsichtbaren Text, Miniaturen, private Daten und Verknüpfungen entfernen?	Assainir : supprimer les métadonnées, scripts, pièces jointes, commentaires, champs de formulaire, calques masqués, texte invisible, vignettes, données privées et liens ?	Desinfectar: ¿quitar metadatos, scripts, adjuntos, comentarios, campos de formulario, capas ocultas, texto invisible, miniaturas, datos privados y vínculos?	Disinfetta: rimuovere metadati, script, allegati, commenti, campi modulo, livelli nascosti, testo invisibile, miniature, dati privati e collegamenti?
+Nothing hidden was found.	Es wurde nichts Ausgeblendetes gefunden.	Rien de masqué n'a été trouvé.	No se encontró nada oculto.	Non è stato trovato nulla di nascosto.
+Remove Hidden Information	Ausgeblendete Informationen entfernen	Supprimer les informations masquées	Eliminar información oculta	Rimuovi informazioni nascoste
+%ld things were removed.	%ld Elemente wurden entfernt.	%ld éléments ont été supprimés.	Se eliminaron %ld elementos.	Sono stati rimossi %ld elementi.
+Text over each area (none if empty):	Text über jedem Bereich (keiner, wenn leer):	Texte sur chaque zone (aucun si vide) :	Texto sobre cada área (ninguno si está vacío):	Testo su ogni area (nessuno se vuoto):
+Redaction colour	Schwärzungsfarbe	Couleur de biffure	Color de censura	Colore oscuramento
+Redaction Properties	Schwärzungseigenschaften	Propriétés des biffures	Propiedades de censura	Proprietà oscuramento
+Find Text and Redact	Text suchen und schwärzen	Rechercher du texte et biffer	Buscar texto y censurar	Trova testo e oscura
+Text to redact:	Zu schwärzender Text:	Texte à biffer :	Texto que se censura:	Testo da oscurare:
+%ld places were marked for redaction. Apply Redactions takes them out for good.	%ld Stellen wurden zum Schwärzen markiert. Schwärzungen anwenden entfernt sie endgültig.	%ld emplacements ont été marqués pour biffure. Appliquer les biffures les supprime définitivement.	Se marcaron %ld lugares para censurar. Aplicar censuras los elimina definitivamente.	%ld punti sono stati contrassegnati per l'oscuramento. Applica oscuramenti li rimuove definitivamente.
+No areas are marked for redaction.	Es sind keine Bereiche zum Schwärzen markiert.	Aucune zone n'est marquée pour biffure.	No hay áreas marcadas para censurar.	Nessuna area è contrassegnata per l'oscuramento.
+Apply the redactions? What is under them is removed from the document for good when it is saved.	Schwärzungen anwenden? Was darunter liegt, wird beim Speichern endgültig aus dem Dokument entfernt.	Appliquer les biffures ? Ce qui se trouve dessous est définitivement supprimé du document à l'enregistrement.	¿Aplicar las censuras? Lo que hay debajo se elimina definitivamente del documento al guardarlo.	Applicare gli oscuramenti? Ciò che si trova sotto viene rimosso definitivamente dal documento al salvataggio.
+%ld areas were redacted.	%ld Bereiche wurden geschwärzt.	%ld zones ont été biffées.	Se censuraron %ld áreas.	Sono state oscurate %ld aree.
+150 dpi (screen and e-mail)	150 dpi (Bildschirm und E-Mail)	150 ppp (écran et e-mail)	150 ppp (pantalla y correo)	150 dpi (schermo ed e-mail)
+100 dpi (smallest)	100 dpi (am kleinsten)	100 ppp (le plus petit)	100 ppp (el más pequeño)	100 dpi (il più piccolo)
+Keep the pictures	Bilder beibehalten	Conserver les images	Conservar las imágenes	Mantieni le immagini
+Medium (75)	Mittel (75)	Moyenne (75)	Media (75)	Media (75)
+Low (50)	Niedrig (50)	Faible (50)	Baja (50)	Bassa (50)
+High (90)	Hoch (90)	Élevée (90)	Alta (90)	Alta (90)
+JPEG quality:	JPEG-Qualität:	Qualité JPEG :	Calidad JPEG:	Qualità JPEG:
+Store identical streams once:	Identische Streams einmal speichern:	Stocker une seule fois les flux identiques :	Guardar una vez los flujos idénticos:	Memorizza una volta i flussi identici:
+Pack objects (PDF 1.5):	Objekte packen (PDF 1.5):	Compresser les objets (PDF 1.5) :	Empaquetar objetos (PDF 1.5):	Comprimi oggetti (PDF 1.5):
+Remove metadata and thumbnails:	Metadaten und Miniaturen entfernen:	Supprimer les métadonnées et vignettes :	Quitar metadatos y miniaturas:	Rimuovi metadati e miniature:
+Advanced Optimization	Erweiterte Optimierung	Optimisation avancée	Optimización avanzada	Ottimizzazione avanzata
+Reduce File Size	Dateigröße verringern	Réduire la taille du fichier	Reducir tamaño de archivo	Riduci dimensione file
+Save the smaller copy as	Kleinere Kopie speichern unter	Enregistrer la copie réduite sous	Guardar la copia reducida como	Salva la copia ridotta come
+Saved: %lu KB (the original was %lu KB).	Gespeichert: %lu KB (das Original hatte %lu KB).	Enregistré : %lu Ko (l'original faisait %lu Ko).	Guardado: %lu KB (el original tenía %lu KB).	Salvato: %lu KB (l'originale era %lu KB).
+Embedded fonts	Eingebettete Schriften	Polices incorporées	Fuentes incrustadas	Font incorporati
+Page content	Seiteninhalt	Contenu des pages	Contenido de página	Contenuto pagina
+Forms and appearances	Formulare und Erscheinungsbilder	Formulaires et apparences	Formularios y apariencias	Moduli e aspetti
+Metadata	Metadaten	Métadonnées	Metadatos	Metadati
+Other streams	Andere Streams	Autres flux	Otros flujos	Altri flussi
+Objects and structure	Objekte und Struktur	Objets et structure	Objetos y estructura	Oggetti e struttura
+Audit Space Usage	Speicherplatznutzung prüfen	Contrôle de l'espace utilisé	Auditar uso del espacio	Controlla uso dello spazio
+Choose a text file	Textdatei wählen	Choisissez un fichier texte	Elija un archivo de texto	Scegli un file di testo
+Choose pictures (JPEG or PNG)	Bilder wählen (JPEG oder PNG)	Choisissez des images (JPEG ou PNG)	Elija imágenes (JPEG o PNG)	Scegli immagini (JPEG o PNG)
+Export as a web page	Als Webseite exportieren	Exporter en page web	Exportar como página web	Esporta come pagina web
+Export as RTF	Als RTF exportieren	Exporter en RTF	Exportar como RTF	Esporta come RTF
+Export as Word	Als Word exportieren	Exporter en Word	Exportar como Word	Esporta come Word
+Export as PowerPoint	Als PowerPoint exportieren	Exporter en PowerPoint	Exportar como PowerPoint	Esporta come PowerPoint
+Export all pictures: their names start with	Alle Bilder exportieren: ihre Namen beginnen mit	Exporter toutes les images : leur nom commence par	Exportar todas las imágenes: sus nombres empiezan por	Esporta tutte le immagini: i nomi iniziano con
+%ld pictures were saved.	%ld Bilder wurden gespeichert.	%ld images ont été enregistrées.	Se guardaron %ld imágenes.	Sono state salvate %ld immagini.
+Compare with (the older version)	Vergleichen mit (der älteren Version)	Comparer avec (l'ancienne version)	Comparar con (la versión anterior)	Confronta con (la versione precedente)
+The documents' text is the same.	Der Text der Dokumente ist gleich.	Le texte des documents est identique.	El texto de los documentos es el mismo.	Il testo dei documenti è lo stesso.
+Compare Files: changes are highlighted in this document	Dateien vergleichen: Änderungen sind in diesem Dokument hervorgehoben	Comparer des fichiers : les modifications sont surlignées dans ce document	Comparar archivos: los cambios están resaltados en este documento	Confronta file: le modifiche sono evidenziate in questo documento
+Accessibility Check	Barrierefreiheitsprüfung	Vérification de l'accessibilité	Comprobación de accesibilidad	Verifica accessibilità
+Language (e.g. en-GB, de-DE):	Sprache (z. B. en-GB, de-DE):	Langue (p. ex. en-GB, fr-FR) :	Idioma (p. ej. en-GB, es-ES):	Lingua (ad es. en-GB, it-IT):
+Show the title, not the file name:	Titel statt Dateiname anzeigen:	Afficher le titre, pas le nom du fichier :	Mostrar el título, no el nombre del archivo:	Mostra il titolo, non il nome del file:
+Reading Options	Leseoptionen	Options de lecture	Opciones de lectura	Opzioni di lettura
+This document is tagged already.	Dieses Dokument hat bereits Tags.	Ce document est déjà balisé.	Este documento ya está etiquetado.	Questo documento ha già i tag.
+%ld pages were tagged (a paragraph each; form fields as fields).	%ld Seiten wurden mit Tags versehen (je ein Absatz; Formularfelder als Felder).	%ld pages ont été balisées (un paragraphe chacune ; champs de formulaire en champs).	Se etiquetaron %ld páginas (un párrafo cada una; campos de formulario como campos).	Sono state aggiunti i tag a %ld pagine (un paragrafo ciascuna; campi modulo come campi).
+Tags	Tags	Balises	Etiquetas	Tag
+All content is tagged.	Alle Inhalte haben Tags.	Tout le contenu est balisé.	Todo el contenido está etiquetado.	Tutto il contenuto ha i tag.
+%ld pages have untagged content; the first is shown.	%ld Seiten haben Inhalte ohne Tags; die erste wird gezeigt.	%ld pages contiennent du contenu non balisé ; la première est affichée.	%ld páginas tienen contenido sin etiquetar; se muestra la primera.	%ld pagine hanno contenuto senza tag; viene mostrata la prima.
+No figures are tagged in this document.	In diesem Dokument sind keine Abbildungen mit Tags versehen.	Aucune figure n'est balisée dans ce document.	No hay figuras etiquetadas en este documento.	Nessuna figura ha i tag in questo documento.
+(no alternate text)	(kein Alternativtext)	(pas de texte de remplacement)	(sin texto alternativo)	(nessun testo alternativo)
+Add Alternate Text	Alternativtext hinzufügen	Ajouter un texte de remplacement	Añadir texto alternativo	Aggiungi testo alternativo
+Alternate Text	Alternativtext	Texte de remplacement	Texto alternativo	Testo alternativo
+What the figure shows:	Was die Abbildung zeigt:	Ce que montre la figure :	Lo que muestra la figura:	Cosa mostra la figura:
+This document has no signatures.	Dieses Dokument hat keine Unterschriften.	Ce document n'a pas de signatures.	Este documento no tiene firmas.	Questo documento non ha firme.
+(signer not named)	(Unterzeichner nicht genannt)	(signataire non nommé)	(firmante sin nombre)	(firmatario non indicato)
+ (certifies the document)	 (zertifiziert das Dokument)	 (certifie le document)	 (certifica el documento)	 (certifica il documento)
+Reason	Grund	Motif	Motivo	Motivo
+The signed part of the file hasn't changed since signing.	Der unterschriebene Teil der Datei ist seit dem Unterschreiben unverändert.	La partie signée du fichier n'a pas changé depuis la signature.	La parte firmada del archivo no ha cambiado desde la firma.	La parte firmata del file non è cambiata dalla firma.
+The signed part of the file HAS CHANGED since signing.	Der unterschriebene Teil der Datei WURDE seit dem Unterschreiben GEÄNDERT.	La partie signée du fichier A ÉTÉ MODIFIÉE depuis la signature.	La parte firmada del archivo HA CAMBIADO desde la firma.	La parte firmata del file È CAMBIATA dopo la firma.
+Folio couldn't check this signature's digest.	Folio konnte den Hashwert dieser Unterschrift nicht prüfen.	Folio n'a pas pu vérifier l'empreinte de cette signature.	Folio no pudo comprobar el resumen de esta firma.	Folio non ha potuto verificare l'impronta di questa firma.
+Nothing was added after it.	Danach wurde nichts hinzugefügt.	Rien n'a été ajouté après elle.	No se añadió nada después.	Dopo non è stato aggiunto nulla.
+The document was changed after it was signed (an update was added).	Das Dokument wurde nach dem Unterschreiben geändert (eine Aktualisierung wurde angehängt).	Le document a été modifié après sa signature (une mise à jour a été ajoutée).	El documento se cambió después de firmarlo (se añadió una actualización).	Il documento è stato modificato dopo la firma (è stato aggiunto un aggiornamento).
+Folio checks the digest only: it doesn't check the signer's certificate.	Folio prüft nur den Hashwert, nicht das Zertifikat des Unterzeichners.	Folio vérifie seulement l'empreinte, pas le certificat du signataire.	Folio solo comprueba el resumen, no el certificado del firmante.	Folio verifica solo l'impronta, non il certificato del firmatario.
+Save as PDF/A	Als PDF/A speichern	Enregistrer au format PDF/A	Guardar como PDF/A	Salva come PDF/A
+Saved, but these keep it from being valid PDF/A:	Gespeichert, aber dies verhindert gültiges PDF/A:	Enregistré, mais ceci l'empêche d'être un PDF/A valide :	Guardado, pero esto impide que sea PDF/A válido:	Salvato, ma questo impedisce che sia un PDF/A valido:
+Saved as PDF/A-2B.	Als PDF/A-2B gespeichert.	Enregistré au format PDF/A-2B.	Guardado como PDF/A-2B.	Salvato come PDF/A-2B.
+Export measurements	Messungen exportieren	Exporter les mesures	Exportar mediciones	Esporta misurazioni
+Measurements	Messungen	Mesures	Mediciones	Misurazioni
+No measurements in this document.	Keine Messungen in diesem Dokument.	Aucune mesure dans ce document.	No hay mediciones en este documento.	Nessuna misurazione in questo documento.
+%d pages, %ld words, %ld characters (not counting spaces).	%d Seiten, %ld Wörter, %ld Zeichen (ohne Leerzeichen).	%d pages, %ld mots, %ld caractères (espaces non compris).	%d páginas, %ld palabras, %ld caracteres (sin contar espacios).	%d pagine, %ld parole, %ld caratteri (spazi esclusi).
+Add Picture	Bild hinzufügen	Ajouter une image	Añadir imagen	Aggiungi immagine
+Bates Numbering...	Bates-Nummerierung...	Numérotation Bates...	Numeración Bates...	Numerazione Bates...
+Attach File...	Datei anhängen...	Joindre un fichier...	Adjuntar archivo...	Allega file...
+Rotate Pages	Seiten drehen	Faire pivoter les pages	Girar páginas	Ruota pagine
+Insert Pages...	Seiten einfügen...	Insérer des pages...	Insertar páginas...	Inserisci pagine...
+Delete Pages...	Seiten löschen...	Supprimer des pages...	Eliminar páginas...	Elimina pagine...
+Extract Pages...	Seiten extrahieren...	Extraire des pages...	Extraer páginas...	Estrai pagine...
+Organize Pages	Seiten verwalten	Organiser les pages	Organizar páginas	Organizza pagine
+Blank Document...	Leeres Dokument...	Document vierge...	Documento en blanco...	Documento vuoto...
+From Pictures...	Aus Bildern...	À partir d'images...	Desde imágenes...	Da immagini...
+From a Text File...	Aus einer Textdatei...	À partir d'un fichier texte...	Desde un archivo de texto...	Da un file di testo...
+From the Clipboard	Aus der Zwischenablage	À partir du presse-papiers	Desde el portapapeles	Dagli Appunti
+Pictures to Separate PDFs...	Bilder in einzelne PDFs...	Images en PDF séparés...	Imágenes en PDF separados...	Immagini in PDF separati...
+Combine Files...	Dateien zusammenführen...	Combiner des fichiers...	Combinar archivos...	Combina file...
+Checkmark	Häkchen	Coche	Marca de verificación	Segno di spunta
+Dot	Punkt	Point	Punto	Punto
+Change Signature...	Unterschrift ändern...	Modifier la signature...	Cambiar firma...	Modifica firma...
+Change Initials...	Initialen ändern...	Modifier les initiales...	Cambiar iniciales...	Modifica iniziali...
+Detect Form Fields	Formularfelder erkennen	Détecter les champs de formulaire	Detectar campos de formulario	Rileva campi modulo
+Clear Form	Formular löschen	Effacer le formulaire	Borrar formulario	Cancella modulo
+Field Properties...	Feldeigenschaften...	Propriétés du champ...	Propiedades del campo...	Proprietà campo...
+Tab Order by Rows	Tab-Reihenfolge nach Zeilen	Ordre de tabulation par lignes	Orden de tabulación por filas	Ordine di tabulazione per righe
+Tab Order by Columns	Tab-Reihenfolge nach Spalten	Ordre de tabulation par colonnes	Orden de tabulación por columnas	Ordine di tabulazione per colonne
+Calculation Order...	Berechnungsreihenfolge...	Ordre de calcul...	Orden de cálculo...	Ordine di calcolo...
+Flatten Form	Formular reduzieren	Aplatir le formulaire	Acoplar formulario	Appiattisci modulo
+Import Data...	Daten importieren...	Importer des données...	Importar datos...	Importa dati...
+Export Data...	Daten exportieren...	Exporter des données...	Exportar datos...	Esporta dati...
+Add Text Field	Textfeld hinzufügen	Ajouter un champ de texte	Añadir campo de texto	Aggiungi campo di testo
+Add Text Field Table	Textfeldtabelle hinzufügen	Ajouter un tableau de champs de texte	Añadir tabla de campos de texto	Aggiungi tabella di campi di testo
+Add Check Box	Kontrollkästchen hinzufügen	Ajouter une case à cocher	Añadir casilla de verificación	Aggiungi casella di controllo
+Add Radio Button	Optionsfeld hinzufügen	Ajouter un bouton radio	Añadir botón de opción	Aggiungi pulsante di scelta
+Add Drop-down List	Dropdown-Liste hinzufügen	Ajouter une liste déroulante	Añadir lista desplegable	Aggiungi elenco a discesa
+Add List Box	Listenfeld hinzufügen	Ajouter une zone de liste	Añadir cuadro de lista	Aggiungi casella di riepilogo
+Add Button	Schaltfläche hinzufügen	Ajouter un bouton	Añadir botón	Aggiungi pulsante
+Add Picture Field	Bildfeld hinzufügen	Ajouter un champ d'image	Añadir campo de imagen	Aggiungi campo immagine
+Add Date Field	Datumsfeld hinzufügen	Ajouter un champ de date	Añadir campo de fecha	Aggiungi campo data
+Add Signature Field	Unterschriftsfeld hinzufügen	Ajouter un champ de signature	Añadir campo de firma	Aggiungi campo firma
+Protect with Password...	Mit Kennwort schützen...	Protéger par mot de passe...	Proteger con contraseña...	Proteggi con password...
+Remove Hidden Information...	Ausgeblendete Informationen entfernen...	Supprimer les informations masquées...	Eliminar información oculta...	Rimuovi informazioni nascoste...
+Security Properties...	Sicherheitseigenschaften...	Propriétés de sécurité...	Propiedades de seguridad...	Proprietà di sicurezza...
+Remove Security	Sicherheit entfernen	Supprimer la sécurité	Quitar seguridad	Rimuovi sicurezza
+Redact Area	Bereich schwärzen	Biffer une zone	Censurar área	Oscura area
+Redact Page	Seite schwärzen	Biffer la page	Censurar página	Oscura pagina
+Find Text and Redact...	Text suchen und schwärzen...	Rechercher du texte et biffer...	Buscar texto y censurar...	Trova testo e oscura...
+Redaction Properties...	Schwärzungseigenschaften...	Propriétés des biffures...	Propiedades de censura...	Proprietà oscuramento...
+Apply Redactions	Schwärzungen anwenden	Appliquer les biffures	Aplicar censuras	Applica oscuramenti
+Sanitize Document...	Dokument bereinigen...	Assainir le document...	Desinfectar documento...	Disinfetta documento...
+Reduce File Size...	Dateigröße verringern...	Réduire la taille du fichier...	Reducir tamaño de archivo...	Riduci dimensione file...
+Advanced Optimization...	Erweiterte Optimierung...	Optimisation avancée...	Optimización avanzada...	Ottimizzazione avanzata...
+Audit Space Usage...	Speicherplatznutzung prüfen...	Contrôle de l'espace utilisé...	Auditar uso del espacio...	Controlla uso dello spazio...
+Perimeter	Umfang	Périmètre	Perímetro	Perimetro
+Drawing Scale...	Zeichnungsmaßstab...	Échelle du dessin...	Escala del dibujo...	Scala del disegno...
+Measurements...	Messungen...	Mesures...	Mediciones...	Misurazioni...
+Export Measurements...	Messungen exportieren...	Exporter les mesures...	Exportar mediciones...	Esporta misurazioni...
+Automatically Tag	Automatisch mit Tags versehen	Baliser automatiquement	Etiquetar automáticamente	Aggiungi tag automaticamente
+Reading Options...	Leseoptionen...	Options de lecture...	Opciones de lectura...	Opzioni di lettura...
+Check for Accessibility...	Barrierefreiheit prüfen...	Vérifier l'accessibilité...	Comprobar accesibilidad...	Verifica accessibilità...
+Find Untagged Content	Inhalt ohne Tags suchen	Rechercher le contenu non balisé	Buscar contenido sin etiquetar	Trova contenuto senza tag
+Alternate Text...	Alternativtext...	Texte de remplacement...	Texto alternativo...	Testo alternativo...
+Tags...	Tags...	Balises...	Etiquetas...	Tag...
+Fix Hairlines...	Haarlinien korrigieren...	Corriger les filets fins...	Corregir líneas finas...	Correggi linee sottili...
+Convert Colours to Grey	Farben in Graustufen konvertieren	Convertir les couleurs en niveaux de gris	Convertir colores a escala de grises	Converti colori in scala di grigi
+Add Printer Marks...	Druckermarken hinzufügen...	Ajouter des repères d'impression...	Añadir marcas de impresora...	Aggiungi indicatori di stampa...
+Set Page Boxes...	Seitenrahmen festlegen...	Définir les zones de page...	Establecer cuadros de página...	Imposta riquadri pagina...
+Crop Pages...	Seiten zuschneiden...	Recadrer les pages...	Recortar páginas...	Ritaglia pagine...
+Page as PNG Picture...	Seite als PNG-Bild...	Page en image PNG...	Página como imagen PNG...	Pagina come immagine PNG...
+Web Page (HTML)...	Webseite (HTML)...	Page web (HTML)...	Página web (HTML)...	Pagina web (HTML)...
+Rich Text (RTF)...	Rich Text (RTF)...	Texte enrichi (RTF)...	Texto enriquecido (RTF)...	Rich Text (RTF)...
+Word (.docx)...	Word (.docx)...	Word (.docx)...	Word (.docx)...	Word (.docx)...
+PowerPoint (.pptx)...	PowerPoint (.pptx)...	PowerPoint (.pptx)...	PowerPoint (.pptx)...	PowerPoint (.pptx)...
+All Pictures...	Alle Bilder...	Toutes les images...	Todas las imágenes...	Tutte le immagini...
+Replace Pages...	Seiten ersetzen...	Remplacer des pages...	Reemplazar páginas...	Sostituisci pagine...
+Split Document...	Dokument teilen...	Fractionner le document...	Dividir documento...	Dividi documento...
+Duplicate Page...	Seite duplizieren...	Dupliquer la page...	Duplicar página...	Duplica pagina...
+Reverse Pages	Seiten umkehren	Inverser les pages	Invertir páginas	Inverti pagine
+Page Labels...	Seitenbeschriftungen...	Étiquettes de page...	Etiquetas de página...	Etichette di pagina...
+Save as PDF/A...	Als PDF/A speichern...	Enregistrer au format PDF/A...	Guardar como PDF/A...	Salva come PDF/A...
+Signatures...	Unterschriften...	Signatures...	Firmas...	Firme...
+Compare Files...	Dateien vergleichen...	Comparer des fichiers...	Comparar archivos...	Confronta file...
+Edit a PDF	PDF bearbeiten	Modifier un PDF	Editar PDF	Modifica PDF
+Create a PDF	PDF erstellen	Créer un PDF	Crear PDF	Crea PDF
+Fill & Sign	Ausfüllen und unterschreiben	Remplir et signer	Rellenar y firmar	Compila e firma
+Prepare a Form	Formular vorbereiten	Préparer un formulaire	Preparar formulario	Prepara modulo
+Protect a PDF	PDF schützen	Protéger un PDF	Proteger PDF	Proteggi PDF
+Redact a PDF	PDF schwärzen	Biffer un PDF	Censurar PDF	Oscura PDF
+Compress a PDF	PDF komprimieren	Compresser un PDF	Comprimir PDF	Comprimi PDF
+Measure Objects	Objekte messen	Mesurer des objets	Medir objetos	Misura oggetti
+Prepare for Accessibility	Barrierefreiheit vorbereiten	Préparer l'accessibilité	Preparar accesibilidad	Prepara accessibilità
+Print Production	Druckproduktion	Production d'impression	Producción de impresión	Produzione di stampa
+Export a PDF	PDF exportieren	Exporter un PDF	Exportar PDF	Esporta PDF
+Standards and Signatures	Standards und Unterschriften	Normes et signatures	Estándares y firmas	Standard e firme
+The clipboard holds no text.	Die Zwischenablage enthält keinen Text.	Le presse-papiers ne contient pas de texte.	El portapapeles no contiene texto.	Gli Appunti non contengono testo.
+Choose pictures: each becomes a PDF beside it	Bilder wählen: jedes wird zu einem PDF daneben	Choisissez des images : chacune devient un PDF à côté	Elija imágenes: cada una se convierte en un PDF a su lado	Scegli immagini: ognuna diventa un PDF accanto
+%ld PDF files were made.	%ld PDF-Dateien wurden erstellt.	%ld fichiers PDF ont été créés.	Se crearon %ld archivos PDF.	Sono stati creati %ld file PDF.
+An inch on the page is (units):	Ein Zoll auf der Seite entspricht (Einheiten):	Un pouce sur la page vaut (unités) :	Una pulgada en la página equivale a (unidades):	Un pollice sulla pagina vale (unità):
+Unit:	Einheit:	Unité :	Unidad:	Unità:
+Drawing Scale	Zeichnungsmaßstab	Échelle du dessin	Escala del dibujo	Scala del disegno
+Open a document first.	Öffnen Sie zuerst ein Dokument.	Ouvrez d'abord un document.	Abra primero un documento.	Apri prima un documento.
+This document isn't protected.	Dieses Dokument ist nicht geschützt.	Ce document n'est pas protégé.	Este documento no está protegido.	Questo documento non è protetto.
+Save the document now: it is saved without its protection.	Speichern Sie das Dokument jetzt: Es wird ohne seinen Schutz gespeichert.	Enregistrez le document maintenant : il est enregistré sans sa protection.	Guarde ahora el documento: se guarda sin su protección.	Salva ora il documento: viene salvato senza la sua protezione.
+headers or footers	Kopf- oder Fußzeilen	en-têtes ou pieds de page	encabezados o pies de página	intestazioni o piè di pagina
+Bates numbers	Bates-Nummern	numéros Bates	números Bates	numeri Bates
+watermarks	Wasserzeichen	filigranes	marcas de agua	filigrane
+backgrounds	Hintergründe	arrière-plans	fondos	sfondi
+Fix Hairlines	Haarlinien korrigieren	Corriger les filets fins	Corregir líneas finas	Correggi linee sottili
+Lines thinner than this (points) made this wide:	Linien dünner als dies (Punkt) auf diese Breite bringen:	Lignes plus fines que ceci (points) élargies à cette valeur :	Líneas más finas que esto (puntos) con este grosor:	Linee più sottili di questo (punti) portate a questa larghezza:
+%ld pages had hairlines fixed.	Auf %ld Seiten wurden Haarlinien korrigiert.	Les filets fins ont été corrigés sur %ld pages.	Se corrigieron líneas finas en %ld páginas.	Sono state corrette le linee sottili su %ld pagine.
+Convert the document's colours (and colour pictures) to grey?	Farben des Dokuments (und farbige Bilder) in Graustufen konvertieren?	Convertir les couleurs du document (et les images en couleur) en niveaux de gris ?	¿Convertir los colores del documento (y las imágenes en color) a escala de grises?	Convertire i colori del documento (e le immagini a colori) in scala di grigi?
+Add Printer Marks	Druckermarken hinzufügen	Ajouter des repères d'impression	Añadir marcas de impresora	Aggiungi indicatori di stampa
+Bleed (mm):	Anschnitt (mm):	Fond perdu (mm) :	Sangrado (mm):	Pivello (mm):
+Flatten the comments into the pages? They can't be edited afterwards.	Kommentare in die Seiten reduzieren? Sie können danach nicht mehr bearbeitet werden.	Aplatir les commentaires dans les pages ? Ils ne pourront plus être modifiés.	¿Acoplar los comentarios a las páginas? Después no se podrán editar.	Appiattire i commenti nelle pagine? Non potranno più essere modificati.
+Duplicate Page	Seite duplizieren	Dupliquer la page	Duplicar página	Duplica pagina
+Copies of the page in view:	Kopien der angezeigten Seite:	Copies de la page affichée :	Copias de la página visible:	Copie della pagina visualizzata:
+Reverse the order of the pages?	Reihenfolge der Seiten umkehren?	Inverser l'ordre des pages ?	¿Invertir el orden de las páginas?	Invertire l'ordine delle pagine?
+Fields: double-click to go to one	Felder: zum Anspringen doppelklicken	Champs : double-cliquez pour y aller	Campos: doble clic para ir a uno	Campi: doppio clic per andarci
+%ld fields were made on this page.	Auf dieser Seite wurden %ld Felder erstellt.	%ld champs ont été créés sur cette page.	Se crearon %ld campos en esta página.	Sono stati creati %ld campi in questa pagina.
+Clear every field of the form?	Alle Felder des Formulars löschen?	Effacer tous les champs du formulaire ?	¿Borrar todos los campos del formulario?	Cancellare tutti i campi del modulo?
+The fields' tab order was set.	Die Tab-Reihenfolge der Felder wurde festgelegt.	L'ordre de tabulation des champs a été défini.	Se estableció el orden de tabulación de los campos.	L'ordine di tabulazione dei campi è stato impostato.
+Calculation Order: the field to calculate first	Berechnungsreihenfolge: das zuerst zu berechnende Feld	Ordre de calcul : le champ à calculer en premier	Orden de cálculo: el campo que se calcula primero	Ordine di calcolo: il campo da calcolare per primo
+The calculation order was set (Folio itself doesn't run calculations: they need JavaScript).	Die Berechnungsreihenfolge wurde festgelegt (Folio selbst rechnet nicht: dafür ist JavaScript nötig).	L'ordre de calcul a été défini (Folio n'exécute pas les calculs : ils demandent JavaScript).	Se estableció el orden de cálculo (Folio no ejecuta cálculos: necesitan JavaScript).	L'ordine di calcolo è stato impostato (Folio non esegue i calcoli: richiedono JavaScript).
+Flatten the form? Its fields become part of the pages and can't be filled in afterwards.	Formular reduzieren? Seine Felder werden Teil der Seiten und können danach nicht mehr ausgefüllt werden.	Aplatir le formulaire ? Ses champs font alors partie des pages et ne peuvent plus être remplis.	¿Acoplar el formulario? Sus campos pasan a formar parte de las páginas y ya no se podrán rellenar.	Appiattire il modulo? I suoi campi diventano parte delle pagine e non potranno più essere compilati.
+There are no changes to throw away.	Es gibt keine Änderungen zum Verwerfen.	Il n'y a aucune modification à abandonner.	No hay cambios que descartar.	Non ci sono modifiche da scartare.
+Throw away the changes and go back to the file as it was saved?	Änderungen verwerfen und zur gespeicherten Datei zurückkehren?	Abandonner les modifications et revenir au fichier enregistré ?	¿Descartar los cambios y volver al archivo tal como se guardó?	Scartare le modifiche e tornare al file salvato?
+Add Comment	Kommentar hinzufügen	Ajouter un commentaire	Añadir comentario	Aggiungi commento
+Edit Comment	Kommentar bearbeiten	Modifier le commentaire	Editar comentario	Modifica commento
+Delete Pages	Seiten löschen	Supprimer des pages	Eliminar páginas	Elimina pagine
+Move Page	Seite verschieben	Déplacer la page	Mover página	Sposta pagina
+Insert Pages	Seiten einfügen	Insérer des pages	Insertar páginas	Inserisci pagine
+Change Document	Dokument ändern	Modifier le document	Cambiar documento	Modifica documento
+Sticky Note	Notiz	Note	Nota adhesiva	Nota
+The comment:	Der Kommentar:	Le commentaire :	El comentario:	Il commento:
+The text:	Der Text:	Le texte :	El texto:	Il testo:
+A document needs at least one page: pick fewer to delete.	Ein Dokument braucht mindestens eine Seite: Wählen Sie weniger zum Löschen.	Un document doit avoir au moins une page : choisissez-en moins à supprimer.	Un documento necesita al menos una página: elija menos para eliminar.	Un documento deve avere almeno una pagina: scegline meno da eliminare.
+Delete page %d?	Seite %d löschen?	Supprimer la page %d ?	¿Eliminar la página %d?	Eliminare la pagina %d?
+Delete the %d pages picked?	Die %d gewählten Seiten löschen?	Supprimer les %d pages choisies ?	¿Eliminar las %d páginas elegidas?	Eliminare le %d pagine scelte?
+Insert the pages of	Seiten einfügen aus	Insérer les pages de	Insertar las páginas de	Inserisci le pagine di
+The pages couldn't be inserted (out of memory?).	Die Seiten konnten nicht eingefügt werden (zu wenig Speicher?).	Impossible d'insérer les pages (mémoire insuffisante ?).	No se pudieron insertar las páginas (¿memoria insuficiente?).	Impossibile inserire le pagine (memoria insufficiente?).
+Select Text	Text auswählen	Sélectionner du texte	Seleccionar texto	Seleziona testo
+Hand	Hand	Main	Mano	Mano
+Highlight Text	Text hervorheben	Surligner le texte	Resaltar texto	Evidenzia testo
+Underline Text	Text unterstreichen	Souligner le texte	Subrayar texto	Sottolinea testo
+Add Text Box	Textfeld hinzufügen	Ajouter une zone de texte	Añadir cuadro de texto	Aggiungi casella di testo
+Squiggly Underline	Wellenlinie	Soulignement ondulé	Subrayado ondulado	Sottolineatura ondulata
+Measure Distance	Abstand messen	Mesurer la distance	Medir distancia	Misura distanza
+Measure Area	Fläche messen	Mesurer l'aire	Medir área	Misura area
+Measure Perimeter	Umfang messen	Mesurer le périmètre	Medir perímetro	Misura perimetro
+Add Form Field	Formularfeld hinzufügen	Ajouter un champ de formulaire	Añadir campo de formulario	Aggiungi campo modulo
+Crop Page	Seite zuschneiden	Recadrer la page	Recortar página	Ritaglia pagina
+Fill In Text	Text ausfüllen	Remplir du texte	Rellenar texto	Compila testo
+New Blank Document...	Neues leeres Dokument...	Nouveau document vierge...	Nuevo documento en blanco...	Nuovo documento vuoto...
+Create PDF	PDF erstellen	Créer un PDF	Crear PDF	Crea PDF
+Close All	Alle schließen	Tout fermer	Cerrar todo	Chiudi tutto
+Revert to Saved	Zurück zur letzten Version	Revenir à la version enregistrée	Volver a la versión guardada	Ripristina versione salvata
+All Tools	Alle Werkzeuge	Tous les outils	Todas las herramientas	Tutti gli strumenti
+About Folio...	Über Folio...	À propos de Folio...	Acerca de Folio...	Informazioni su Folio...
+Deselect	Auswahl aufheben	Désélectionner	Anular selección	Deseleziona
+Find Previous	Vorheriges suchen	Rechercher le précédent	Buscar anterior	Trova precedente
+Edit Comment Text...	Kommentartext bearbeiten...	Modifier le texte du commentaire...	Editar texto del comentario...	Modifica testo commento...
+Comment Author...	Kommentarautor...	Auteur des commentaires...	Autor de comentarios...	Autore commenti...
+Actual Size	Originalgröße	Taille réelle	Tamaño real	Dimensioni effettive
+Fit Width	Breite anpassen	Ajuster à la largeur	Ajustar al ancho	Adatta larghezza
+Fit Page	Seite anpassen	Ajuster à la page	Ajustar a la página	Adatta pagina
+Rotate View Clockwise	Ansicht im Uhrzeigersinn drehen	Faire pivoter la vue dans le sens horaire	Girar vista a la derecha	Ruota vista in senso orario
+Rotate View Anticlockwise	Ansicht gegen den Uhrzeigersinn drehen	Faire pivoter la vue dans le sens antihoraire	Girar vista a la izquierda	Ruota vista in senso antiorario
+First Page	Erste Seite	Première page	Primera página	Prima pagina
+Previous Page	Vorherige Seite	Page précédente	Página anterior	Pagina precedente
+Next Page	Nächste Seite	Page suivante	Página siguiente	Pagina successiva
+Last Page	Letzte Seite	Dernière page	Última página	Ultima pagina
+Go to Page...	Gehe zu Seite...	Aller à la page...	Ir a la página...	Vai a pagina...
+Page Thumbnails	Seitenminiaturen	Vignettes de page	Miniaturas de página	Miniature di pagina
+Tools Pane	Werkzeugfenster	Volet Outils	Panel de herramientas	Riquadro strumenti
+Dark Interface	Dunkle Oberfläche	Interface sombre	Interfaz oscura	Interfaccia scura
+Stamp...	Stempel...	Tampon...	Sello...	Timbro...
+Flatten Comments	Kommentare reduzieren	Aplatir les commentaires	Acoplar comentarios	Appiattisci commenti
+Comment Colour...	Kommentarfarbe...	Couleur des commentaires...	Color del comentario...	Colore commento...
+Rotate Anticlockwise	Gegen den Uhrzeigersinn drehen	Faire pivoter dans le sens antihoraire	Girar a la izquierda	Ruota in senso antiorario
+Rotate Clockwise	Im Uhrzeigersinn drehen	Faire pivoter dans le sens horaire	Girar a la derecha	Ruota in senso orario
+Insert Blank Page...	Leere Seite einfügen...	Insérer une page vierge...	Insertar página en blanco...	Inserisci pagina vuota...
+Insert Pages from File...	Seiten aus Datei einfügen...	Insérer des pages d'un fichier...	Insertar páginas de un archivo...	Inserisci pagine da file...
+Move Page Earlier	Seite nach vorne verschieben	Avancer la page	Mover página hacia delante	Sposta pagina prima
+Move Page Later	Seite nach hinten verschieben	Reculer la page	Mover página hacia atrás	Sposta pagina dopo
+Crop Page to a Box	Seite auf Rahmen zuschneiden	Recadrer la page selon un cadre	Recortar página a un cuadro	Ritaglia pagina su un riquadro
+Add or Update...	Hinzufügen oder aktualisieren...	Ajouter ou mettre à jour...	Añadir o actualizar...	Aggiungi o aggiorna...
+Attachments...	Anlagen...	Pièces jointes...	Archivos adjuntos...	Allegati...
+Add Bookmark...	Lesezeichen hinzufügen...	Ajouter un signet...	Añadir marcador...	Aggiungi segnalibro...
+Rename Bookmark...	Lesezeichen umbenennen...	Renommer le signet...	Cambiar nombre del marcador...	Rinomina segnalibro...
+Delete Bookmark...	Lesezeichen löschen...	Supprimer le signet...	Eliminar marcador...	Elimina segnalibro...
+New Bookmarks from Headings	Neue Lesezeichen aus Überschriften	Nouveaux signets à partir des titres	Nuevos marcadores a partir de títulos	Nuovi segnalibri dai titoli
+Optimize	Optimieren	Optimiser	Optimizar	Ottimizza
+Forms	Formulare	Formulaires	Formularios	Moduli
+Text Field	Textfeld	Champ de texte	Campo de texto	Campo di testo
+Drop-down List	Dropdown-Liste	Liste déroulante	Lista desplegable	Elenco a discesa
+List Box	Listenfeld	Zone de liste	Cuadro de lista	Casella di riepilogo
+Picture Field	Bildfeld	Champ d'image	Campo de imagen	Campo immagine
+Date Field	Datumsfeld	Champ de date	Campo de fecha	Campo data
+Signature Field	Unterschriftsfeld	Champ de signature	Campo de firma	Campo firma
+Next Document	Nächstes Dokument	Document suivant	Documento siguiente	Documento successivo
+Previous Document	Vorheriges Dokument	Document précédent	Documento anterior	Documento precedente
+Open a PDF file.	Eine PDF-Datei öffnen.	Ouvrir un fichier PDF.	Abrir un archivo PDF.	Apri un file PDF.
+Save the changes to the file.	Die Änderungen in der Datei speichern.	Enregistrer les modifications dans le fichier.	Guardar los cambios en el archivo.	Salva le modifiche nel file.
+Find Text	Text suchen	Rechercher du texte	Buscar texto	Trova testo
+Search the document for words.	Das Dokument nach Wörtern durchsuchen.	Rechercher des mots dans le document.	Buscar palabras en el documento.	Cerca parole nel documento.
+Select text to copy it, and choose comments to edit or delete them.	Text zum Kopieren auswählen, und Kommentare zum Bearbeiten oder Löschen wählen.	Sélectionner du texte pour le copier, et choisir des commentaires pour les modifier ou supprimer.	Seleccionar texto para copiarlo, y elegir comentarios para editarlos o eliminarlos.	Seleziona il testo per copiarlo e scegli i commenti per modificarli o eliminarli.
+Drag the pages to scroll them.	Seiten ziehen, um sie zu verschieben.	Faire glisser les pages pour les faire défiler.	Arrastrar las páginas para desplazarlas.	Trascina le pagine per scorrerle.
+Choose a zoom from a list.	Einen Zoom aus einer Liste wählen.	Choisir un zoom dans une liste.	Elegir un zoom de una lista.	Scegli uno zoom da un elenco.
+The pages as wide as the window.	Die Seiten so breit wie das Fenster.	Les pages aussi larges que la fenêtre.	Las páginas tan anchas como la ventana.	Le pagine larghe quanto la finestra.
+A whole page in the window.	Eine ganze Seite im Fenster.	Une page entière dans la fenêtre.	Una página entera en la ventana.	Una pagina intera nella finestra.
+Click on the page to add a comment there.	Auf die Seite klicken, um dort einen Kommentar hinzuzufügen.	Cliquer sur la page pour y ajouter un commentaire.	Hacer clic en la página para añadir allí un comentario.	Fai clic sulla pagina per aggiungervi un commento.
+Drag across text to highlight it.	Über Text ziehen, um ihn hervorzuheben.	Faire glisser sur le texte pour le surligner.	Arrastrar sobre el texto para resaltarlo.	Trascina sul testo per evidenziarlo.
+Draw freehand on the page.	Freihand auf der Seite zeichnen.	Dessiner à main levée sur la page.	Dibujar a mano alzada en la página.	Disegna a mano libera sulla pagina.
+Show or hide the tools on the right.	Die Werkzeuge rechts ein- oder ausblenden.	Afficher ou masquer les outils à droite.	Mostrar u ocultar las herramientas a la derecha.	Mostra o nascondi gli strumenti a destra.
+Select text, and choose comments to edit or delete them.	Text auswählen, und Kommentare zum Bearbeiten oder Löschen wählen.	Sélectionner du texte, et choisir des commentaires pour les modifier ou supprimer.	Seleccionar texto, y elegir comentarios para editarlos o eliminarlos.	Seleziona il testo e scegli i commenti per modificarli o eliminarli.
+Drag across text to underline it.	Über Text ziehen, um ihn zu unterstreichen.	Faire glisser sur le texte pour le souligner.	Arrastrar sobre el texto para subrayarlo.	Trascina sul testo per sottolinearlo.
+Drag across text to strike it out.	Über Text ziehen, um ihn durchzustreichen.	Faire glisser sur le texte pour le barrer.	Arrastrar sobre el texto para tacharlo.	Trascina sul testo per barrarlo.
+Click or drag a box on the page, then type the text.	Auf die Seite klicken oder einen Rahmen ziehen, dann den Text eingeben.	Cliquer ou tracer un cadre sur la page, puis saisir le texte.	Hacer clic o arrastrar un cuadro en la página y escribir el texto.	Fai clic o trascina un riquadro sulla pagina, poi scrivi il testo.
+Drag to draw a rectangle.	Ziehen, um ein Rechteck zu zeichnen.	Faire glisser pour tracer un rectangle.	Arrastrar para dibujar un rectángulo.	Trascina per disegnare un rettangolo.
+Drag to draw an oval.	Ziehen, um eine Ellipse zu zeichnen.	Faire glisser pour tracer un ovale.	Arrastrar para dibujar un óvalo.	Trascina per disegnare un ovale.
+Drag to draw a line.	Ziehen, um eine Linie zu zeichnen.	Faire glisser pour tracer une ligne.	Arrastrar para dibujar una línea.	Trascina per disegnare una linea.
+The colour of the tool chosen.	Die Farbe des gewählten Werkzeugs.	La couleur de l'outil choisi.	El color de la herramienta elegida.	Il colore dello strumento scelto.
+Line Width	Linienbreite	Épaisseur de ligne	Grosor de línea	Spessore linea
+The width of drawn lines and shapes.	Die Breite gezeichneter Linien und Formen.	L'épaisseur des lignes et formes tracées.	El grosor de las líneas y formas dibujadas.	Lo spessore di linee e forme disegnate.
+Delete the comment chosen.	Den gewählten Kommentar löschen.	Supprimer le commentaire choisi.	Eliminar el comentario elegido.	Elimina il commento scelto.
+Close the comment tools.	Die Kommentarwerkzeuge schließen.	Fermer les outils de commentaire.	Cerrar las herramientas de comentario.	Chiudi gli strumenti di commento.
+Turn the pages picked.	Die gewählten Seiten drehen.	Faire pivoter les pages choisies.	Girar las páginas elegidas.	Ruota le pagine scelte.
+Delete the pages picked.	Die gewählten Seiten löschen.	Supprimer les pages choisies.	Eliminar las páginas elegidas.	Elimina le pagine scelte.
+An empty page after the one picked.	Eine leere Seite nach der gewählten.	Une page vide après celle choisie.	Una página vacía tras la elegida.	Una pagina vuota dopo quella scelta.
+Insert the pages of another PDF after the one picked.	Die Seiten eines anderen PDFs nach der gewählten einfügen.	Insérer les pages d'un autre PDF après celle choisie.	Insertar las páginas de otro PDF tras la elegida.	Inserisci le pagine di un altro PDF dopo quella scelta.
+Extract	Extrahieren	Extraire	Extraer	Estrai
+Save the pages picked as a new PDF.	Die gewählten Seiten als neues PDF speichern.	Enregistrer les pages choisies dans un nouveau PDF.	Guardar las páginas elegidas como un PDF nuevo.	Salva le pagine scelte come nuovo PDF.
+Move Earlier	Nach vorne	Avancer	Hacia delante	Sposta prima
+Move Later	Nach hinten	Reculer	Hacia atrás	Sposta dopo
+Back to reading.	Zurück zum Lesen.	Retour à la lecture.	Volver a la lectura.	Torna alla lettura.
+Hex #	Hex #	Hex #	Hex #	Hex #
+%s couldn't be opened:\n%s	%s konnte nicht geöffnet werden:\n%s	Impossible d'ouvrir %s :\n%s	No se pudo abrir %s:\n%s	Impossibile aprire %s:\n%s
+not a PDF file	keine PDF-Datei	ce n'est pas un fichier PDF	no es un archivo PDF	non è un file PDF
+%s has no pages Folio can find.	Folio findet in %s keine Seiten.	Folio ne trouve aucune page dans %s.	Folio no encuentra páginas en %s.	Folio non trova pagine in %s.
+Folio can have %s documents open at once.\nClose one to open another.	Folio kann %s Dokumente gleichzeitig geöffnet haben.\nSchließen Sie eines, um ein anderes zu öffnen.	Folio peut avoir %s documents ouverts à la fois.\nFermez-en un pour en ouvrir un autre.	Folio puede tener %s documentos abiertos a la vez.\nCierre uno para abrir otro.	Folio può avere %s documenti aperti insieme.\nChiudine uno per aprirne un altro.
+Open a PDF file	PDF-Datei öffnen	Ouvrir un fichier PDF	Abrir un archivo PDF	Apri un file PDF
+Save|Cancel	Speichern|Abbrechen	Enregistrer|Annuler	Guardar|Cancelar	Salva|Annulla
+This document is password protected. Folio saves it without the protection:\nanyone will be able to open the copy saved.	Dieses Dokument ist kennwortgeschützt. Folio speichert es ohne den Schutz:\nJeder kann die gespeicherte Kopie öffnen.	Ce document est protégé par mot de passe. Folio l'enregistre sans la protection :\ntout le monde pourra ouvrir la copie enregistrée.	Este documento está protegido con contraseña. Folio lo guarda sin la protección:\ncualquiera podrá abrir la copia guardada.	Questo documento è protetto da password. Folio lo salva senza la protezione:\nchiunque potrà aprire la copia salvata.
+%s couldn't be saved (out of memory, or the disk is full or write-protected).	%s konnte nicht gespeichert werden (zu wenig Speicher, oder der Datenträger ist voll oder schreibgeschützt).	Impossible d'enregistrer %s (mémoire insuffisante, ou disque plein ou protégé en écriture).	No se pudo guardar %s (memoria insuficiente, o el disco está lleno o protegido contra escritura).	Impossibile salvare %s (memoria insufficiente, o disco pieno o protetto da scrittura).
+Save the document as	Dokument speichern unter	Enregistrer le document sous	Guardar el documento como	Salva il documento come
+Save the changes to %s before closing?	Änderungen an %s vor dem Schließen speichern?	Enregistrer les modifications de %s avant de fermer ?	¿Guardar los cambios de %s antes de cerrar?	Salvare le modifiche a %s prima di chiudere?
+"%s" wasn't found in the document.	"%s" wurde im Dokument nicht gefunden.	"%s" est introuvable dans le document.	No se encontró "%s" en el documento.	"%s" non è stato trovato nel documento.
+Comment Author	Kommentarautor	Auteur des commentaires	Autor de comentarios	Autore commenti
+Your name, written into comments:	Ihr Name, in Kommentare geschrieben:	Votre nom, inscrit dans les commentaires :	Su nombre, escrito en los comentarios:	Il tuo nome, scritto nei commenti:
+Page as PNG...|Text...|Cancel	Seite als PNG...|Text...|Abbrechen	Page en PNG...|Texte...|Annuler	Página como PNG...|Texto...|Cancelar	Pagina come PNG...|Testo...|Annulla
+Export the page in view as a picture, or all the document's text?	Die angezeigte Seite als Bild exportieren, oder den ganzen Text des Dokuments?	Exporter la page affichée en image, ou tout le texte du document ?	¿Exportar la página visible como imagen, o todo el texto del documento?	Esportare la pagina visualizzata come immagine, o tutto il testo del documento?
+Adding Folio's fonts drawer	Folios Schriftenschublade wird eingebunden	Ajout du tiroir de polices de Folio	Añadiendo el cajón de fuentes de Folio	Aggiunta del cassetto dei font di Folio
+A PDF viewer and editor	Ein PDF-Betrachter und -Editor	Un lecteur et éditeur PDF	Un visor y editor de PDF	Un visualizzatore ed editor PDF
+Opening the window	Fenster wird geöffnet	Ouverture de la fenêtre	Abriendo la ventana	Apertura della finestra
+Folio couldn't open its own screen fonts, so text is drawn in the\nsystem font. Keep the Fonts drawer next to Folio.	Folio konnte seine Bildschirmschriften nicht öffnen, daher wird Text in der\nSystemschrift gezeichnet. Lassen Sie die Schublade Fonts neben Folio.	Folio n'a pas pu ouvrir ses polices d'écran : le texte est affiché dans la\npolice système. Laissez le tiroir Fonts à côté de Folio.	Folio no pudo abrir sus fuentes de pantalla, así que el texto se dibuja con la\nfuente del sistema. Deje el cajón Fonts junto a Folio.	Folio non ha potuto aprire i propri font dello schermo, quindi il testo è disegnato con il\nfont di sistema. Tieni il cassetto Fonts accanto a Folio.
+This link goes to a web page:	Diese Verknüpfung führt zu einer Webseite:	Ce lien mène à une page web :	Este vínculo lleva a una página web:	Questo collegamento porta a una pagina web:
+Copy Address|OK	Adresse kopieren|OK	Copier l'adresse|OK	Copiar dirección|Aceptar	Copia indirizzo|OK
+No bookmarks	Keine Lesezeichen	Aucun signet	Sin marcadores	Nessun segnalibro
+Add sticky notes, highlight, underline and strike out text, add text boxes, draw and add shapes.	Notizen hinzufügen, Text hervorheben, unterstreichen und durchstreichen, Textfelder hinzufügen, zeichnen und Formen hinzufügen.	Ajouter des notes, surligner, souligner et barrer du texte, ajouter des zones de texte, dessiner et ajouter des formes.	Añadir notas, resaltar, subrayar y tachar texto, añadir cuadros de texto, dibujar y añadir formas.	Aggiungi note, evidenzia, sottolinea e barra il testo, aggiungi caselle di testo, disegna e aggiungi forme.
+See every page as a thumbnail: reorder, rotate, delete, insert and extract pages.	Jede Seite als Miniatur sehen: Seiten umordnen, drehen, löschen, einfügen und extrahieren.	Voir chaque page en vignette : réorganiser, faire pivoter, supprimer, insérer et extraire des pages.	Ver cada página como miniatura: reordenar, girar, eliminar, insertar y extraer páginas.	Vedi ogni pagina come miniatura: riordina, ruota, elimina, inserisci ed estrai pagine.
+Combine Files	Dateien zusammenführen	Combiner des fichiers	Combinar archivos	Combina file
+Add the pages of another PDF to the end of this one.	Die Seiten eines anderen PDFs am Ende dieses anfügen.	Ajouter les pages d'un autre PDF à la fin de celui-ci.	Añadir las páginas de otro PDF al final de este.	Aggiungi le pagine di un altro PDF alla fine di questo.
+Export PDF	PDF exportieren	Exporter un PDF	Exportar PDF	Esporta PDF
+As pictures, text, a web page, RTF, Word or PowerPoint, or every picture it holds.	Als Bilder, Text, Webseite, RTF, Word oder PowerPoint, oder alle enthaltenen Bilder.	En images, texte, page web, RTF, Word ou PowerPoint, ou toutes ses images.	Como imágenes, texto, página web, RTF, Word o PowerPoint, o todas sus imágenes.	Come immagini, testo, pagina web, RTF, Word o PowerPoint, o tutte le immagini che contiene.
+Save some of the pages as a new PDF file.	Einige der Seiten als neue PDF-Datei speichern.	Enregistrer certaines pages dans un nouveau fichier PDF.	Guardar algunas de las páginas como un archivo PDF nuevo.	Salva alcune pagine come nuovo file PDF.
+Add an empty page after the one in view.	Eine leere Seite nach der angezeigten hinzufügen.	Ajouter une page vide après celle affichée.	Añadir una página vacía tras la visible.	Aggiungi una pagina vuota dopo quella visualizzata.
+The document's title, author, subject and keywords, and what it is made of.	Titel, Autor, Thema und Stichwörter des Dokuments, und woraus es besteht.	Le titre, l'auteur, l'objet et les mots clés du document, et sa composition.	El título, autor, asunto y palabras clave del documento, y de qué está hecho.	Titolo, autore, oggetto e parole chiave del documento, e di cosa è fatto.
+Add text, pictures, links, headers and footers, watermarks, backgrounds, Bates numbers and attachments.	Text, Bilder, Verknüpfungen, Kopf- und Fußzeilen, Wasserzeichen, Hintergründe, Bates-Nummern und Anlagen hinzufügen.	Ajouter du texte, des images, des liens, en-têtes et pieds de page, filigranes, arrière-plans, numéros Bates et pièces jointes.	Añadir texto, imágenes, vínculos, encabezados y pies, marcas de agua, fondos, números Bates y adjuntos.	Aggiungi testo, immagini, collegamenti, intestazioni e piè di pagina, filigrane, sfondi, numeri Bates e allegati.
+Type into a form without fields, tick, cross, date and sign.	In ein Formular ohne Felder schreiben, abhaken, ankreuzen, datieren und unterschreiben.	Saisir dans un formulaire sans champs, cocher, croiser, dater et signer.	Escribir en un formulario sin campos, marcar, tachar, fechar y firmar.	Scrivi in un modulo senza campi, spunta, barra, data e firma.
+Add form fields, find them, set their properties and tab order, clear, flatten, import and export data.	Formularfelder hinzufügen, erkennen, Eigenschaften und Tab-Reihenfolge festlegen, löschen, reduzieren, Daten importieren und exportieren.	Ajouter des champs, les détecter, définir leurs propriétés et l'ordre de tabulation, effacer, aplatir, importer et exporter les données.	Añadir campos, detectarlos, establecer propiedades y orden de tabulación, borrar, acoplar, importar y exportar datos.	Aggiungi campi, rilevali, imposta proprietà e ordine di tabulazione, cancella, appiattisci, importa ed esporta dati.
+Password protection with permissions, hidden information, security.	Kennwortschutz mit Berechtigungen, ausgeblendete Informationen, Sicherheit.	Protection par mot de passe avec autorisations, informations masquées, sécurité.	Protección con contraseña y permisos, información oculta, seguridad.	Protezione con password e autorizzazioni, informazioni nascoste, sicurezza.
+Mark areas, pages or text found, then remove what is under them for good.	Bereiche, Seiten oder gefundenen Text markieren und dann das Darunterliegende endgültig entfernen.	Marquer des zones, des pages ou du texte trouvé, puis supprimer définitivement ce qui est dessous.	Marcar áreas, páginas o texto encontrado y eliminar definitivamente lo que hay debajo.	Contrassegna aree, pagine o testo trovato, poi rimuovi definitivamente ciò che sta sotto.
+Make the file smaller: pictures at a lower resolution, streams compressed, objects packed.	Die Datei verkleinern: Bilder mit geringerer Auflösung, Streams komprimiert, Objekte gepackt.	Réduire le fichier : images à plus basse résolution, flux compressés, objets regroupés.	Reducir el archivo: imágenes a menor resolución, flujos comprimidos, objetos empaquetados.	Riduci il file: immagini a risoluzione più bassa, flussi compressi, oggetti compattati.
+A blank document, or one from pictures, a text file or the clipboard.	Ein leeres Dokument, oder eines aus Bildern, einer Textdatei oder der Zwischenablage.	Un document vierge, ou à partir d'images, d'un fichier texte ou du presse-papiers.	Un documento en blanco, o a partir de imágenes, un archivo de texto o el portapapeles.	Un documento vuoto, o da immagini, un file di testo o gli Appunti.
+More Page Tools	Weitere Seitenwerkzeuge	Autres outils de page	Más herramientas de página	Altri strumenti di pagina
+Replace, split, duplicate, reverse and crop pages; page boxes and labels.	Seiten ersetzen, teilen, duplizieren, umkehren und zuschneiden; Seitenrahmen und -beschriftungen.	Remplacer, fractionner, dupliquer, inverser et recadrer des pages ; zones et étiquettes de page.	Reemplazar, dividir, duplicar, invertir y recortar páginas; cuadros y etiquetas de página.	Sostituisci, dividi, duplica, inverti e ritaglia pagine; riquadri ed etichette di pagina.
+Add a Stamp	Stempel hinzufügen	Ajouter un tampon	Añadir sello	Aggiungi timbro
+Approved, Draft, Confidential and other stamps, or your own text.	Genehmigt, Entwurf, Vertraulich und andere Stempel, oder eigener Text.	Approuvé, Brouillon, Confidentiel et d'autres tampons, ou votre propre texte.	Aprobado, Borrador, Confidencial y otros sellos, o su propio texto.	Approvato, Bozza, Riservato e altri timbri, o testo personalizzato.
+Distances, perimeters and areas at a drawing scale.	Abstände, Umfänge und Flächen in einem Zeichnungsmaßstab.	Distances, périmètres et aires à l'échelle d'un dessin.	Distancias, perímetros y áreas a una escala de dibujo.	Distanze, perimetri e aree in una scala di disegno.
+Tag the document, check it, reading options and alternate text.	Dokument mit Tags versehen, prüfen, Leseoptionen und Alternativtext.	Baliser le document, le vérifier, options de lecture et texte de remplacement.	Etiquetar el documento, comprobarlo, opciones de lectura y texto alternativo.	Aggiungi tag al documento, verificalo, opzioni di lettura e testo alternativo.
+Hairlines, grey, printer's marks and page boxes.	Haarlinien, Graustufen, Druckermarken und Seitenrahmen.	Filets fins, niveaux de gris, repères d'impression et zones de page.	Líneas finas, escala de grises, marcas de impresora y cuadros de página.	Linee sottili, scala di grigi, indicatori di stampa e riquadri pagina.
+Compare, Sign, Standards	Vergleichen, Unterschreiben, Standards	Comparer, signer, normes	Comparar, firmar, estándares	Confronta, firma, standard
+Compare two versions, check signatures, save as PDF/A.	Zwei Versionen vergleichen, Unterschriften prüfen, als PDF/A speichern.	Comparer deux versions, vérifier les signatures, enregistrer en PDF/A.	Comparar dos versiones, comprobar firmas, guardar como PDF/A.	Confronta due versioni, verifica le firme, salva come PDF/A.
+Squiggly	Wellenlinie	Ondulé	Ondulado	Ondulato
+Drawing	Zeichnung	Dessin	Dibujo	Disegno
+No comments yet. Choose a tool above and click or drag on the page.	Noch keine Kommentare. Wählen Sie oben ein Werkzeug und klicken oder ziehen Sie auf der Seite.	Pas encore de commentaires. Choisissez un outil ci-dessus et cliquez ou faites glisser sur la page.	Aún no hay comentarios. Elija una herramienta arriba y haga clic o arrastre en la página.	Ancora nessun commento. Scegli uno strumento sopra e fai clic o trascina sulla pagina.
+Welcome to Folio	Willkommen bei Folio	Bienvenue dans Folio	Bienvenido a Folio	Benvenuto in Folio
+Read, comment on and organize PDF documents.	PDF-Dokumente lesen, kommentieren und verwalten.	Lire, commenter et organiser des documents PDF.	Leer, comentar y organizar documentos PDF.	Leggi, commenta e organizza documenti PDF.
+Open File...	Datei öffnen...	Ouvrir un fichier...	Abrir archivo...	Apri file...
+See all tools	Alle Werkzeuge anzeigen	Voir tous les outils	Ver todas las herramientas	Vedi tutti gli strumenti
+Recent files	Zuletzt verwendete Dateien	Fichiers récents	Archivos recientes	File recenti
+The files you open will be listed here.	Die geöffneten Dateien werden hier aufgeführt.	Les fichiers ouverts seront listés ici.	Los archivos que abra aparecerán aquí.	I file che apri saranno elencati qui.
+All tools	Alle Werkzeuge	Tous les outils	Todas las herramientas	Tutti gli strumenti
+Measure	Messen	Mesurer	Medir	Misura
+Language	Sprache	Langue	Idioma	Lingua
+As in Locale Prefs	Wie in den Locale-Einstellungen	Comme dans les préférences Locale	Como en las preferencias Locale	Come nelle preferenze Locale
+The menus change to the new language the next time Folio starts.	Die Menüs wechseln beim nächsten Start von Folio in die neue Sprache.	Les menus passent à la nouvelle langue au prochain démarrage de Folio.	Los menús cambian al nuevo idioma la próxima vez que se inicie Folio.	I menu passano alla nuova lingua al prossimo avvio di Folio.
+A PDF viewer and editor for the Amiga, laid out as PDFCraft is.\n\nReads PDF 1.0 to 2.0 with its own renderer and fonts; finds, copies\nand edits text; comments, forms, signatures, page tools, redaction,\nexport, OCR, accessibility and print production.\n\nWritten in C for MUI; drawn with its own icons.	Ein PDF-Betrachter und -Editor für den Amiga, aufgebaut wie PDFCraft.\n\nLiest PDF 1.0 bis 2.0 mit eigenem Renderer und eigenen Schriften; sucht,\nkopiert und bearbeitet Text; Kommentare, Formulare, Unterschriften,\nSeitenwerkzeuge, Schwärzen, Export, Texterkennung, Barrierefreiheit\nund Druckproduktion.\n\nGeschrieben in C für MUI; mit eigenen Symbolen.	Un lecteur et éditeur PDF pour l'Amiga, organisé comme PDFCraft.\n\nLit les PDF 1.0 à 2.0 avec son propre moteur de rendu et ses polices ;\nrecherche, copie et modifie le texte ; commentaires, formulaires,\nsignatures, outils de page, biffure, exportation, reconnaissance de texte,\naccessibilité et production d'impression.\n\nÉcrit en C pour MUI ; dessiné avec ses propres icônes.	Un visor y editor de PDF para el Amiga, organizado como PDFCraft.\n\nLee PDF 1.0 a 2.0 con su propio motor y fuentes; busca, copia y edita\ntexto; comentarios, formularios, firmas, herramientas de página,\ncensura, exportación, OCR, accesibilidad y producción de impresión.\n\nEscrito en C para MUI; dibujado con sus propios iconos.	Un visualizzatore ed editor PDF per l'Amiga, organizzato come PDFCraft.\n\nLegge PDF da 1.0 a 2.0 con il proprio motore e i propri font; trova,\ncopia e modifica il testo; commenti, moduli, firme, strumenti di pagina,\noscuramento, esportazione, OCR, accessibilità e produzione di stampa.\n\nScritto in C per MUI; disegnato con le proprie icone.

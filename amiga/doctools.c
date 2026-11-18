@@ -186,7 +186,18 @@ static int dlist(const char *title, char **items, int n, int cur, const char *al
   MUI_DisposeObject(w);
   return r >= 0 && r < n ? r : -1;
 }
-/* text to read (UTF-8) */
+/* true if s is well-formed UTF-8 (text in Latin-1 with letters past ASCII almost never is) */
+static int is_utf8(const char *s)
+{
+  const u8 *p = (const u8 *)s;
+  while (*p) {
+    int k = *p < 0x80 ? 0 : (*p & 0xE0) == 0xC0 ? 1 : (*p & 0xF0) == 0xE0 ? 2 : (*p & 0xF8) == 0xF0 ? 3 : -1;
+    if (k < 0) return 0;
+    for (p++; k > 0; k--, p++) if ((*p & 0xC0) != 0x80) return 0;
+  }
+  return 1;
+}
+/* text to read: UTF-8 (from the document or the core), or Latin-1 (the interface's translated words) */
 static void dshow(const char *title, const char *utf8)
 {
   static const ULONG ends[] = { ID_DLGOK, 0 };
@@ -194,7 +205,8 @@ static void dshow(const char *title, const char *utf8)
   char *lat = (char *)malloc(n * 3 + 4);
   Object *w;
   if (!lat) return;
-  utf8_to_latin1(utf8 ? utf8 : "", n, lat, n * 3 + 4);
+  if (utf8 && !is_utf8(utf8)) memcpy(lat, utf8, n + 1);
+  else utf8_to_latin1(utf8 ? utf8 : "", n, lat, n * 3 + 4);
   w = dialog_window(title, ListviewObject, MUIA_Listview_Input, FALSE, MUIA_Listview_List, FloattextObject, ReadListFrame,
                     MUIA_Floattext_Text, (ULONG)lat, End, MUIA_FixWidthTxt, (ULONG)"MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", MUIA_FixHeightTxt, (ULONG)"\n\n\n\n\n\n\n\n\n\n\n\n", End, "OK");
   if (w) { run_modal(w, ends, NULL); MUI_DisposeObject(w); }

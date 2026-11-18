@@ -55,7 +55,7 @@ FILE *qlog;
 char pub_screen[64];
 Object *app, *win, *view, *mainbar, *combar, *orgbar, *tabs, *navpane, *navstrip, *toolpane, *statusbar, *pagestr, *findstr, *findbar;
 static Object *mainbar2, *pages, *home, *grid, *vscroll, *hscroll, *navscroll, *navgroup, *findstrip;
-int pref_dark = 0, show_nav = 0, show_tools = 1, nav_mode = 0, comment_mode;
+int pref_dark = 0, pref_lang = -1, show_nav = 0, show_tools = 1, nav_mode = 0, comment_mode;
 DocView docs[MAXDOCS];
 int ndocs, curdoc = -1, page_mode = PM_HOME;
 Opts opt;
@@ -104,6 +104,10 @@ static struct NewMenu menus[] = {
   I("First Page", 0, ID_FIRST), I("Previous Page", 0, ID_PREV), I("Next Page", 0, ID_NEXT), I("Last Page", 0, ID_LAST), I("Go to Page...", "J", ID_GOTO), BAR,
   T("Page Thumbnails", 0, ID_THUMBS), T("Bookmarks", 0, ID_BOOKMARKS), T("Tools Pane", 0, ID_TOOLSPANE), BAR,
   T("Dark Interface", 0, ID_DARKUI),
+  H("Language"), { NM_SUB, (STRPTR)"As in Locale Prefs", 0, CHECKIT, ~1L & 63, (APTR)(ID_LANG0) },
+  { NM_SUB, (STRPTR)"English", 0, CHECKIT, ~2L & 63, (APTR)(ID_LANG0 + 1) }, { NM_SUB, (STRPTR)"Deutsch", 0, CHECKIT, ~4L & 63, (APTR)(ID_LANG0 + 2) },
+  { NM_SUB, (STRPTR)"Fran\347ais", 0, CHECKIT, ~8L & 63, (APTR)(ID_LANG0 + 3) }, { NM_SUB, (STRPTR)"Espa\361ol", 0, CHECKIT, ~16L & 63, (APTR)(ID_LANG0 + 4) },
+  { NM_SUB, (STRPTR)"Italiano", 0, CHECKIT, ~32L & 63, (APTR)(ID_LANG0 + 5) },
   M("Tools"),
   I("Select Text", "V", ID_TOOL0 + TL_SELECT), I("Hand", "H", ID_TOOL0 + TL_HAND), BAR,
   I("Comment", "K", ID_COMMENTMODE), I("Organize Pages", 0, ID_ORGANIZE), I("Combine Files...", 0, ID_COMBINE), I("Compare Files...", 0, ID_COMPARE), BAR,
@@ -154,6 +158,23 @@ static struct NewMenu menus[] = {
   I("Next Document", "`", ID_NEXTDOC), I("Previous Document", 0, ID_PREVDOC),
   { NM_END, 0, 0, 0, 0, 0 }
 };
+
+/* the menus' words in the language chosen: their English kept the first time, each label then
+   set to its translation (the menus are made once, when the window is) */
+#define NMENUS (int)(sizeof menus / sizeof menus[0])
+static void menus_translate(void)
+{
+  static const char *en[NMENUS];
+  static int kept;
+  int i;
+  for (i = 0; i < NMENUS; i++) {
+    if (!kept) en[i] = (const char *)menus[i].nm_Label;
+    if (menus[i].nm_Type != NM_END && en[i] && menus[i].nm_Label != NM_BARLABEL &&
+        (menus[i].nm_UserData < (APTR)(ID_LANG0 + 1) || menus[i].nm_UserData > (APTR)(ID_LANG0 + 5)))
+      menus[i].nm_Label = (STRPTR)tr(en[i]);
+  }
+  kept = 1;
+}
 
 /* ------------------------------------------------------------------ the toolbars */
 static const StripItem bar1[] = {
@@ -244,9 +265,20 @@ static const char *const widthlabels[] = { "0.5 pt", "1 pt", "2 pt", "3 pt", "4 
 DocView *cur_view(void) { return page_mode == PM_DOC && curdoc >= 0 && curdoc < ndocs ? &docs[curdoc] : NULL; }
 DocView *cur_doc_view(void) { return curdoc >= 0 && curdoc < ndocs ? &docs[curdoc] : NULL; }
 static ULONG xget(Object *o, ULONG attr) { ULONG v = 0; get(o, attr, &v); return v; }
+/* a requester: the message (fmt translated, with arg for its one %s) broken into lines of at most
+   WRAP characters at spaces, so that no language's sentence runs wider than a 640-pixel screen */
+#define WRAP 66
 int ask(const char *gadgets, const char *fmt, const char *arg)
 {
-  return (int)MUI_Request(app, win, 0, (STRPTR)"Folio", (STRPTR)tr(gadgets), (STRPTR)tr(fmt), arg);
+  static char m[2400];
+  int i, start = 0, sp = -1;
+  snprintf(m, sizeof m, tr(fmt), arg ? arg : "");
+  for (i = 0; m[i]; i++) {
+    if (m[i] == '\n') { start = i + 1; sp = -1; continue; }
+    if (m[i] == ' ') sp = i;
+    if (i - start >= WRAP && sp > start) { m[sp] = '\n'; start = sp + 1; sp = -1; }
+  }
+  return (int)MUI_Request(app, win, 0, (STRPTR)"Folio", (STRPTR)tr(gadgets), (STRPTR)"%s", (ULONG)m);
 }
 static void menu_set(ULONG id, ULONG attr, ULONG val)
 {
@@ -468,6 +500,7 @@ static void update_menus(void)
   menu_set(ID_BOOKMARKS, MUIA_Menuitem_Checked, show_nav && nav_mode == 1);
   menu_set(ID_TOOLSPANE, MUIA_Menuitem_Checked, show_tools);
   menu_set(ID_DARKUI, MUIA_Menuitem_Checked, pref_dark);
+  for (i = 0; i < 6; i++) menu_set(ID_LANG0 + i, MUIA_Menuitem_Checked, pref_lang + 1 == i);
 }
 static void page_field(void)
 {
@@ -853,7 +886,9 @@ static void command(ULONG id)
   case ID_HOME: page_mode = PM_HOME; refresh_all(); return;
   case ID_TOOLS: page_mode = PM_TOOLS; refresh_all(); return;
   case ID_ABOUT:
-    ask("OK", "%s", "\33cFolio 0.1.2\n\nA PDF viewer and editor for the Amiga, laid out as PDFCraft is.\n\nReads PDF 1.0 to 2.0 (compressed objects, encryption with RC4\nand AES), draws text in embedded or stand-in fonts, pictures,\nshadings and patterns; finds and copies text; adds comments,\nhighlights, drawings and shapes; turns, moves, deletes, inserts\nand extracts pages.\n\nWritten in C for MUI; drawn with its own icons.");
+    { static char m[1200];
+      snprintf(m, sizeof m, "\33c%s\n\n%s", "Folio 0.1.2", tr("A PDF viewer and editor for the Amiga, laid out as PDFCraft is.\n\nReads PDF 1.0 to 2.0 with its own renderer and fonts; finds, copies\nand edits text; comments, forms, signatures, page tools, redaction,\nexport, OCR, accessibility and print production.\n\nWritten in C for MUI; drawn with its own icons."));
+      ask("OK", "%s", m); }
     return;
   case ID_DARKUI:
     pref_dark = !pref_dark;
@@ -867,6 +902,12 @@ static void command(ULONG id)
     strcpy(buf, opt.author);
     if (ask_string("Comment Author", "Your name, written into comments:", buf, sizeof buf)) strcpy(opt.author, buf);
     return; }
+  case ID_LANG0: case ID_LANG0 + 1: case ID_LANG0 + 2: case ID_LANG0 + 3: case ID_LANG0 + 4: case ID_LANG0 + 5:
+    pref_lang = (int)(id - ID_LANG0) - 1;
+    lang_set(pref_lang >= 0 ? pref_lang : lang_system());
+    refresh_all();
+    ask("OK", "%s", tr("The menus change to the new language the next time Folio starts."));
+    return;
   case ID_NEXTDOC: if (ndocs > 1) doc_switch((curdoc + 1) % ndocs); else if (ndocs) doc_switch(0); return;
   case ID_PREVDOC: if (ndocs > 1) doc_switch((curdoc + ndocs - 1) % ndocs); else if (ndocs) doc_switch(0); return;
   case ID_TOOLSPANE: show_tools = !show_tools; show_parts(); refresh_bars(); return;
@@ -1007,7 +1048,9 @@ static void pick_notify(Object *o, ULONG attr)
 }
 static int win_make(void)
 {
-  Object *strip_menu = MUI_MakeObject(MUIO_MenustripNM, (ULONG)menus, 0);
+  Object *strip_menu;
+  menus_translate();
+  strip_menu = MUI_MakeObject(MUIO_MenustripNM, (ULONG)menus, 0);
   struct Screen *scr = LockPubScreen((STRPTR)(pub_screen[0] ? pub_screen : NULL));
   LONG sw = 800, sh = 580, top = 12;
   if (scr) { sw = scr->Width; top = scr->BarHeight + 1; sh = scr->Height - top; UnlockPubScreen(NULL, scr); }
@@ -1030,7 +1073,7 @@ static int win_make(void)
             Child, mainbar = strip(bar1, 0),
             Child, VGroup, InnerSpacing(0, 0), MUIA_Group_Spacing, 0, MUIA_HorizWeight, 0,
               Child, VSpace(0),
-              Child, pagestr = StringObject, StringFrame, MUIA_String_Accept, (ULONG)"0123456789", MUIA_String_MaxLen, 6, MUIA_FixWidthTxt, (ULONG)"0000", MUIA_String_Format, MUIV_String_Format_Right, MUIA_ShortHelp, (ULONG)"Page number", End,
+              Child, pagestr = StringObject, StringFrame, MUIA_String_Accept, (ULONG)"0123456789", MUIA_String_MaxLen, 6, MUIA_FixWidthTxt, (ULONG)"0000", MUIA_String_Format, MUIV_String_Format_Right, MUIA_ShortHelp, (ULONG)tr("Page number"), End,
               Child, VSpace(0),
             End,
             Child, mainbar2 = strip(bar2, 0),
@@ -1202,6 +1245,7 @@ static void load_prefs(void)
   while (fgets(line, sizeof line, f)) {
     line[strcspn(line, "\r\n")] = 0;
     if (!strncmp(line, "dark=", 5)) pref_dark = atoi(line + 5);
+    else if (!strncmp(line, "language=", 9)) pref_lang = lang_by_code(line + 9);
     else if (!strncmp(line, "screen=", 7)) strncpy(pub_screen, line + 7, sizeof pub_screen - 1);
     else if (!strncmp(line, "dir=", 4)) strncpy(lastdir, line + 4, sizeof lastdir - 1);
     else if (!strncmp(line, "author=", 7)) strncpy(opt.author, line + 7, sizeof opt.author - 1);
@@ -1229,6 +1273,7 @@ static void save_prefs(void)
   if (!f) return;
   fprintf(f, "dark=%d\nnav=%d\nnavmode=%d\ntools=%d\nwidth=%.1f\n", pref_dark, show_nav, nav_mode, show_tools, opt.width);
   fprintf(f, "author=%s\n", opt.author);
+  if (pref_lang >= 0) fprintf(f, "language=%s\n", lang_code(pref_lang));
   if (pub_screen[0]) fprintf(f, "screen=%s\n", pub_screen);
   if (lastdir[0]) fprintf(f, "dir=%s\n", lastdir);
   for (i = 0; i < TL_N; i++) fprintf(f, "color%d=%06lX\n", i, (unsigned long)opt.color[i]);
@@ -1274,7 +1319,7 @@ int main(int argc, char **argv)
     if (sc) UnlockPubScreen(NULL, sc); else pub_screen[0] = 0;
   }
   LOG("Folio starting, cybergraphics %p", (void *)CyberGfxBase);
-  lang_set(LANG_EN);
+  lang_set(pref_lang >= 0 ? pref_lang : lang_system());
   theme_set_dark(pref_dark);
   splash_open(pub_screen, "Folio 0.1.2");
   splash_step(5, tr("Adding Folio's fonts drawer"));

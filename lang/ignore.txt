@@ -1,0 +1,90 @@
+# lang/ignore.txt - literals in amiga/ that are not interface words (PDF keys, file patterns, font
+# names, language names in their own language, icon drawings, tokens); one per line, C escapes allowed.
+#?.(fdf|xfdf)
+#?.(jpg|jpeg|png)
+%.0f pt
+%.0f x %.0f mm
+%.0f x %.0f mm (%.0f x %.0f pt)
+%.1f pt
+%PDF-
+%s (%lu KB)
+%s: %ld KB\n\n%s (%d): %ld KB, %.0f%%\n%s (%d): %ld KB, %.0f%%\n%s: %ld KB, %.0f%%\n%s: %ld KB, %.0f%%\n%s: %ld KB, %.0f%%\n%s: %ld KB, %.0f%%\n%s: %ld KB, %.0f%%\n%s (%d): %ld KB, %.0f%%
+100 dpi
+150 dpi
+<<bates>>
+<<page>> / <<pages>>
+<<page>> <<pages>> <<label>> <<date>>
+AES-128
+AES-256
+Amiga User
+Annots
+Contents
+CreationDate
+Creator
+Deutsch
+English
+Español
+Folio
+Folio - %s%s
+Français
+I, II, III
+IT
+Italiano
+Lang
+Legal
+ModDate
+Producer
+QuillMono
+QuillMonoB
+QuillMonoBI
+QuillMonoI
+QuillSans
+QuillSansB
+QuillSansBI
+QuillSansC
+QuillSansCB
+QuillSansCBI
+QuillSansCI
+QuillSansI
+QuillSerif
+QuillSerifB
+QuillSerifBI
+QuillSerifC
+QuillSerifCB
+QuillSerifCBI
+QuillSerifCI
+QuillSerifI
+Root
+StructTreeRoot
+\tjsr\t-126(a6)
+aatext
+area
+background
+bates
+ca I fx
+can't open
+can't read
+ci B abc cg L 5 12 8 15 L 8 15 14 8
+ci R 2 1 13 15 cr F 1 7 14 12 cw B PDF
+de
+deutsch
+distance
+en
+en-GB
+english
+es
+español
+fr
+français
+header
+i, ii, iii
+in
+it
+italiano
+nnnnnnnnnn
+no sizes in
+not a font file:
+not a font:
+page,kind,value\n
+perimeter
+watermark

@@ -24,6 +24,7 @@ enum {
   ID_ROTL = 500, ID_ROTR, ID_DELPAGES, ID_INSBLANK, ID_INSFILE, ID_MOVEUP, ID_MOVEDOWN, ID_PICKALL,
   /* Window */
   ID_NEXTDOC = 600, ID_PREVDOC,
+  ID_LANG0 = 610,                      /* .. + 5: as in Locale prefs, then LANG_EN .. LANG_IT */
   /* PDFCraft's other tools (doctools.c): the Tools page's groups, then creating, exporting, protecting, optimizing */
   ID_GROUP0 = 636,                     /* .. + 13 */
   ID_NEWBLANK = 650, ID_FROMIMAGES, ID_FROMTEXT, ID_FROMCLIP, ID_SEPARATE, ID_EXPHTML, ID_EXPRTF, ID_EXPDOCX, ID_EXPPPTX,

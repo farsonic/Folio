@@ -1,10 +1,16 @@
 #!/bin/sh
-# Folio's native tests (no Amiga toolchain needed): the filters, fonts, editing and annotation tests with
+# Folio's native tests (no Amiga toolchain needed): the interface strings, the filters, fonts, editing and annotation tests with
 # ASan/UBSan, the same steps build.sh runs before the Amiga build. TMP=<dir> to build elsewhere than /tmp.
 set -e
 cd "$(dirname "$0")/.."
 T=${TMP:-/tmp}
 CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto.c core/pdf.c core/func.c core/cmap.c core/pfont.c core/pdfenc.c core/font.c core/raster.c core/render.c core/pimage.c core/shade.c core/textpage.c core/pdfwrite.c core/pdfedit.c core/pngout.c core/xml.c core/pagecontent.c core/forms.c core/pagetools.c core/contentedit.c core/jpegout.c core/redact.c core/optimize.c core/export.c core/review.c"
+  # the interface's words: amiga/lang_table.h made from lang/strings.txt, and every string in amiga/
+  # translated into German, French, Spanish and Italian and used (tools/langcheck.py)
+  python3 tools/mklang.py --check
+  python3 tools/langcheck.py --unused > $T/folio_langcheck.log || { cat $T/folio_langcheck.log; exit 1; }
+  if grep -q 'unused:' $T/folio_langcheck.log; then cat $T/folio_langcheck.log; exit 1; fi
+  tail -1 $T/folio_langcheck.log
   SAN="cc -std=c99 -O1 -g -Wall -Wextra -Wno-unused-parameter -fsanitize=address,undefined -I. -Icore"
   $SAN core/util.c core/filters.c core/crypto.c tests/filtertest.c -o $T/folio_filtertest -lm && $T/folio_filtertest | tail -1
   $SAN core/util.c core/geom.c core/pfont.c core/pdfenc.c tests/fonttest.c -o $T/folio_fonttest -lm && $T/folio_fonttest tests/fonts 20 1 | tail -1
