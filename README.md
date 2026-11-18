@@ -10,6 +10,21 @@ middle, one under another. The menus are in the screen's title bar as usual. Fol
 in C for MUI and draws its own interface and icons. None of the icons are copied from any other
 program.
 
+## Since 0.1.2 (not released yet)
+
+- Damaged or hostile PDFs can no longer crash Folio, hang it or make it draw differently on the
+  Amiga than on other machines. The fixes come from fuzzing Folio's PDF engine inside
+  pdf.datatype, and from Folio's own fuzzer: a file whose table of contents points to the wrong
+  places, or ends in the middle of a word; a pattern named where there is nothing to look it up
+  in; dashed lines with a negative dash or dashes far finer than the line (these are drawn solid
+  now); numbers too big for the Amiga's 32-bit integers; mesh shadings whose data runs out; JPEG
+  pictures with impossible Huffman tables; coordinates and sizes far outside the page; names lost
+  when memory runs out; saving a document with a very long number in it.
+- The native tests gained `tests/robusttest.c` (one small PDF per bug, each of which crashed or
+  hung before its fix; also built with a 32-bit `long` as on the Amiga), `tests/allocfail.c`
+  (running out of memory at every point while opening and drawing a page) and a fuzzer,
+  `tools/fuzz.c` (`FUZZ=1 sh tools/test.sh`, or `sh tools/fuzz.sh SECONDS`).
+
 ## New in 0.1.2
 
 - Drawing comments is smooth. An ink stroke, rectangle, oval, line or highlight shows up finished
@@ -151,8 +166,9 @@ forms, run JavaScript, or play sound and video. JBIG2 and JPEG 2000 pictures sho
 The Source drawer holds Folio's C source. `core/` is portable C99: the PDF reader (objects,
 cross-reference, filters, encryption), the fonts, the renderer, text extraction, and the writer
 and editor. It has native tests (`tests/filtertest.c`, `tests/fonttest.c`, `tests/edittest.c`,
-plus `tests/compare.py`, which compares pages with poppler's) run under the address and
-undefined-behaviour sanitizers. `amiga/` is the MUI front end. `build.sh` runs the tests and
+`tests/robusttest.c`, `tests/allocfail.c`, plus `tests/compare.py`, which compares pages with
+poppler's) run under the address and undefined-behaviour sanitizers, and a fuzzer
+(`tools/fuzz.c`, `tools/fuzz.sh`). `amiga/` is the MUI front end. `build.sh` runs the tests and
 builds Folio with vbcc.
 
 The fonts in the TrueType drawer are Liberation (SIL Open Font License), Carlito and Caladea

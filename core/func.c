@@ -109,7 +109,7 @@ static PFunc *load(PDoc *d, PObj *o, int depth)
     f->type = FT_SAMPLED;
     if (!f->nout || o->type != PO_STREAM) { free(f); return NULL; }
     if (get_nums(d, pdf_dget(d, dict, "Size"), f->encode, FN_MAXIO) < f->nin) { free(f); return NULL; }
-    for (i = 0; i < f->nin; i++) { f->size[i] = (int)f->encode[i]; if (f->size[i] < 1 || f->size[i] > 65536) { free(f); return NULL; } total *= f->size[i]; if (total > 4000000) { free(f); return NULL; } }
+    for (i = 0; i < f->nin; i++) { f->size[i] = dbl_int(f->encode[i]); if (f->size[i] < 1 || f->size[i] > 65536) { free(f); return NULL; } total *= f->size[i]; if (total > 4000000) { free(f); return NULL; } }
     f->bps = (int)pdf_dint(d, dict, "BitsPerSample", 8);
     if (f->bps != 1 && f->bps != 2 && f->bps != 4 && f->bps != 8 && f->bps != 12 && f->bps != 16 && f->bps != 24 && f->bps != 32) { free(f); return NULL; }
     for (i = 0; i < f->nin; i++) { f->encode[i * 2] = 0; f->encode[i * 2 + 1] = f->size[i] - 1; }
@@ -209,8 +209,8 @@ static void ps_run(const PFunc *f, double *st, int *sp)
     case OP_SUB: NEED(2) st[n - 2] -= st[n - 1]; n--; break;
     case OP_MUL: NEED(2) st[n - 2] *= st[n - 1]; n--; break;
     case OP_DIV: NEED(2) st[n - 2] = st[n - 1] != 0 ? st[n - 2] / st[n - 1] : 0; n--; break;
-    case OP_IDIV: NEED(2) { long x = (long)st[n - 2], y = (long)st[n - 1]; st[n - 2] = y ? (double)(x / y) : 0; n--; } break;
-    case OP_MOD: NEED(2) { long x = (long)st[n - 2], y = (long)st[n - 1]; st[n - 2] = y ? (double)(x % y) : 0; n--; } break;
+    case OP_IDIV: NEED(2) { long x = dbl_long(st[n - 2]), y = dbl_long(st[n - 1]); st[n - 2] = !y ? 0 : y == -1 ? -(double)x : (double)(x / y); n--; } break;   /* (LONG_MIN / -1 overflowed) */
+    case OP_MOD: NEED(2) { long x = dbl_long(st[n - 2]), y = dbl_long(st[n - 1]); st[n - 2] = !y || y == -1 ? 0 : (double)(x % y); n--; } break;
     case OP_NEG: NEED(1) st[n - 1] = -st[n - 1]; break;
     case OP_ATAN: NEED(2) a = atan2(st[n - 2], st[n - 1]) * 180 / 3.14159265358979; if (a < 0) a += 360; st[n - 2] = a; n--; break;
     case OP_CEILING: NEED(1) st[n - 1] = ceil(st[n - 1]); break;
@@ -224,11 +224,11 @@ static void ps_run(const PFunc *f, double *st, int *sp)
     case OP_EXP: NEED(2) st[n - 2] = pow(st[n - 2], st[n - 1]); if (!(st[n - 2] == st[n - 2])) st[n - 2] = 0; n--; break;
     case OP_LN: NEED(1) st[n - 1] = st[n - 1] > 0 ? log(st[n - 1]) : 0; break;
     case OP_LOG: NEED(1) st[n - 1] = st[n - 1] > 0 ? log10(st[n - 1]) : 0; break;
-    case OP_AND: NEED(2) st[n - 2] = (double)((long)st[n - 2] & (long)st[n - 1]); n--; break;
-    case OP_OR: NEED(2) st[n - 2] = (double)((long)st[n - 2] | (long)st[n - 1]); n--; break;
-    case OP_XOR: NEED(2) st[n - 2] = (double)((long)st[n - 2] ^ (long)st[n - 1]); n--; break;
-    case OP_NOT: NEED(1) st[n - 1] = st[n - 1] == 0 ? 1 : st[n - 1] == 1 ? 0 : (double)~(long)st[n - 1]; break;
-    case OP_BITSHIFT: NEED(2) { long x = (long)st[n - 2]; int s = (int)st[n - 1]; st[n - 2] = (double)(s >= 0 ? x << (s & 31) : x >> ((-s) & 31)); n--; } break;
+    case OP_AND: NEED(2) st[n - 2] = (double)(dbl_long(st[n - 2]) & dbl_long(st[n - 1])); n--; break;
+    case OP_OR: NEED(2) st[n - 2] = (double)(dbl_long(st[n - 2]) | dbl_long(st[n - 1])); n--; break;
+    case OP_XOR: NEED(2) st[n - 2] = (double)(dbl_long(st[n - 2]) ^ dbl_long(st[n - 1])); n--; break;
+    case OP_NOT: NEED(1) st[n - 1] = st[n - 1] == 0 ? 1 : st[n - 1] == 1 ? 0 : (double)~dbl_long(st[n - 1]); break;
+    case OP_BITSHIFT: NEED(2) { long x = dbl_long(st[n - 2]); int s = dbl_int(st[n - 1]); st[n - 2] = (double)(s >= 0 ? (long)((unsigned long)x << (s & 31)) : x >> ((0u - (unsigned)s) & 31)); n--; } break;   /* (no negative number shifted left, nor -INT_MIN) */
     case OP_EQ: NEED(2) st[n - 2] = st[n - 2] == st[n - 1]; n--; break;
     case OP_NE: NEED(2) st[n - 2] = st[n - 2] != st[n - 1]; n--; break;
     case OP_GE: NEED(2) st[n - 2] = st[n - 2] >= st[n - 1]; n--; break;
@@ -240,10 +240,10 @@ static void ps_run(const PFunc *f, double *st, int *sp)
     case OP_DUP: NEED(1) st[n] = st[n - 1]; n++; break;
     case OP_EXCH: NEED(2) a = st[n - 1]; st[n - 1] = st[n - 2]; st[n - 2] = a; break;
     case OP_POP: NEED(1) n--; break;
-    case OP_COPY: NEED(1) { int k = (int)st[--n], j; if (k < 0 || k > n || n + k > 98) break; for (j = 0; j < k; j++) st[n + j] = st[n - k + j]; n += k; } break;
-    case OP_INDEX: NEED(1) { int k = (int)st[n - 1]; if (k < 0 || k >= n - 1) { n--; break; } st[n - 1] = st[n - 2 - k]; } break;
+    case OP_COPY: NEED(1) { int k = dbl_int(st[--n]), j; if (k < 0 || k > n || n + k > 98) break; for (j = 0; j < k; j++) st[n + j] = st[n - k + j]; n += k; } break;
+    case OP_INDEX: NEED(1) { int k = dbl_int(st[n - 1]); if (k < 0 || k >= n - 1) { n--; break; } st[n - 1] = st[n - 2 - k]; } break;
     case OP_ROLL: NEED(2) {
-      int j = (int)st[--n], k = (int)st[--n], i;
+      int j = dbl_int(st[--n]), k = dbl_int(st[--n]), i;
       double tmp[100];
       if (k <= 0 || k > n) break;
       j %= k; if (j < 0) j += k;
@@ -289,7 +289,7 @@ void func_eval(const PFunc *f, const double *in, int nin, double *out)
       double lo = f->domain[i * 2], hi = f->domain[i * 2 + 1];
       e[i] = hi > lo ? f->encode[i * 2] + (x[i] - lo) * (f->encode[i * 2 + 1] - f->encode[i * 2]) / (hi - lo) : f->encode[i * 2];
       e[i] = clampd(e[i], 0, f->size[i] - 1);
-      i0[i] = (int)floor(e[i]);
+      i0[i] = dbl_int(floor(e[i]));
       if (i0[i] >= f->size[i] - 1) i0[i] = f->size[i] > 1 ? f->size[i] - 2 : 0;
       fr[i] = f->size[i] > 1 ? e[i] - i0[i] : 0;
     }

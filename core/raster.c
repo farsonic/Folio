@@ -31,7 +31,7 @@ static void flat_curve(Path *o, double x0, double y0, double x1, double y1, doub
   e2 = ddx > ddy ? ddx : ddy;
   dd = e1 > e2 ? e1 : e2;
   /* segments needed so the chord stays within tol of the curve */
-  n = (int)ceil(sqrt(dd * 0.75 / tol));
+  n = dbl_int(ceil(sqrt(dd * 0.75 / tol)));
   if (n < 1) n = 1;
   if (n > 200) n = 200;
   for (i = 1; i <= n; i++) {
@@ -135,8 +135,8 @@ int rast_path(const Path *p, int evenodd, int cx0, int cy0, int cx1, int cy1, Sp
     if (e->x0 > bx1) bx1 = e->x0;
     if (e->x1 > bx1) bx1 = e->x1;
   }
-  y0 = by0 < cy0 ? cy0 : (int)floor(by0);
-  y1 = by1 > cy1 ? cy1 : (int)ceil(by1);
+  y0 = by0 < cy0 ? cy0 : dbl_int(floor(by0));
+  y1 = by1 > cy1 ? cy1 : dbl_int(ceil(by1));
   if (y0 >= y1 || bx1 < cx0 || bx0 > cx1) { ok = 1; goto done; }
   qsort(es.e, (size_t)es.n, sizeof(Edge), by_y0);
   W = cx1 - cx0;
@@ -189,7 +189,7 @@ int rast_path(const Path *p, int evenodd, int cx0, int cy0, int cx1, int cy1, Sp
           if (xb <= 0 || xa >= W) continue;
           if (xa < 0) xa = 0;
           if (xb > W) xb = W;
-          fa = (long)(xa * FIX); fb = (long)(xb * FIX);
+          fa = dbl_long(xa * FIX); fb = dbl_long(xb * FIX);
           if (fb <= fa) continue;
           pa = (int)(fa >> 8); pb = (int)(fb >> 8);
           if (pa < lo) lo = pa;
@@ -334,8 +334,19 @@ static void dashed(SCtx *c, const StrokeStyle *st, const double *pts, int n, int
 {
   double total = 0, pos, *seg;
   int idx = 0, on, i, cap = 64, ns = 0;
-  for (i = 0; i < st->ndash; i++) total += st->dash[i];
-  if (total <= 1e-9) { stroke_poly(c, st, pts, n, closed); return; }
+  int bad = 0;
+  for (i = 0; i < st->ndash; i++) { if (!(st->dash[i] >= 0)) bad = 1; total += st->dash[i]; }
+  if (bad || !(total > 1e-9)) { stroke_poly(c, st, pts, n, closed); return; }
+  {
+    /* a negative dash would never end, and dashes far finer than the line is
+       long would take for ever: such lines are drawn solid */
+    double len = 0;
+    for (i = 0; i < (closed ? n : n - 1); i++) {
+      int j = (i + 1) % n;
+      len += sqrt((pts[j * 2] - pts[i * 2]) * (pts[j * 2] - pts[i * 2]) + (pts[j * 2 + 1] - pts[i * 2 + 1]) * (pts[j * 2 + 1] - pts[i * 2 + 1]));
+    }
+    if (!(len / total * st->ndash < 100000.0)) { stroke_poly(c, st, pts, n, closed); return; }
+  }
   pos = fmod(st->phase, total);
   if (pos < 0) pos += total;
   /* where in the pattern the line starts */

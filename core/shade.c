@@ -31,7 +31,7 @@ static void eval_color(const CSpace *cs, const PFunc *fn, const double *in, int 
   if (fn) func_eval(fn, in, nin, comps);
   else for (k = 0; k < nin && k < FN_MAXIO; k++) comps[k] = in[k];
   cs_to_rgb(cs, comps, o);
-  for (k = 0; k < 3; k++) rgb[k] = (u8)(o[k] * 255 + 0.5);
+  for (k = 0; k < 3; k++) rgb[k] = o[k] > 0 ? (o[k] < 1 ? (u8)(o[k] * 255 + 0.5) : 255) : 0;   /* (NaN and out of range clamped) */
 }
 static void axial_radial(void *ud, double x, double y, u8 *rgb, int *alpha)
 {
@@ -63,7 +63,7 @@ static void axial_radial(void *ud, double x, double y, u8 *rgb, int *alpha)
   }
   if (t < 0) { if (!s->ext0) { *alpha = 0; return; } t = 0; }
   if (t > 1) { if (!s->ext1) { *alpha = 0; return; } t = 1; }
-  i = (int)(t * 255 + 0.5);
+  i = dbl_int(t * 255 + 0.5);
   rgb[0] = s->lut[i][0]; rgb[1] = s->lut[i][1]; rgb[2] = s->lut[i][2];
 }
 static void function_based(void *ud, double x, double y, u8 *rgb, int *alpha)
@@ -97,7 +97,7 @@ static void paint_area(Render *r, const Path *area, int evenodd, void (*fn)(void
   const Clip *c = GS(r)->clip;
   Path whole;
   memset(&p, 0, sizeof p);
-  p.r = r; p.alpha = (int)(GS(r)->fa * 255 + 0.5); p.clip = c; p.blend = GS(r)->blend; p.shade = fn; p.sud = ud;
+  p.r = r; p.alpha = dbl_int(GS(r)->fa * 255 + 0.5); p.clip = c; p.blend = GS(r)->blend; p.shade = fn; p.sud = ud;
   if (!area) {
     path_init(&whole);
     path_move(&whole, c->x0, c->y0); path_line(&whole, c->x1, c->y0); path_line(&whole, c->x1, c->y1); path_line(&whole, c->x0, c->y1); path_close(&whole);
@@ -112,7 +112,7 @@ static u32 getbits(Bits *b, int n)
 {
   u32 v = 0;
   while (n-- > 0) {
-    if (b->pos >= b->n) return v << (n + 1);
+    if (b->pos >= b->n) return n + 1 >= 32 ? 0 : v << (n + 1);   /* (a shift by 32 is undefined, and differs on the 68k) */
     v = (v << 1) | ((b->p[b->pos] >> (7 - b->bit)) & 1);
     if (++b->bit == 8) { b->bit = 0; b->pos++; }
   }
@@ -325,7 +325,7 @@ static void tile_shade(void *ud, double x, double y, u8 *rgb, int *alpha)
   long o;
   if (u < 0) u += t->xs;
   if (v < 0) v += t->ys;
-  ix = (int)(u / t->xs * t->tw); iy = t->th - 1 - (int)(v / t->ys * t->th);
+  ix = dbl_int(u / t->xs * t->tw); iy = t->th - 1 - dbl_int(v / t->ys * t->th);
   if (ix < 0) ix = 0;
   if (ix >= t->tw) ix = t->tw - 1;
   if (iy < 0) iy = 0;
@@ -378,7 +378,7 @@ int fill_with_pattern(Render *r, PObj *pat, const Path *dev, int evenodd, int st
     if (xs < 1e-6 || ys < 1e-6) return 0;
     /* the cell at the device's resolution (within reason) */
     sc = mat_expansion(&m);
-    tw = (int)ceil(xs * sc); th = (int)ceil(ys * sc);
+    tw = dbl_int(ceil(xs * sc)); th = dbl_int(ceil(ys * sc));
     if (tw < 1) tw = 1;
     if (th < 1) th = 1;
     if (tw > 768) tw = 768;
@@ -403,7 +403,7 @@ int fill_with_pattern(Render *r, PObj *pat, const Path *dev, int evenodd, int st
       Paint p;
       const Clip *c = g->clip;
       memset(&p, 0, sizeof p);
-      p.r = r; p.alpha = (int)((stroke ? g->sa : g->fa) * 255 + 0.5); p.clip = c; p.blend = g->blend; p.shade = tile_shade; p.sud = &t;
+      p.r = r; p.alpha = dbl_int((stroke ? g->sa : g->fa) * 255 + 0.5); p.clip = c; p.blend = g->blend; p.shade = tile_shade; p.sud = &t;
       rast_path(dev, evenodd, c->x0, c->y0, c->x1, c->y1, paint_span, &p);
     }
     render_sub_free(cell);

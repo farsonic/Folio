@@ -297,11 +297,12 @@ static void put_string(W *w, Buf *b, const char *s, int len)
 }
 static void put_num(Buf *b, double v)
 {
-  char t[40];
+  char t[340];                              /* (the biggest double written out in full, as PDF has no exponents) */
   int n;
-  if (fabs(v) < 1e-9) v = 0;
+  if (fabs(v) < 1e-9 || !(v == v) || fabs(v) > 1e300) v = 0;   /* (NaN and infinity can't be written) */
   if (v == floor(v) && fabs(v) < 2e9) { buf_printf(b, "%ld", (long)v); return; }
   n = snprintf(t, sizeof t, "%.6f", v);
+  if (n < 0 || n >= (int)sizeof t) n = 0, t[0] = 0;
   while (n > 0 && t[n - 1] == '0') t[--n] = 0;
   if (n > 0 && t[n - 1] == '.') t[--n] = 0;
   buf_adds(b, t);

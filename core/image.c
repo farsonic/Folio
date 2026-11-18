@@ -276,6 +276,7 @@ static void build_huff(Huff *t, const u8 *bits, const u8 *vals, int nv)
     t->maxcode[l] = bits[l - 1] ? code - 1 : -1;
     if (l <= 8) for (i = t->mincode[l]; i <= t->maxcode[l]; i++) {
       int lo = (i << (8 - l)), j;
+      if (i >= (1 << l) || t->valptr[l] + i - t->mincode[l] >= nv) break;   /* (an over-full table wrote past look[]) */
       for (j = 0; j < (1 << (8 - l)); j++) t->look[lo + j] = (u16)((l << 8) | vals[t->valptr[l] + i - t->mincode[l]]);
     }
     code <<= 1;
@@ -336,6 +337,18 @@ static int extend(int v, int s) { if (s > 16) s = 16; return s > 0 && v < (1 << 
 #define F1_082 277
 #define F2_613 669
 #define MUL(a, b) (((a) * (b)) >> 8)
+/* a coefficient dequantised, within +-1,000,000 (a real picture's stay under about 65,000): with
+   that and the first pass's results kept there too, no step of the transform overflows 32 bits,
+   whatever damaged data gives it */
+#define DQ_MAX 1000000
+static i32 dq(i32 v, i32 q)
+{
+  double p;
+  if (v <= 2047 && v >= -2047 && q <= 488) return v * q;     /* (the usual case: at most 999,936) */
+  p = (double)v * q;
+  return p > DQ_MAX ? DQ_MAX : p < -DQ_MAX ? -DQ_MAX : (i32)p;
+}
+#define CL(x) ((x) > DQ_MAX ? DQ_MAX : (x) < -DQ_MAX ? -DQ_MAX : (x))
 /* the AAN inverse DCT (as IJG's jidctfst): coefficients already dequantised with 2 fraction bits */
 static void idct(i32 *in, u8 *out, u32 stride)
 {
@@ -355,8 +368,8 @@ static void idct(i32 *in, u8 *out, u32 stride)
     t7 = z11 + z13; t11 = MUL(z11 - z13, F1_414);
     z5 = MUL(z10 + z12, F1_847); t10 = MUL(z12, F1_082) - z5; t12 = MUL(z10, -F2_613) + z5;
     t6 = t12 - t7; t5 = t11 - t6; t4 = t10 + t5;
-    w[0] = t0 + t7; w[56] = t0 - t7; w[8] = t1 + t6; w[48] = t1 - t6;
-    w[16] = t2 + t5; w[40] = t2 - t5; w[32] = t3 + t4; w[24] = t3 - t4;
+    w[0] = CL(t0 + t7); w[56] = CL(t0 - t7); w[8] = CL(t1 + t6); w[48] = CL(t1 - t6);
+    w[16] = CL(t2 + t5); w[40] = CL(t2 - t5); w[32] = CL(t3 + t4); w[24] = CL(t3 - t4);
   }
   for (i = 0; i < 8; i++) {
     i32 *w = ws + i * 8, v[8];
@@ -537,13 +550,13 @@ static int jpeg_stream(Jpeg *j, u32 start, Scaler *sc)
             t = decode(j, &j->dc[c->td]);
             c->pred += extend(getbits(j, t), t);
     if (c->pred > 32767 || c->pred < -32768) c->pred = c->pred > 0 ? 32767 : -32768;   /* (only damaged data goes so far) */
-            blk[0] = c->pred * q[0];
+            blk[0] = dq(c->pred, q[0]);
             for (k = 1; k < 64; ) {
               int rs = decode(j, &j->ac[c->ta]), r = rs >> 4, s = rs & 15;
               if (!s) { if (r != 15) break; k += 16; continue; }
               k += r;
               if (k > 63) break;
-              blk[zz[k]] = extend(getbits(j, s), s) * q[zz[k]];
+              blk[zz[k]] = dq(extend(getbits(j, s), s), q[zz[k]]);
               k++;
             }
             idct(blk, c->plane + (size_t)(by * 8) * c->bw + (mx * c->h + bx) * 8, c->bw);
@@ -688,7 +701,7 @@ static int jpeg_coefs(Jpeg *j, u32 start, Scaler *sc)
       for (by = 0; by < (u32)c->v; by++)
         for (bx = 0; bx < c->cbw; bx++) {
           const i16 *b = c->coef + ((size_t)(my * c->v + by) * c->cbw + bx) * 64;
-          for (k = 0; k < 64; k++) blk[k] = b[k] * q[k];
+          for (k = 0; k < 64; k++) blk[k] = b[k] ? dq(b[k], q[k]) : 0;
           idct(blk, c->plane + (size_t)(by * 8) * c->bw + bx * 8, c->bw);
         }
     }

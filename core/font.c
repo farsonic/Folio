@@ -190,7 +190,7 @@ static void load_simple(PDoc *d, PdfFont *f, PObj *dict, const char *subtype)
     int code = 0;
     for (i = 0; i < diffs->u.arr.n; i++) {
       PObj *x = pdf_resolve(d, diffs->u.arr.v[i]);
-      if (pobj_isnum(x)) code = (int)pobj_num(x);
+      if (pobj_isnum(x)) code = dbl_int(pobj_num(x));
       else if (x && x->type == PO_NAME) { if (code >= 0 && code < 256) names[code] = x->u.str.s; code++; }
     }
   }
@@ -251,7 +251,7 @@ static void load_type3(PDoc *d, PdfFont *f, PObj *dict)
     if (diffs && diffs->type == PO_ARRAY)
       for (i = 0; i < diffs->u.arr.n; i++) {
         PObj *x = pdf_resolve(d, diffs->u.arr.v[i]);
-        if (pobj_isnum(x)) code = (int)pobj_num(x);
+        if (pobj_isnum(x)) code = dbl_int(pobj_num(x));
         else if (x && x->type == PO_NAME) { if (code >= 0 && code < 256) f->names[code] = x->u.str.s; code++; }
       }
   }
@@ -295,7 +295,7 @@ static void load_type0(PDoc *d, PdfFont *f, PObj *dict)
       u8 *data = pdf_stream_data(d, m, &len);
       if (data && (f->cid2gid = (u16 *)malloc((len / 2 + 1) * sizeof(u16)))) {
         for (i = 0; i + 1 < len; i += 2) f->cid2gid[i / 2] = (u16)((data[i] << 8) | data[i + 1]);
-        f->ncid2gid = (int)(len / 2);
+        f->ncid2gid = dbl_int(len / 2);
       }
       free(data);
     }
@@ -309,7 +309,7 @@ static void load_type0(PDoc *d, PdfFont *f, PObj *dict)
       PObj *a = pdf_resolve(d, w->u.arr.v[i]), *b = i + 1 < w->u.arr.n ? pdf_resolve(d, w->u.arr.v[i + 1]) : NULL;
       if (!pobj_isnum(a) || !b) break;
       if (b->type == PO_ARRAY) {
-        int k, c = (int)pobj_num(a);
+        int k, c = dbl_int(pobj_num(a));
         for (k = 0; k < b->u.arr.n; k++) {
           if (f->ncw >= cap) { int nc = cap ? cap * 2 : 64; void *p = realloc(f->cw, (size_t)nc * sizeof(*f->cw)); if (!p) return; f->cw = p; cap = nc; }
           f->cw[f->ncw].lo = f->cw[f->ncw].hi = c + k; f->cw[f->ncw].w = pobj_num(pdf_resolve(d, b->u.arr.v[k])); f->ncw++;
@@ -319,7 +319,7 @@ static void load_type0(PDoc *d, PdfFont *f, PObj *dict)
         PObj *c = i + 2 < w->u.arr.n ? pdf_resolve(d, w->u.arr.v[i + 2]) : NULL;
         if (!pobj_isnum(b) || !pobj_isnum(c)) break;
         if (f->ncw >= cap) { int nc = cap ? cap * 2 : 64; void *p = realloc(f->cw, (size_t)nc * sizeof(*f->cw)); if (!p) return; f->cw = p; cap = nc; }
-        f->cw[f->ncw].lo = (int)pobj_num(a); f->cw[f->ncw].hi = (int)pobj_num(b); f->cw[f->ncw].w = pobj_num(c); f->ncw++;
+        f->cw[f->ncw].lo = dbl_int(pobj_num(a)); f->cw[f->ncw].hi = dbl_int(pobj_num(b)); f->cw[f->ncw].w = pobj_num(c); f->ncw++;
         i += 3;
       }
     }

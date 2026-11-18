@@ -680,7 +680,7 @@ void pdf_rotate_page(PDoc *d, int page, int q)
   long rot;
   if (!pg) return;
   r = pdf_page_attr(d, pg, "Rotate");
-  rot = r ? (long)pobj_num(pdf_resolve(d, r)) : 0;
+  rot = r ? dbl_long(pobj_num(pdf_resolve(d, r))) : 0;
   rot = ((rot + 90L * q) % 360 + 360) % 360;
   rot -= rot % 90;
   pobj_dict_set(pg, "Rotate", pobj_int(rot));
