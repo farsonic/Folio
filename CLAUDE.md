@@ -109,10 +109,30 @@ and pictures; signing and certifying with a PKCS #12/PEM certificate (RSA, ECDSA
 checking signatures' certificates and chains offline; incremental saving; OCR and scan clean-up
 (G4); drawn signatures; polygons and snapping; colours to RGB/CMYK; PDF/A font embedding; picture
 fields; Prepare for Distribution. The core has native tests for all of it (signtest checks Folio's
-signatures with OpenSSL and pdfsig, keys made at test time). The Amiga side builds with vbcc but has
-**not been tried on an Amiga or in an emulator yet** (neither `pcsync`'s nor `fr2`'s windows): that
-check comes first, including German at 640x480, the sign pad, OCR speed on a 68040 (templates are
-made at the first OCR from the TrueType drawer; a page at 200 dpi is a few MB) and RSA signing time.
+signatures with OpenSSL and pdfsig, keys made at test time).
+
+Emulator check (branch `femu`, 2026-11-18): the Amiga side was run for the first time, on FS-UAE
+(A4000/68040 without JIT, uaegfx, AROS ROM with its Zune) at 640x480 and on a 1024x768 8-bit public
+screen, in English and German (French, Spanish, Italian spot-checked). Driven with the start arguments
+`CMD=<id>` (an `ids.h` command once the documents are open), `LANG=<code>` and `DEBUG=<log>` (logs each
+dialog's size, or that it couldn't be made, and each requester's text), plus the mouse and keys. Checked:
+the Tools page and pane, the menus (English and German menu bars fit 640), about 45 dialogs (headers and
+footers, watermarks, backgrounds, Bates, labels, crop, boxes, split, password protection, hidden
+information, sanitize, reduce/advanced optimization, audit, PDF/A, Compare's requester, accessibility
+check, reading options, tags, signatures, field list, the Tools page's groups, stamps, drawing scale,
+hairlines, printer marks, redaction, enhance scans, trusted certificates, the sign pad), filling a form by
+clicking (text, check box, radio button, drop-down), Edit Text & Images on a heading, a drawn signature
+placed with Fill & Sign, signing with a PKCS #12 certificate from start to end (pdfsig: valid; about 12 s
+in the emulator) and checking it, OCR of a page. No dialog is taller than 210 pixels; the German ones fit.
+Fixed then: text dialogs that never opened on Zune (no Floattext.mui there), the colour picker without
+Coloradjust.mui, the Tools pane cutting off seven tools at 480 lines, choice lists 130 pixels wide, Edit
+Text & Images opening the comment bar, a grey sign pad, one-colour boxes losing their pen on palette
+screens, repeated icons (see the commit). Still to look at: on the 8-bit 1024x768 screen the board around
+the pages stayed dark blue (not on the 640x480 Workbench; maybe AROS's pens on an RTG screen opened by a
+test program); Zune's lists use topaz, so their widths are estimates. Needs real AmigaOS 3.x with MUI 3.8:
+the menus' submenus near the right edge (Forms › Add Field in German; AROS moves them, Intuition may
+not), MUI's own Floattext/Coloradjust (the fallbacks are what Zune showed), and speed on a real 68040:
+OCR (templates made from the TrueType drawer at the first OCR), RSA signing and checking, rendering.
 Next steps: section 3 of the gap document.
 
 ## Issues
