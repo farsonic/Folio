@@ -278,6 +278,41 @@ static void t_jpeg_overfull_huffman(void)
   rgb = img_decode(j, (u32)n, 8, 8);
   free(rgb);
 }
+/* (tools/fuzz.c) a JPEG with coefficients and quantisation as big as the format allows: the
+   dequantising and the inverse DCT overflowed 32 bits */
+static void t_jpeg_huge_coefficients(void)
+{
+  int pass;
+  for (pass = 0; pass < 2; pass++) {
+    u8 j[1200], acc = 0;
+    size_t n = 0;
+    int k, nb = 0;
+    u8 *rgb;
+#define B(x) (j[n++] = (u8)(x))
+#define BIT(v) do { acc = (u8)(acc << 1 | (v)); if (++nb == 8) { B(acc); if (acc == 0xFF) B(0); nb = 0; acc = 0; } } while (0)
+    B(0xFF); B(0xD8);
+    if (!pass) { B(0xFF); B(0xDB); B(0); B(67); B(0x00); for (k = 0; k < 64; k++) B(255); }           /* 8-bit table, all 255 */
+    else { B(0xFF); B(0xDB); B(0); B(131); B(0x10); for (k = 0; k < 64; k++) { B(0xFF); B(0xFF); } } /* 16-bit, all 65535 */
+    B(0xFF); B(0xC0); B(0); B(11); B(8); B(0); B(8); B(0); B(8); B(1); B(1); B(0x11); B(0);
+    /* DC: one code, 0, for 15 bits; AC: 0 for (run 0, 15 bits), 1 for the end of the block */
+    B(0xFF); B(0xC4); B(0); B(20); B(0x00); B(1); for (k = 1; k < 16; k++) B(0); B(15);
+    B(0xFF); B(0xC4); B(0); B(21); B(0x10); B(2); for (k = 1; k < 16; k++) B(0); B(0x0F); B(0x00);
+    B(0xFF); B(0xDA); B(0); B(8); B(1); B(1); B(0x00); B(0); B(63); B(0);
+    for (k = 0; k < 64; k++) {
+      /* the largest values, the signs mixed so that the transform's sums grow */
+      int i, plus = k == 0 || ((k * 7) & 4) != 0;
+      BIT(0);
+      for (i = 0; i < 15; i++) BIT(plus);
+    }
+    while (nb) BIT(1);
+    B(0xFF); B(0xD9);
+#undef BIT
+#undef B
+    rgb = img_decode(j, (u32)n, 8, 8);
+    CHECK(rgb != NULL);
+    free(rgb);
+  }
+}
 /* coordinates, sizes and numbers far out of range converted to integers (undefined; the 68040
    and x86 give different answers) in the rasteriser, the glyph cache, clipping, shadings,
    patterns, images and the parser */
@@ -422,6 +457,7 @@ static const Test tests[] = {
   { "lexer_big_numbers", t_lexer_big_numbers },
   { "mesh_shift32", t_mesh_shift32 },
   { "jpeg_overfull_huffman", t_jpeg_overfull_huffman },
+  { "jpeg_huge_coefficients", t_jpeg_huge_coefficients },
   { "huge_numbers", t_huge_numbers },
   { "huge_numbers_parser", t_huge_numbers_parser },
   { "save_huge_real", t_save_huge_real },
