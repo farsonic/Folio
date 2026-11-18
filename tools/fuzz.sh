@@ -1,7 +1,9 @@
 #!/bin/sh
 # Folio's fuzzer (tools/fuzz.c) built with ASan/UBSan and run for a while over tests/gen/*.pdf:
 #   sh tools/fuzz.sh [SECONDS [FIRST-SEED]]       (default 60 s; TMP=<dir> to build and work elsewhere
-#                                                 than /tmp; M32=1 for a 32-bit build, a long as on the Amiga)
+#                                                 than /tmp; M32=1 for a 32-bit build, a long as on the Amiga;
+#                                                 FUZZ_SEEDS="files" for other seeds; FUZZ_FONTS=<dir> for the
+#                                                 stand-in fonts, e.g. a TrueType drawer of the package)
 # Runs of 500 inputs follow each other, each from its own random seed, until the time is up. An input
 # that crashes the core or hangs it is kept as $TMP/folio_fuzz/crash-<seed>.pdf and the fuzzing goes
 # on; tools/fuzz -r replays such files. The exit status is 1 if anything was found.
@@ -21,7 +23,7 @@ END=$(( $(date +%s) + SECS ))
 found=0
 runs=0
 while [ "$(date +%s)" -lt $END ]; do
-  if ! $T/folio_fuzzer "$OUT" 500 $SEED tests/gen/*.pdf > "$OUT/log" 2>&1; then
+  if ! $T/folio_fuzzer "$OUT" 500 $SEED ${FUZZ_SEEDS:-tests/gen/*.pdf} > "$OUT/log" 2>&1; then
     found=$((found + 1))
     mv "$OUT/fuzz-current.pdf" "$OUT/crash-$SEED.pdf"
     mv "$OUT/log" "$OUT/crash-$SEED.log"
