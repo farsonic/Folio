@@ -310,7 +310,7 @@ static void t_huge_numbers(void)
   char *im1 = stream_obj("/Type /XObject /Subtype /Image /Width 1e20 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", "abcd", 4, &n1);
   char *im2 = stream_obj("/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1e30 /Decode [1e30 -1e30]", "abcd", 4, &n2);
   char *pat = stream_obj("/PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 1e30 1e30] /XStep 1e30 /YStep 1e30 /Resources << >>", "0 0 5 5 re f", TEXT, &n3);
-  char *fn = stream_obj("/FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]", "{ 1e30 mul dup 3 idiv exch 1e30 mod dup 1e20 bitshift dup 1e30 and 1e30 or not }", TEXT, &n4);
+  char *fn = stream_obj("/FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]", "{ 1e30 mul dup 3 idiv exch 1e30 mod dup 1e20 bitshift dup 1e30 and 1e30 or not -1e30 -1 idiv -1e30 -1 mod -5 3 bitshift 7 -1e30 bitshift pop pop pop pop }", TEXT, &n4);
   char *fn0 = stream_obj("/FunctionType 0 /Domain [0 1] /Range [0 1] /Size [1e30] /BitsPerSample 8", "ab", 2, &n5);
   Obj ex[9];
   ex[0].s = im1; ex[0].n = n1;                                                                                   /* 5 */

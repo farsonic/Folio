@@ -209,8 +209,8 @@ static void ps_run(const PFunc *f, double *st, int *sp)
     case OP_SUB: NEED(2) st[n - 2] -= st[n - 1]; n--; break;
     case OP_MUL: NEED(2) st[n - 2] *= st[n - 1]; n--; break;
     case OP_DIV: NEED(2) st[n - 2] = st[n - 1] != 0 ? st[n - 2] / st[n - 1] : 0; n--; break;
-    case OP_IDIV: NEED(2) { long x = dbl_long(st[n - 2]), y = dbl_long(st[n - 1]); st[n - 2] = y ? (double)(x / y) : 0; n--; } break;
-    case OP_MOD: NEED(2) { long x = dbl_long(st[n - 2]), y = dbl_long(st[n - 1]); st[n - 2] = y ? (double)(x % y) : 0; n--; } break;
+    case OP_IDIV: NEED(2) { long x = dbl_long(st[n - 2]), y = dbl_long(st[n - 1]); st[n - 2] = !y ? 0 : y == -1 ? -(double)x : (double)(x / y); n--; } break;   /* (LONG_MIN / -1 overflowed) */
+    case OP_MOD: NEED(2) { long x = dbl_long(st[n - 2]), y = dbl_long(st[n - 1]); st[n - 2] = !y || y == -1 ? 0 : (double)(x % y); n--; } break;
     case OP_NEG: NEED(1) st[n - 1] = -st[n - 1]; break;
     case OP_ATAN: NEED(2) a = atan2(st[n - 2], st[n - 1]) * 180 / 3.14159265358979; if (a < 0) a += 360; st[n - 2] = a; n--; break;
     case OP_CEILING: NEED(1) st[n - 1] = ceil(st[n - 1]); break;
@@ -228,7 +228,7 @@ static void ps_run(const PFunc *f, double *st, int *sp)
     case OP_OR: NEED(2) st[n - 2] = (double)(dbl_long(st[n - 2]) | dbl_long(st[n - 1])); n--; break;
     case OP_XOR: NEED(2) st[n - 2] = (double)(dbl_long(st[n - 2]) ^ dbl_long(st[n - 1])); n--; break;
     case OP_NOT: NEED(1) st[n - 1] = st[n - 1] == 0 ? 1 : st[n - 1] == 1 ? 0 : (double)~dbl_long(st[n - 1]); break;
-    case OP_BITSHIFT: NEED(2) { long x = dbl_long(st[n - 2]); int s = dbl_int(st[n - 1]); st[n - 2] = (double)(s >= 0 ? x << (s & 31) : x >> ((-s) & 31)); n--; } break;
+    case OP_BITSHIFT: NEED(2) { long x = dbl_long(st[n - 2]); int s = dbl_int(st[n - 1]); st[n - 2] = (double)(s >= 0 ? (long)((unsigned long)x << (s & 31)) : x >> ((0u - (unsigned)s) & 31)); n--; } break;   /* (no negative number shifted left, nor -INT_MIN) */
     case OP_EQ: NEED(2) st[n - 2] = st[n - 2] == st[n - 1]; n--; break;
     case OP_NE: NEED(2) st[n - 2] = st[n - 2] != st[n - 1]; n--; break;
     case OP_GE: NEED(2) st[n - 2] = st[n - 2] >= st[n - 1]; n--; break;
