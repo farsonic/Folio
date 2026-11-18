@@ -2,6 +2,7 @@
 # names, language names in their own language, icon drawings, tokens); one per line, C escapes allowed.
 #?.(fdf|xfdf)
 #?.(jpg|jpeg|png)
+#?.(p12|pfx|pem)
 %.0f pt
 %.0f x %.0f mm
 %.0f x %.0f mm (%.0f x %.0f pt)

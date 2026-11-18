@@ -8,46 +8,47 @@ Marks: ✅ Folio has it · 🟨 partly (what is missing is said) · ⬜ missing 
 
 ## Summary
 
-- **Tool catalogue:** 152 entries in PDFCraft, 131 of them applicable to Folio. Folio has **105** (✅), **14** partly (🟨) and lacks **12** (⬜); 21 are ➖. So Folio covers 80% of the applicable entries fully and 91% at least in part.
-- **Before this branch (511adc5):** ✅ 24, 🟨 7, ⬜ 97, ➖ 24 of the same 152 (128 applicable: 19% fully).
-- **Menus and keys:** 51: ✅ 27, 🟨 4, ⬜ 18, ➖ 2 (before: ✅ 22, 🟨 2, ⬜ 25, ➖ 2).
+- **Tool catalogue:** 152 entries in PDFCraft, 130 of them applicable to Folio. Folio has **123** (✅), **7** partly (🟨) and lacks **none** (⬜); 22 are ➖. So Folio covers 95% of the applicable entries fully and all of them at least in part.
+- **After branch `pcsync` (613d70e):** ✅ 105, 🟨 14, ⬜ 12, ➖ 21. **Before it (511adc5):** ✅ 24, 🟨 7, ⬜ 97, ➖ 24 (128 applicable: 19% fully).
+- **Menus and keys:** 51: ✅ 28, 🟨 4, ⬜ 17, ➖ 2 (after `pcsync`: ✅ 27, 🟨 4, ⬜ 18, ➖ 2; before: ✅ 22, 🟨 2, ⬜ 25, ➖ 2).
 - **Side panels:** 11: ✅ 4, 🟨 6, ⬜ 1, ➖ 0 (before: ✅ 4, 🟨 0, ⬜ 7, ➖ 0).
-- **Beyond the tools: features:** 22: ✅ 8, 🟨 2, ⬜ 7, ➖ 5 (before: ✅ 4, 🟨 2, ⬜ 11, ➖ 5).
-- **Still missing whole:** Scan & OCR (text recognition is beyond a 68040), signing with a certificate, editing the page's own text and pictures in place, the Action Wizard; and in the views: two-up and single-page layouts, split view, full screen, layers panel, redo.
-- **Partly:** typed (not drawn) signatures; perimeter and area of rectangles only; simple automatic tagging; PDF/A without font embedding; signature checks without certificate validation; Convert Colours to grey only; image and date fields without their picture chooser or JavaScript format.
+- **Beyond the tools: features:** 22: ✅ 11, 🟨 1, ⬜ 5, ➖ 5 (after `pcsync`: ✅ 8, 🟨 2, ⬜ 7, ➖ 5).
+- **Round 2 (branch `fr2`)** closed the catalogue's last ⬜ and most 🟨: editing the page's own text and pictures, signing and certifying with a certificate and checking certificates, OCR and scan clean-up, drawn signatures, polygons and snapping, PDF/A font embedding, picture fields, Prepare for Distribution; and, beyond the catalogue, incremental saving, Replace, and the interface in five languages. The Action Wizard is now ➖ (scripting).
+- **Still missing:** in the views: two-up and single-page layouts, split view, full screen, the layers panel, redo; linearized saving; JBIG2 and JPEG 2000 pictures; Office documents to PDF.
+- **Partly:** Create a PDF from Office files (no converter); calculation order and date fields (their scripts aren't run); camera pictures (no perspective correction); Convert Colours (device colours only, no shadings, ICC or spot colours); simple automatic tagging and a read-only tags list.
 
 | Group | Entries | ✅ | 🟨 | ⬜ | ➖ |
 |---|---|---|---|---|---|
 | Export a PDF | 9 | 7 | 0 | 0 | 2 |
-| Fill & Sign | 10 | 8 | 2 | 0 | 0 |
-| Edit a PDF | 14 | 13 | 0 | 1 | 0 |
+| Fill & Sign | 10 | 10 | 0 | 0 | 0 |
+| Edit a PDF | 14 | 14 | 0 | 0 | 0 |
 | Create a PDF | 6 | 5 | 1 | 0 | 0 |
 | Combine files | 1 | 1 | 0 | 0 | 0 |
 | Organize pages | 13 | 12 | 0 | 0 | 1 |
 | Add comments | 15 | 15 | 0 | 0 | 0 |
-| Scan & OCR | 5 | 0 | 0 | 5 | 0 |
+| Scan & OCR | 5 | 4 | 1 | 0 | 0 |
 | Protect a PDF | 5 | 4 | 0 | 0 | 1 |
 | Redact a PDF | 5 | 5 | 0 | 0 | 0 |
 | Compress a PDF | 3 | 3 | 0 | 0 | 0 |
-| Prepare a form | 20 | 17 | 3 | 0 | 0 |
+| Prepare a form | 20 | 18 | 2 | 0 | 0 |
 | Add a stamp | 1 | 1 | 0 | 0 | 0 |
-| Use a certificate | 5 | 0 | 1 | 3 | 1 |
+| Use a certificate | 5 | 4 | 0 | 0 | 1 |
 | Use print production | 6 | 3 | 1 | 0 | 2 |
-| Measure objects | 8 | 4 | 2 | 1 | 1 |
+| Measure objects | 8 | 7 | 0 | 0 | 1 |
 | Compare files | 1 | 1 | 0 | 0 | 0 |
-| Use guided actions | 5 | 0 | 1 | 2 | 2 |
+| Use guided actions | 5 | 2 | 0 | 0 | 3 |
 | Prepare for accessibility | 9 | 6 | 2 | 0 | 1 |
-| Apply PDF standards | 4 | 0 | 1 | 0 | 3 |
+| Apply PDF standards | 4 | 1 | 0 | 0 | 3 |
 | Add search index | 1 | 0 | 0 | 0 | 1 |
 | Use JavaScript | 3 | 0 | 0 | 0 | 3 |
 | AI assistant | 3 | 0 | 0 | 0 | 3 |
-| **All** | **152** | **105** | **14** | **12** | **21** |
+| **All** | **152** | **123** | **7** | **0** | **22** |
 
 | Beyond the catalogue | Entries | ✅ | 🟨 | ⬜ | ➖ |
 |---|---|---|---|---|---|
-| Menus and keys | 51 | 27 | 4 | 18 | 2 |
+| Menus and keys | 51 | 28 | 4 | 17 | 2 |
 | Side panels | 11 | 4 | 6 | 1 | 0 |
-| Beyond the tools: features | 22 | 8 | 2 | 7 | 5 |
+| Beyond the tools: features | 22 | 11 | 1 | 5 | 5 |
 
 ## 1. The tool catalogue, group by group
 
@@ -65,7 +66,7 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 - ✅ Text (plain) `export.text` — File › Export › Text (`ID_EXPTEXT`, `dlg_export_text`)
 - ➖ PostScript / EPS `export.ps` — PDFCraft hasn't built it (Planned M10); printing is left out anyway
 
-### Fill & Sign (10: ✅ 8 · 🟨 2 · ⬜ 0 · ➖ 0)
+### Fill & Sign (10: ✅ 10 · 🟨 0 · ⬜ 0 · ➖ 0)
 
 - ✅ Add text `sign.fill.text` — Tools › Fill & Sign › Add Text (`TL_FTEXT`, doctools.c `tool_click`): borderless text box (was: only the comment Text Box) (was 🟨)
 - ✅ Checkmark `sign.fill.check` — `TL_CHECK`: an ink tick where clicked (was ⬜)
@@ -73,14 +74,14 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 - ✅ Dot `sign.fill.dot` — `TL_DOT` (was ⬜)
 - ✅ Line `sign.fill.line` — the Line tool (`TL_LINE`), also in the Fill & Sign menu (was 🟨)
 - ✅ Date `sign.fill.date` — `TL_DATE`: today's date as text (was ⬜)
-- 🟨 Signature `sign.fill.signature` — `TL_SIGN`: the name kept in Folio.prefs, typed (no drawn or picture signature yet) (was ⬜)
-- 🟨 Initials `sign.fill.initials` — `TL_INITIALS`: typed, as Signature (was ⬜)
+- ✅ Signature `sign.fill.signature` — `TL_SIGN`: typed (the name in Folio.prefs) or drawn: Change Signature › Draw, or Tools › Fill & Sign › Draw Signature (`ID_SIGDRAW`, amiga/signpad.c, a pad to write on with the mouse; kept in PROGDIR:Folio.signature), placed as an ink annotation fitted into the spot clicked (core/pagetools.c `annot_ink_fit`; tests/edit2test.c) (round 2: was 🟨)
+- ✅ Initials `sign.fill.initials` — `TL_INITIALS`: typed or drawn (`ID_INITDRAW`), as Signature (round 2: was 🟨)
 - ✅ Change signature `sign.fill.signature.change` — `ID_SIGCHANGE` (was ⬜)
 - ✅ Change initials `sign.fill.initials.change` — `ID_INITCHANGE` (was ⬜)
 
-### Edit a PDF (14: ✅ 13 · 🟨 0 · ⬜ 1 · ➖ 0)
+### Edit a PDF (14: ✅ 14 · 🟨 0 · ⬜ 0 · ➖ 0)
 
-- ⬜ Edit text & images `edit.edit_text` — editing the page's own text and pictures in place: not done (Folio adds text and pictures, and redaction removes them)
+- ✅ Edit text & images `edit.edit_text` — Edit › Edit Text & Images (`TL_EDIT`): click a line (or the selection) and retype it: core/editpage.c `text_replace` takes the run's glyphs out (core/contentedit.c) and sets the new text in the run's own font when it has the glyphs (simple fonts by their encoding, CID fonts through their ToUnicode), else in the nearest standard font; the rest of the line moves by the difference. Text set at an angle isn't edited. Click a picture to replace it (JPEG/PNG), move it, resize it or delete it (`image_replace`, `image_set_matrix`, `image_delete`) (tests/edit2test.c) (round 2: was ⬜)
 - ✅ Rotate pages `page.rotate` — `ID_ROTL`/`ID_ROTR`
 - ✅ Insert pages `page.insert` — `ID_INSFILE`, `ID_INSBLANK`
 - ✅ Delete pages `page.delete` — `ID_DELPAGES`
@@ -142,13 +143,13 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 - ✅ Comment list `comment.list` — the comments pane (panes.c)
 - ✅ Flatten comments `comment.flatten` — Tools › Flatten Comments (`ID_FLATTENCOMMENTS`): `annots_flatten` (was ⬜)
 
-### Scan & OCR (5: ✅ 0 · 🟨 0 · ⬜ 5 · ➖ 0)
+### Scan & OCR (5: ✅ 4 · 🟨 1 · ⬜ 0 · ➖ 0)
 
-- ⬜ In this file `ocr.recognize` — no text recognition: needs recognition models far beyond a 68040's memory and speed; not done
-- ⬜ In multiple files `ocr.recognize_batch` — as above
-- ⬜ Enhance scanned file `ocr.enhance` — not done (background and speckle removal of scans)
-- ⬜ Enhance camera image `ocr.enhance_camera` — not done
-- ⬜ Correct recognized text `ocr.correct` — not done (needs OCR)
+- ✅ In this file `ocr.recognize` — Document › Scan & OCR › Recognise Text on This Page / on Every Page (`ID_OCRPAGE`, `ID_OCRALL`): core/scan.c `ocr_page`, Folio's own OCR (the page drawn at 200 dpi, ink into lines, glyphs and words, each glyph matched against templates Folio draws from its own fonts at three sizes: Liberation Sans/Serif, Carlito, Caladea), laid over the page as invisible text (`ocr_add_text_layer`). Clean printed text in those kinds of type: 98% of the characters of a drawn page and 95% of a crooked, speckled 200 dpi scan of it right in tests/scantest.c; handwriting and unusual type don't come out (round 2: was ⬜)
+- ✅ In multiple files `ocr.recognize_batch` — Scan & OCR › Recognise Text in Files (`ID_OCRFILES`): each file saved beside it with -ocr (round 2: was ⬜)
+- ✅ Enhance scanned file `ocr.enhance` — Scan & OCR › Enhance Scanned Pages (`ID_ENHANCE`, `scan_clean_page`): straightened (skew found from the rows of glyph bottoms, ±10°), specks removed, the background levelled to white, optionally black and white as CCITT G4 (`flt_ccitt_g4_encode`) (round 2: was ⬜)
+- 🟨 Enhance camera image `ocr.enhance_camera` — Scan & OCR › Enhance Camera Image (`ID_ENHANCECAM`): uneven light divided out, levels, straightened; no perspective correction or cropping to the page's edges (round 2: was ⬜)
+- ✅ Correct recognized text `ocr.correct` — Scan & OCR › Correct Recognised Text (`ID_OCRCORRECT`): the page's recognised words, least certain first; one retyped in the invisible text (`text_replace` keeps render mode 3) (round 2: was ⬜)
 
 ### Protect a PDF (5: ✅ 4 · 🟨 0 · ⬜ 0 · ➖ 1)
 
@@ -172,7 +173,7 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 - ✅ Advanced optimization `optimize.advanced` — `ID_ADVOPT`: resolution, JPEG quality, deduplication, object streams, metadata/thumbnails removal (was ⬜)
 - ✅ Audit space usage `optimize.audit` — `ID_AUDIT`: `optimize_audit` (PDFCraft plans it for M11; Folio has it) (was ➖)
 
-### Prepare a form (20: ✅ 17 · 🟨 3 · ⬜ 0 · ➖ 0)
+### Prepare a form (20: ✅ 18 · 🟨 2 · ⬜ 0 · ➖ 0)
 
 - ✅ Field list `form.fields` — Forms › Field List (`ID_FIELDLIST`): every field with its kind, page and value; double-click goes there (core/forms.c `form_load`) (was ⬜)
 - ✅ Detect form fields `form.detect` — `ID_DETECT`: underscores become text fields, [ ] and ☐ check boxes (`form_detect`) (was ⬜)
@@ -191,7 +192,7 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 - ✅ Drop-down list `form.add.combo` — `FF_COMBO` with choices (was ⬜)
 - ✅ List box `form.add.list` — `FF_LIST` (was ⬜)
 - ✅ Button `form.add.button` — `FF_PUSH` with its caption (no actions: JavaScript left out) (was ⬜)
-- 🟨 Image field `form.add.image` — a button field named Picture; choosing a picture into it isn't done (was ⬜)
+- ✅ Image field `form.add.image` — a button field named Picture; clicking it chooses a JPEG or PNG shown fitted in it (core/forms.c `form_set_picture`, its appearance and /MK /I icon; tests/edit2test.c) (round 2: was 🟨)
 - 🟨 Date field `form.add.date` — a text field named Date; its date format needs JavaScript (left out) (was ⬜)
 - ✅ Digital signature `form.add.signature` — `FF_SIG` (an empty signature field) (was ⬜)
 
@@ -199,31 +200,31 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 
 - ✅ Stamp palette `comment.stamp` — Tools › Stamp (`ID_STAMPPICK`): twelve standard stamps or your own text, then click (`TL_STAMP`) (was ⬜)
 
-### Use a certificate (5: ✅ 0 · 🟨 1 · ⬜ 3 · ➖ 1)
+### Use a certificate (5: ✅ 4 · 🟨 0 · ⬜ 0 · ➖ 1)
 
-- ⬜ Digitally sign `sign.digital` — signing needs a private key and certificate handling (PKCS#12, RSA): not done
+- ✅ Digitally sign `sign.digital` — Protect › Certificates › Sign with a Certificate (`ID_SIGNTOOL`, drag the box) or Sign Invisibly (`ID_SIGNINVIS`): the key and certificate chain from a PKCS #12 file (PBES2/AES, as OpenSSL 3 makes them) or PEM (unencrypted or PBES2), RSA or ECDSA P-256/P-384 (core/pki.c); core/sign.c `pdf_sign` writes adbe.pkcs7.detached CMS with SHA-256 as an incremental update; poppler's pdfsig and OpenSSL accept the signatures (tests/signtest.c). Offline: no timestamp server (round 2: was ⬜)
 - ➖ Timestamp `sign.timestamp` — PDFCraft hasn't built it (Planned M9); needs a timestamp server (network): left out
-- 🟨 Validate all signatures `sign.validate` — Document › Signatures (`ID_SIGNATURES`), and clicking a signature field: core/review.c `sig_list` checks the signed byte ranges against the CMS messageDigest (SHA-1/256/384/512) and whether anything was appended; the certificate and its chain aren't checked (was ⬜)
-- ⬜ Certify (visible signature) `sign.certify` — as Digitally sign
-- ⬜ Certify (invisible signature) `sign.certify_invisible` — as Digitally sign
+- ✅ Validate all signatures `sign.validate` — Protect › Certificates › Validate All Signatures (`ID_SIGNATURES`): the byte ranges' digest, the CMS signature checked with the signer's certificate (RSA PKCS #1 v1.5, ECDSA; SHA-1/256/384/512), the signing time against the certificate's validity, the chain to a certificate you trust (PROGDIR:Certificates, filled by Trust a Signer's Certificate, `ID_TRUSTSIGNER`), and whether anything was appended. No revocation (CRL/OCSP: network) (round 2: was 🟨)
+- ✅ Certify (visible signature) `sign.certify` — Certificates › Certify with a Visible Signature (`ID_CERTIFYTOOL`): DocMDP (P 2) in the signature and the catalog's /Perms (round 2: was ⬜)
+- ✅ Certify (invisible signature) `sign.certify_invisible` — `ID_CERTIFYINVIS` (round 2: was ⬜)
 
 ### Use print production (6: ✅ 3 · 🟨 1 · ⬜ 0 · ➖ 2)
 
 - ➖ Output preview `prepress.output_preview` — PDFCraft hasn't built it (Planned M11)
 - ➖ Preflight `preflight.run` — PDFCraft hasn't built it (Planned M11)
-- 🟨 Convert colours `prepress.convert_colors` — Document › Print Production › Convert Colours to Grey (`ID_TOGRAY`, core/optimize.c `convert_to_gray`): RGB/CMYK operators and 8-bit pictures; shadings, ICC and spot colours not converted, no other target spaces (was ⬜)
+- 🟨 Convert colours `prepress.convert_colors` — Print Production › Convert Colours to Grey, RGB or CMYK (`ID_TOGRAY`, `ID_TORGB`, `ID_TOCMYK`; core/optimize.c `convert_colors`): device colours of paths and text and 8-bit pictures; shadings, ICC-based and spot colours aren't converted, and there is no colour management (profiles) (round 2: was 🟨, grey only)
 - ✅ Set page boxes `page.boxes` — `ID_BOXES` (was ⬜)
 - ✅ Add printer marks `prepress.marks` — `ID_MARKS`: crop marks, bleed and trim boxes (`printer_marks`); no registration marks or colour bars (was ⬜)
 - ✅ Fix hairlines `prepress.hairlines` — `ID_HAIRLINES`: `fix_hairlines` (was ⬜)
 
-### Measure objects (8: ✅ 4 · 🟨 2 · ⬜ 1 · ➖ 1)
+### Measure objects (8: ✅ 7 · 🟨 0 · ⬜ 0 · ➖ 1)
 
 - ✅ Distance `measure.distance` — Tools › Measure › Distance (`TL_MEASURE`): `annot_measure`, a dimension line with its length and a /Measure dictionary (was ⬜)
-- 🟨 Perimeter `measure.perimeter` — `TL_PERIM`: of a dragged rectangle only (`annot_measure_area` takes any polygon; drawing one point by point isn't there) (was ⬜)
-- 🟨 Area `measure.area` — `TL_AREA`: as Perimeter (was ⬜)
+- ✅ Perimeter `measure.perimeter` — `TL_PERIM`: click point by point; clicking the last point again (or the first) ends it (`annot_measure_area`) (round 2: was 🟨)
+- ✅ Area `measure.area` — `TL_AREA`: a polygon clicked point by point, closed on its first point (round 2: was 🟨)
 - ✅ Drawing scale `measure.scale` — `ID_SCALE` (units per inch, kept in Folio.prefs) (was ⬜)
 - ✅ Measurement information `measure.info` — `ID_MEASINFO`: the document's measurements listed (was ⬜)
-- ⬜ Snapping `measure.snap` — snapping to the page's paths and ends: not done
+- ✅ Snapping `measure.snap` — View › Snap to Page Objects (`ID_SNAP`): the measuring tools' points snap to the ends, corners and edge midpoints of the page's paths within 8 pixels (core/editpage.c `page_snap_points`, `snap_nearest`) (round 2: was ⬜)
 - ✅ Export measurements `measure.export` — `ID_MEASEXPORT`: CSV (was ⬜)
 - ➖ Geospatial location `measure.geo` — PDFCraft hasn't built it (Planned M12)
 
@@ -231,12 +232,12 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 
 - ✅ Select files to compare `doc.compare` — Tools › Compare Files (`ID_COMPARE`): core/review.c `compare_docs`, text compared line by line, the report, insertions highlighted and deletions noted in this document (no visual compare) (was ⬜)
 
-### Use guided actions (5: ✅ 0 · 🟨 1 · ⬜ 2 · ➖ 2)
+### Use guided actions (5: ✅ 2 · 🟨 0 · ⬜ 0 · ➖ 3)
 
-- ⬜ Action Wizard `actions.wizard` — recorded sequences of commands: not done (scripting is left out; the tools run one by one)
+- ➖ Action Wizard `actions.wizard` — recorded sequences of commands are scripting, left out on purpose (the tools run one by one) (round 2: was ⬜)
 - ➖ Make accessible `actions.make_accessible` — PDFCraft hasn't built it (Planned M13)
-- 🟨 Prepare for distribution `actions.distribution` — the same steps by hand: Remove Hidden Information, then Reduce File Size (was ⬜)
-- ⬜ Optimize scanned documents `actions.optimize_scans` — needs OCR (see Scan & OCR)
+- ✅ Prepare for distribution `actions.distribution` — Document › Optimize › Prepare for Distribution (`ID_DISTRIB`, and the Compress card): Remove Hidden Information, then Reduce File Size, in one go (round 2: was 🟨)
+- ✅ Optimize scanned documents `actions.optimize_scans` — Scan & OCR › Optimize Scanned Document (`ID_OPTSCAN`): every page's scan straightened and despeckled, stored as CCITT G4 when it is nearly black and white, and its text recognised (round 2: was ⬜)
 - ➖ Archive documents `actions.archive` — PDFCraft hasn't built it (Planned M13)
 
 ### Prepare for accessibility (9: ✅ 6 · 🟨 2 · ⬜ 0 · ➖ 1)
@@ -251,9 +252,9 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 - 🟨 Tags panel `a11y.tags` — `ID_TAGTREE`: the structure tree as a list to read; no editing of tags (was ⬜)
 - ➖ Fix reading order `a11y.reading_order` — PDFCraft hasn't built it (Planned M12)
 
-### Apply PDF standards (4: ✅ 0 · 🟨 1 · ⬜ 0 · ➖ 3)
+### Apply PDF standards (4: ✅ 1 · 🟨 0 · ⬜ 0 · ➖ 3)
 
-- 🟨 Save as PDF/A `standards.pdfa` — File › Save as PDF/A (`ID_PDFA`, `pdfa_convert`): XMP pdfaid 2B, an sRGB output intent (its ICC profile made by Folio), no scripts or attachments, annotation flags; fonts that aren't embedded are reported, not embedded (was ⬜)
+- ✅ Save as PDF/A `standards.pdfa` — File › Save as PDF/A (`ID_PDFA`, `pdfa_convert`): XMP pdfaid 2B, an sRGB output intent, no scripts or attachments, annotation flags, and every simple font that isn't embedded given the TrueType stand-in Folio draws it with (Liberation, Carlito, Caladea: metric-compatible), widths from the program; CID fonts without a program and Symbol/Dingbats are reported (tests/edit2test.c, pdffonts) (round 2: was 🟨)
 - ➖ Save as PDF/X `standards.pdfx` — PDFCraft hasn't built it (Planned M11)
 - ➖ Save as PDF/UA `standards.pdfua` — PDFCraft hasn't built it (Planned M11)
 - ➖ Preflight `preflight.run` — PDFCraft hasn't built it (Planned M11)
@@ -278,7 +279,7 @@ In PDFCraft's catalogue order. Each line: the mark, PDFCraft's entry and command
 
 PDFCraft's menu bar and keys (the commands not in the catalogue), its side panels, and features that aren't one command.
 
-### Menus and keys (51: ✅ 27 · 🟨 4 · ⬜ 18 · ➖ 2)
+### Menus and keys (51: ✅ 28 · 🟨 4 · ⬜ 17 · ➖ 2)
 
 - ✅ Open `file.open` — `ID_OPEN` (Amiga-O)
 - ✅ Open Recent `file.open_recent` — Home page and `ID_RECENT0`
@@ -300,7 +301,7 @@ PDFCraft's menu bar and keys (the commands not in the catalogue), its side panel
 - ✅ Delete `edit.delete` — `ID_DELETE` (comments), Del key
 - ✅ Select all `edit.select_all` — `ID_SELALL`
 - ✅ Find `edit.find` — `ID_FIND`, Find Next/Previous
-- ⬜ Replace `edit.replace` — replacing page text needs Edit text: not done
+- ✅ Replace `edit.replace` — Edit › Replace Text (`ID_REPLACETEXT`): every match on every page retyped in place (`text_replace`, the last on a page first) (round 2: was ⬜)
 - 🟨 Advanced search `edit.advanced_search` — Find Text and Redact searches every page; no search panel with results list (was ⬜)
 - ⬜ Column select `edit.column_select` — not done
 - ⬜ Take a snapshot `edit.snapshot` — an area copied as a picture: not done (Export Page as PNG instead)
@@ -328,7 +329,7 @@ PDFCraft's menu bar and keys (the commands not in the catalogue), its side panel
 - ⬜ Bookmarks from structure `bookmark.from_structure` — from the tags: not done
 - ✅ Bookmarks from text styles `bookmark.from_text_styles` — `ID_BMSTYLES`: `outline_from_styles` (was ⬜)
 - ⬜ Export / import bookmark trees `bookmark.export` — not done
-- ✅ Next / previous tab `view.next_tab` — `ID_NEXTDOC`/`ID_PREVDOC`
+- ✅ Next / previous tab `view.next_tab` — View › Next/Previous Document (`ID_NEXTDOC`/`ID_PREVDOC`; the Window menu folded into View so the German menu bar fits 640 pixels)
 - 🟨 Help, about `help.about` — About Folio; README; no shortcuts window
 - ➖ Check for updates, web pages, Discord `help.check_updates` — network features are left out
 
@@ -346,7 +347,7 @@ PDFCraft's menu bar and keys (the commands not in the catalogue), its side panel
 - ✅ Search `panel.search` — the find bar
 - 🟨 Compare `panel.compare` — the comparison report (a window) (was ⬜)
 
-### Beyond the tools: features (22: ✅ 8 · 🟨 2 · ⬜ 7 · ➖ 5)
+### Beyond the tools: features (22: ✅ 11 · 🟨 1 · ⬜ 5 · ➖ 5)
 
 - ✅ Fill in forms `feature.fill` — click a field with Select: text (several lines, comb, password, length), check boxes, radio buttons, drop-downs, lists; appearances made for every viewer (core/forms.c, tests/formtest.c). Was left out before (was ⬜)
 - ⬜ Form JavaScript (format, validate, calculate) `feature.formjs` — JavaScript left out on purpose
@@ -357,27 +358,28 @@ PDFCraft's menu bar and keys (the commands not in the catalogue), its side panel
 - ✅ Object streams and compressed saving `feature.objstm` — `SaveOpts.objstm`, `compress` (was ⬜)
 - 🟨 PDF 2.0 `feature.pdf20` — read; written as 1.7 (with 2.0's AES-256)
 - ⬜ Linearized (fast web view) saving `feature.linearize` — not done
-- ⬜ Incremental saving (keeps signatures valid) `feature.incremental` — Folio rewrites the file: a signed document's signatures break when it is saved
+- ✅ Incremental saving (keeps signatures valid) `feature.incremental` — core/pdfwrite.c `pdf_save_incremental`: only new and changed objects appended (a new page tree when pages moved), with a cross-reference section or stream and /Prev; Save uses it for signed documents (tests/signtest.c: a comment added to a signed file, the signature still valid) (round 2: was ⬜)
 - ✅ Repairing damaged files `feature.repair` — the cross-reference table rebuilt; fuzzed (tests/robusttest.c)
 - ⬜ JBIG2 and JPEG 2000 pictures `feature.jbig2` — shown blank
 - ✅ Optional content `feature.oc` — hidden layers stay hidden; layers can't be switched
 - ✅ XMP metadata `feature.xmp` — written from the information (`xmp_update`) (was ⬜)
-- ⬜ OCR `feature.ocr` — see Scan & OCR
+- ✅ OCR `feature.ocr` — see Scan & OCR (round 2: was ⬜)
 - ⬜ Office import (Word, Excel, PowerPoint to PDF) `feature.officein` — Quill and Ledger export PDF; Folio doesn't convert
 - ➖ Printing `feature.print` — left out on purpose
 - ➖ ARexx, scripting, MCP and automation `feature.script` — left out on purpose (PDFCraft's automation crate and MCP server)
 - ➖ Sound, video, 3D (PRC/U3D) `feature.media` — left out on purpose
 - ➖ Network and cloud services, AI `feature.cloud` — left out on purpose
 - ➖ E-signing with certificates over the network `feature.esign` — left out on purpose
-- 🟨 Interface languages `feature.lang` — strings go through tr() (amiga/lang.c, lang_table.h); Folio runs in English (lang_set(LANG_EN)); PDFCraft has many catalogs
+- ✅ Interface languages `feature.lang` — English, German, French, Spanish and Italian (Acrobat's terms), from lang/strings.txt (tools/mklang.py, tools/langcheck.py in tools/test.sh: every string translated and used); the language Locale prefs prefer, or View › Language (round 2: was 🟨)
 
 ## 3. What could come next
 
-1. Drawn signatures (an ink signature kept in Folio.prefs and placed as a stamp), polygon measuring point by point.
-2. Embedding the stand-in TrueType fonts for unembedded standard fonts (PDF/A, and documents that look the same everywhere).
-3. A layers pane (optional content on and off), two-up and single-page layouts, redo.
-4. Incremental saving, so signed documents stay valid when comments are added.
-5. Editing existing page text in simple cases (a line in a simple font), using core/contentedit.c.
-6. Signature certificate checks (RSA verification of the CMS signature) and signing with a key file.
+Round 2 (branch `fr2`) did the list that stood here: drawn signatures, polygons point by point, embedded stand-in fonts for PDF/A, incremental saving, editing the page's own text and pictures, certificate checks and signing, and added OCR and scan clean-up and the interface in four more languages. Next:
+
+1. A layers pane (optional content on and off), two-up and single-page layouts, redo.
+2. Picture fields filled by choosing a picture; perspective correction for camera pictures.
+3. OCR: more training fonts (italics, Courier's stand-in), a word list to choose between close readings, columns and tables.
+4. Signing: PKCS #12 files with the older 3DES/RC2 encryption; RSA-PSS; timestamps stay out (network).
+5. Linearized saving; JBIG2 and JPEG 2000 pictures.
 
 Recount with `python3 tools/gapcount.py docs/pdfcraft-gap.md` (`--write` updates the headers and tables).

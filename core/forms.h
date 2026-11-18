@@ -86,4 +86,6 @@ int   form_calc_order(PDoc *d, FForm *f, const int *fields, int n);
 /* fields made where the page draws blanks: runs of underscores (text fields) and empty boxes
    ("[ ]", U+2610) (check boxes); how many */
 int   form_detect(PDoc *d, int page, TextPage *t);
+/* (round 2) a picture field (button) shown with a JPEG or PNG picture, fitted into each widget */
+int   form_set_picture(PDoc *d, FField *f, const u8 *file, size_t n);
 #endif

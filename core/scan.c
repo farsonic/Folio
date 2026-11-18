@@ -105,9 +105,8 @@ static void glyph_box(const Ink *ink, Glyph *g)
 static void features(const Ink *ink, const Glyph *g, double base, double xh, Feat *f)
 {
   int i, j, x;
-  double gw = g->x1 - g->x0 + 1, gh = g->y1 - g->y0 + 1, cell[G * G];
+  double gw = g->x1 - g->x0 + 1, gh = g->y1 - g->y0 + 1;
   memset(f, 0, sizeof *f);
-  memset(cell, 0, sizeof cell);
   for (i = 0; i < g->ncomp; i++) {
     const Comp *c = &ink->c[g->comp[i]];
     for (j = 0; j < c->nr; j++) {
@@ -122,7 +121,6 @@ static void features(const Ink *ink, const Glyph *g, double base, double xh, Fea
     /* each cell's share of the box's pixels it covers */
     double cw = gw / G, ch = gh / G, area = (cw < 1 ? 1 : cw) * (ch < 1 ? 1 : ch);
     double v = f->g[i * G + j] / area;
-    (void)cell;
     f->g[i * G + j] = (float)(v > 1 ? 1 : v);
   }
   for (i = 0; i < g->ncomp; i++) if (ink->c[g->comp[i]].area >= 2) f->pieces += 1;
@@ -721,7 +719,7 @@ int scan_clean_page(PDoc *d, int page, const ScanOpts *o, double *angle)
   for (i = 0; i < w * h; i++) gr[i] = comps == 1 ? s[i] : (u8)((s[i * 3] * 77 + s[i * 3 + 1] * 151 + s[i * 3 + 2] * 28) >> 8);
   if (o->camera) {
     /* the light: the brightest in blocks, smoothed, divided out */
-    int bs = (w > h ? w : h) / 24 + 8, bw = (w + bs - 1) / bs, bh = (h + bs - 1) / bs, bx, by, x, y;
+    int bs = (w > h ? w : h) / 24 + 8, bw = (w + bs - 1) / bs, bh = (h + bs - 1) / bs, bx, x, y;
     int *mx = (int *)calloc((size_t)(bw * bh), sizeof(int));
     if (mx) {
       for (y = 0; y < h; y++) for (x = 0; x < w; x++) { int v = gr[(size_t)y * (size_t)w + (size_t)x], *m = &mx[(y / bs) * bw + x / bs]; if (v > *m) *m = v; }
@@ -739,7 +737,6 @@ int scan_clean_page(PDoc *d, int page, const ScanOpts *o, double *angle)
           double v = s[at] * 255.0 / l;
           s[at] = (u8)(v > 255 ? 255 : v);
         }
-        by = 0; (void)by;
       }
       free(mx);
       for (i = 0; i < w * h; i++) gr[i] = comps == 1 ? s[i] : (u8)((s[i * 3] * 77 + s[i * 3 + 1] * 151 + s[i * 3 + 2] * 28) >> 8);

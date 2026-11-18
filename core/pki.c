@@ -639,11 +639,7 @@ int cert_parse(const u8 *der, size_t n, Cert *c)
   memset(c, 0, sizeof *c);
   in.p = der; in.n = n;
   if (!der_next(&in, &t, &cert, &c->der) || t != 0x30) return 0;
-  {
-    Der save = cert;
-    if (!der_next(&cert, &t, &tbs, &c->tbs) || t != 0x30) return 0;
-    (void)save;
-  }
+  if (!der_next(&cert, &t, &tbs, &c->tbs) || t != 0x30) return 0;
   if (!der_next(&cert, &t, &f, &c->sigalg_der) || t != 0x30 || !der_expect(&f, 0x06, &oid)) return 0;
   sigalg_oid(&oid, &c->sig_hash, &c->sig_pk);
   if (!der_expect(&cert, 0x03, &c->sig) || c->sig.n < 1) return 0;
@@ -1167,4 +1163,12 @@ void signer_free(SignerId *s)
   for (i = 0; i < s->ncerts; i++) free(s->certs[i]);
   s->ncerts = 0;
   memset(&s->key, 0, sizeof s->key);
+}
+int pki_read_certs(const u8 *data, size_t n, SignerId *s)
+{
+  memset(s, 0, sizeof *s);
+  if (n > 4 && data[0] == 0x30) { add_cert(s, data, n); return s->ncerts; }
+  pem(s, data, n, "");
+  memset(&s->key, 0, sizeof s->key);
+  return s->ncerts;
 }

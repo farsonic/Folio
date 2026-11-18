@@ -15,6 +15,7 @@
 #include "forms.h"
 #include "pagecontent.h"
 #include "xml.h"
+#include "pagetools.h"
 
 /* ------------------------------------------------------------------ loading */
 typedef struct { const char *ft; long ff; PObj *v, *dv, *da, *q, *opt, *maxlen; } Inh;
@@ -1199,4 +1200,39 @@ int form_detect(PDoc *d, int page, TextPage *t)
     i++;
   }
   return n;
+}
+
+/* (round 2) a picture field (a button) given a picture: each widget's appearance draws it fitted
+   into the widget, its shape kept, and the button's /MK /I icon is it */
+int form_set_picture(PDoc *d, FField *f, const u8 *file, size_t n)
+{
+  int w, h, num, k, done = 0;
+  if (!f || f->type != FF_PUSH || !(num = image_xobject(d, file, n, &w, &h)) || w < 1 || h < 1) return 0;
+  for (k = 0; k < f->nw; k++) {
+    FWidget *wd = &f->w[k];
+    double bw = wd->rect[2] - wd->rect[0], bh = wd->rect[3] - wd->rect[1], s, iw, ih, bb[4];
+    PObj *res = pobj_new(PO_DICT), *xo = pobj_new(PO_DICT), *ap, *mk;
+    Buf b;
+    int form;
+    if (!res || !xo || bw <= 0 || bh <= 0) { pobj_free(res); pobj_free(xo); continue; }
+    s = bw / w < bh / h ? bw / w : bh / h;
+    iw = w * s; ih = h * s;
+    pobj_dict_set(xo, "Im0", om_ref(num));
+    pobj_dict_set(res, "XObject", xo);
+    buf_init(&b);
+    buf_adds(&b, "q ");
+    om_num(&b, iw); buf_adds(&b, "0 0 "); om_num(&b, ih); om_num(&b, (bw - iw) / 2); om_num(&b, (bh - ih) / 2);
+    buf_adds(&b, "cm /Im0 Do Q\n");
+    bb[0] = bb[1] = 0; bb[2] = bw; bb[3] = bh;
+    form = b.oom ? 0 : om_form(d, b.data, b.len, bb, res);
+    buf_free(&b);
+    if (!form) continue;
+    if ((ap = pobj_new(PO_DICT))) { pobj_dict_set(ap, "N", om_ref(form)); pobj_dict_set(wd->dict, "AP", ap); }
+    mk = pdf_dget(d, wd->dict, "MK");
+    if (!mk || mk->type != PO_DICT) { if ((mk = pobj_new(PO_DICT))) pobj_dict_set(wd->dict, "MK", mk); }
+    if (mk) { pobj_dict_set(mk, "I", om_ref(num)); pobj_dict_set(mk, "TP", pobj_int(1)); }
+    done++;
+  }
+  if (done) d->changed = 1;
+  return done;
 }

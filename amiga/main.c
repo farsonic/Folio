@@ -36,6 +36,7 @@
 #include "splash.h"
 #include "../core/font.h"
 #include "../core/pdfwrite.h"
+#include "../core/review.h"
 
 #ifndef MUIA_Window_DisableKeys
 #define MUIA_Window_DisableKeys 0x80424c36UL
@@ -69,7 +70,8 @@ const char *const tool_names[TL_N] = {
   "Select Text", "Hand", "Sticky Note", "Highlight Text", "Underline Text", "Strikethrough", "Add Text Box", "Draw", "Rectangle", "Oval", "Line",
   "Squiggly Underline", "Arrow", "Cloud", "Stamp", "Measure Distance", "Measure Area", "Measure Perimeter",
   "Add Text", "Add Picture", "Add Link", "Redact Area", "Add Form Field", "Crop Page",
-  "Fill In Text", "Checkmark", "Cross", "Dot", "Date", "Signature", "Initials"
+  "Fill In Text", "Checkmark", "Cross", "Dot", "Date", "Signature", "Initials",
+  "Edit Text & Images", "Sign with a Certificate", "Certify with a Certificate"
 };
 
 /* ------------------------------------------------------------------ the menus */
@@ -96,7 +98,8 @@ static struct NewMenu menus[] = {
   M("Edit"),
   I("Undo", "Z", ID_UNDO), BAR,
   I("Copy", "C", ID_COPY), I("Select All", "A", ID_SELALL), I("Deselect", 0, ID_DESELECT), BAR,
-  I("Find...", "F", ID_FIND), I("Find Next", "G", ID_FINDNEXT), I("Find Previous", 0, ID_FINDPREV), BAR,
+  I("Find...", "F", ID_FIND), I("Find Next", "G", ID_FINDNEXT), I("Find Previous", 0, ID_FINDPREV), I("Replace Text...", 0, ID_REPLACETEXT), BAR,
+  I("Edit Text & Images", "T", ID_TOOL0 + TL_EDIT), BAR,
   I("Edit Comment Text...", "E", ID_EDITNOTE), I("Delete Comment", 0, ID_DELETE), BAR,
   I("Comment Author...", 0, ID_AUTHOR),
   M("View"),
@@ -104,6 +107,8 @@ static struct NewMenu menus[] = {
   I("Rotate View Clockwise", "R", ID_ROTVIEWR), I("Rotate View Anticlockwise", 0, ID_ROTVIEWL), BAR,
   I("First Page", 0, ID_FIRST), I("Previous Page", 0, ID_PREV), I("Next Page", 0, ID_NEXT), I("Last Page", 0, ID_LAST), I("Go to Page...", "J", ID_GOTO), BAR,
   T("Page Thumbnails", 0, ID_THUMBS), T("Bookmarks", 0, ID_BOOKMARKS), T("Tools Pane", 0, ID_TOOLSPANE), BAR,
+  T("Snap to Page Objects", 0, ID_SNAP), BAR,
+  I("Next Document", "`", ID_NEXTDOC), I("Previous Document", 0, ID_PREVDOC), BAR,
   T("Dark Interface", 0, ID_DARKUI),
   H("Language"), { NM_SUB, (STRPTR)"As in Locale Prefs", 0, CHECKIT, ~1L & 63, (APTR)(ID_LANG0) },
   { NM_SUB, (STRPTR)"English", 0, CHECKIT, ~2L & 63, (APTR)(ID_LANG0 + 1) }, { NM_SUB, (STRPTR)"Deutsch", 0, CHECKIT, ~4L & 63, (APTR)(ID_LANG0 + 2) },
@@ -121,7 +126,8 @@ static struct NewMenu menus[] = {
   I("Flatten Comments", 0, ID_FLATTENCOMMENTS), BAR,
   H("Fill & Sign"), S("Add Text", 0, ID_TOOL0 + TL_FTEXT), S("Checkmark", 0, ID_TOOL0 + TL_CHECK), S("Cross", 0, ID_TOOL0 + TL_CROSS),
   S("Dot", 0, ID_TOOL0 + TL_DOT), S("Line", 0, ID_TOOL0 + TL_LINE), S("Date", 0, ID_TOOL0 + TL_DATE), S("Signature", 0, ID_TOOL0 + TL_SIGN),
-  S("Initials", 0, ID_TOOL0 + TL_INITIALS), S("Change Signature...", 0, ID_SIGCHANGE), S("Change Initials...", 0, ID_INITCHANGE), BAR,
+  S("Initials", 0, ID_TOOL0 + TL_INITIALS), S("Change Signature...", 0, ID_SIGCHANGE), S("Change Initials...", 0, ID_INITCHANGE),
+  S("Draw Signature...", 0, ID_SIGDRAW), S("Draw Initials...", 0, ID_INITDRAW), BAR,
   I("Comment Colour...", 0, ID_COLOR),
   M("Pages"),
   I("Rotate Anticlockwise", 0, ID_ROTL), I("Rotate Clockwise", 0, ID_ROTR), BAR,
@@ -140,8 +146,12 @@ static struct NewMenu menus[] = {
   H("Accessibility"), S("Check...", 0, ID_A11YCHECK), S("Reading Options...", 0, ID_READOPTS), S("Automatically Tag", 0, ID_AUTOTAG),
   S("Find Untagged Content", 0, ID_UNTAGGED), S("Alternate Text...", 0, ID_ALTTEXT), S("Tags...", 0, ID_TAGTREE),
   I("Signatures...", 0, ID_SIGNATURES), BAR,
-  H("Print Production"), S("Fix Hairlines...", 0, ID_HAIRLINES), S("Convert Colours to Grey", 0, ID_TOGRAY), S("Add Printer Marks...", 0, ID_MARKS), S("Set Page Boxes...", 0, ID_BOXES),
-  H("Optimize"), S("Reduce File Size...", 0, ID_REDUCE), S("Advanced Optimization...", 0, ID_ADVOPT), S("Audit Space Usage...", 0, ID_AUDIT),
+  H("Scan & OCR"), S("Recognise Text on This Page", 0, ID_OCRPAGE), S("Recognise Text on Every Page", 0, ID_OCRALL),
+  S("Recognise Text in Files...", 0, ID_OCRFILES), S("Correct Recognised Text...", 0, ID_OCRCORRECT), S("Enhance Scanned Pages...", 0, ID_ENHANCE),
+  S("Enhance Camera Image", 0, ID_ENHANCECAM), S("Optimize Scanned Document...", 0, ID_OPTSCAN),
+  H("Print Production"), S("Fix Hairlines...", 0, ID_HAIRLINES), S("Convert Colours to Grey", 0, ID_TOGRAY),
+  S("Convert Colours to RGB", 0, ID_TORGB), S("Convert Colours to CMYK", 0, ID_TOCMYK), S("Add Printer Marks...", 0, ID_MARKS), S("Set Page Boxes...", 0, ID_BOXES),
+  H("Optimize"), S("Prepare for Distribution...", 0, ID_DISTRIB), S("Reduce File Size...", 0, ID_REDUCE), S("Advanced Optimization...", 0, ID_ADVOPT), S("Audit Space Usage...", 0, ID_AUDIT),
   M("Forms"),
   I("Field List...", 0, ID_FIELDLIST), BAR,
   H("Add Field"), S("Text Field", 0, ID_FIELDTOOL + 0), S("Text Field Table", 0, ID_FIELDTOOL + 8), S("Check Box", 0, ID_FIELDTOOL + 1),
@@ -154,9 +164,10 @@ static struct NewMenu menus[] = {
   I("Protect with Password...", 0, ID_SAVEPW), I("Security Properties...", 0, ID_SECPROPS), I("Remove Security", 0, ID_REMSEC), BAR,
   I("Redact Area", 0, ID_TOOL0 + TL_REDACT), I("Find Text and Redact...", 0, ID_REDACTTEXT), I("Redact Page", 0, ID_REDACTPAGE),
   I("Redaction Properties...", 0, ID_REDACTPROPS), I("Apply Redactions", 0, ID_REDACTAPPLY), BAR,
-  I("Remove Hidden Information...", 0, ID_HIDDEN), I("Sanitize Document...", 0, ID_SANITIZE),
-  M("Window"),
-  I("Next Document", "`", ID_NEXTDOC), I("Previous Document", 0, ID_PREVDOC),
+  I("Remove Hidden Information...", 0, ID_HIDDEN), I("Sanitize Document...", 0, ID_SANITIZE), BAR,
+  H("Certificates"), S("Sign with a Certificate...", 0, ID_SIGNTOOL), S("Sign Invisibly...", 0, ID_SIGNINVIS),
+  S("Certify with a Visible Signature...", 0, ID_CERTIFYTOOL), S("Certify Invisibly...", 0, ID_CERTIFYINVIS), S("Validate All Signatures...", 0, ID_SIGNATURES),
+  S("Trust a Signer's Certificate...", 0, ID_TRUSTSIGNER), S("Trusted Certificates...", 0, ID_TRUSTED),
   { NM_END, 0, 0, 0, 0, 0 }
 };
 
@@ -365,13 +376,15 @@ Object *dialog_window(const char *t, Object *contents, const char *oklabel)
   DoMethod(cancel, MUIM_Notify, MUIA_Pressed, FALSE, (ULONG)app, 2, MUIM_Application_ReturnID, ID_DLGCANCEL);
   return w;
 }
+static int ask_secret_on;
 static int ask_field(const char *t, const char *label, char *buf, int cap, const char *width)
 {
   Object *str, *w;
   static const ULONG ends[] = { ID_DLGOK, 0 };
   int ok;
   w = dialog_window(t, HGroup, Child, QLabel(tr(label), MUIO_Label_SingleFrame),
-                    Child, str = StringObject, StringFrame, MUIA_String_Contents, (ULONG)buf, MUIA_String_MaxLen, cap, MUIA_CycleChain, 1, MUIA_FixWidthTxt, (ULONG)width, End, End, NULL);
+                    Child, str = StringObject, StringFrame, MUIA_String_Contents, (ULONG)buf, MUIA_String_MaxLen, cap, MUIA_CycleChain, 1, MUIA_FixWidthTxt, (ULONG)width,
+                      MUIA_String_Secret, ask_secret_on, End, End, NULL);
   if (!w) return 0;
   DoMethod(str, MUIM_Notify, MUIA_String_Acknowledge, MUIV_EveryTime, (ULONG)app, 2, MUIM_Application_ReturnID, ID_DLGOK);
   set(w, MUIA_Window_ActiveObject, (ULONG)str);
@@ -381,6 +394,15 @@ static int ask_field(const char *t, const char *label, char *buf, int cap, const
   return ok;
 }
 int ask_string(const char *t, const char *label, char *buf, int cap) { return ask_field(t, label, buf, cap, "MMMMMMMMMMMMMMMMMMMM"); }
+/* (round 2) a password: typed unseen */
+int ask_secret(const char *t, const char *label, char *buf, int cap)
+{
+  int r;
+  ask_secret_on = 1;
+  r = ask_field(t, label, buf, cap, "MMMMMMMMMMMMMMMMMMMM");
+  ask_secret_on = 0;
+  return r;
+}
 /* a longer text: "\n" typed as a backslash and n starts a new line */
 int ask_text(const char *t, const char *label, char *buf, int cap)
 {
@@ -428,7 +450,7 @@ LONG pick_color(const char *t, ULONG start)
 static int needs_doc(ULONG id)
 {
   return !(id == ID_OPEN || id == ID_HOME || id == ID_TOOLS || id == ID_ABOUT || id == ID_QUIT || id == ID_DARKUI || id == ID_AUTHOR ||
-           id == ID_TOOLSPANE || id == ID_COMMENTMODE || id == ID_ORGANIZE || id == ID_COMBINE || id == ID_EXPORTTOOL || id == ID_FIND ||
+           id == ID_TOOLSPANE || id == ID_SNAP || id == ID_SIGDRAW || id == ID_INITDRAW || id == ID_OCRFILES || id == ID_TRUSTED || id == ID_COMMENTMODE || id == ID_ORGANIZE || id == ID_COMBINE || id == ID_EXPORTTOOL || id == ID_FIND ||
            id == ID_EXTRACT || id == ID_PROPS || id == ID_INSBLANK || (id >= ID_TOOL0 && id < ID_TOOL0 + TL_N) || id == ID_COLOR || id == ID_WIDTH);
 }
 ULONG strip_state(ULONG id)
@@ -501,6 +523,7 @@ static void update_menus(void)
   menu_set(ID_BOOKMARKS, MUIA_Menuitem_Checked, show_nav && nav_mode == 1);
   menu_set(ID_TOOLSPANE, MUIA_Menuitem_Checked, show_tools);
   menu_set(ID_DARKUI, MUIA_Menuitem_Checked, pref_dark);
+  menu_set(ID_SNAP, MUIA_Menuitem_Checked, opt.snap);
   for (i = 0; i < 6; i++) menu_set(ID_LANG0 + i, MUIA_Menuitem_Checked, pref_lang + 1 == i);
 }
 static void page_field(void)
@@ -698,7 +721,13 @@ static int save_to(DocView *v, const char *path)
     v->was_encrypted = 2;
   }
   set(app, MUIA_Application_Sleep, TRUE);
-  data = pdf_save(v->pdf, NULL, 0, &len);
+  /* (round 2) a signed document is saved as an incremental update, so its signatures stay valid */
+  {
+    SigInfo *si;
+    int ns = pdf_can_save_incremental(v->pdf) ? sig_list(v->pdf, &si) : 0;
+    if (ns) sig_free(si, ns);
+    data = ns ? pdf_save_incremental(v->pdf, &len, NULL) : pdf_save(v->pdf, NULL, 0, &len);
+  }
   ok = data && write_file(path, data, len);
   free(data);
   set(app, MUIA_Application_Sleep, FALSE);
@@ -1247,6 +1276,8 @@ static void load_prefs(void)
     line[strcspn(line, "\r\n")] = 0;
     if (!strncmp(line, "dark=", 5)) pref_dark = atoi(line + 5);
     else if (!strncmp(line, "language=", 9)) pref_lang = lang_by_code(line + 9);
+    else if (!strncmp(line, "snap=", 5)) opt.snap = atoi(line + 5);
+    else if (!strncmp(line, "certfile=", 9)) strncpy(opt.certfile, line + 9, sizeof opt.certfile - 1);
     else if (!strncmp(line, "screen=", 7)) strncpy(pub_screen, line + 7, sizeof pub_screen - 1);
     else if (!strncmp(line, "dir=", 4)) strncpy(lastdir, line + 4, sizeof lastdir - 1);
     else if (!strncmp(line, "author=", 7)) strncpy(opt.author, line + 7, sizeof opt.author - 1);
@@ -1275,6 +1306,8 @@ static void save_prefs(void)
   fprintf(f, "dark=%d\nnav=%d\nnavmode=%d\ntools=%d\nwidth=%.1f\n", pref_dark, show_nav, nav_mode, show_tools, opt.width);
   fprintf(f, "author=%s\n", opt.author);
   if (pref_lang >= 0) fprintf(f, "language=%s\n", lang_code(pref_lang));
+  fprintf(f, "snap=%d\n", opt.snap);
+  if (opt.certfile[0]) fprintf(f, "certfile=%s\n", opt.certfile);
   if (pub_screen[0]) fprintf(f, "screen=%s\n", pub_screen);
   if (lastdir[0]) fprintf(f, "dir=%s\n", lastdir);
   for (i = 0; i < TL_N; i++) fprintf(f, "color%d=%06lX\n", i, (unsigned long)opt.color[i]);
@@ -1389,6 +1422,7 @@ done:
   panes_free();
   popup_free();
   qbutton_class_free();
+  signpad_class_free();
   font_free_substitutes();
   theme_free_fonts();
   remove_fonts();

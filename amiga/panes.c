@@ -318,7 +318,8 @@ static const ToolDef tooldefs[] = {
   { ID_GROUP0 + 7, IC_F_LINE, "Measure", "Distances, perimeters and areas at a drawing scale." },
   { ID_GROUP0 + 8, IC_F_PROPS, "Accessibility", "Tag the document, check it, reading options and alternate text." },
   { ID_GROUP0 + 9, IC_F_EXPORT, "Print Production", "Hairlines, grey, printer's marks and page boxes." },
-  { ID_GROUP0 + 12, IC_F_FIND, "Compare, Sign, Standards", "Compare two versions, check signatures, save as PDF/A." },
+  { ID_GROUP0 + 12, IC_F_FIND, "Compare, Sign, Standards", "Compare two versions, sign with a certificate and check signatures, save as PDF/A." },
+  { ID_GROUP0 + 13, IC_F_EXPORT, "Scan & OCR", "Recognise the text of scanned pages, straighten and clean scans, make them smaller." },
 };
 #define NTOOLDEFS (int)(sizeof tooldefs / sizeof tooldefs[0])
 typedef struct { int page, index, kind; char who[48], date[24], text[160]; } CRow;

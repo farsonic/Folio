@@ -13,9 +13,10 @@ Read it first, then `README.md` (what Folio does).
 
 | Path | What |
 |---|---|
-| `core/` | Portable C99, no AmigaOS calls: `pdf.c` (objects, xref, page tree), `filters.c` (Flate, LZW, ASCII85/Hex, RunLength, CCITT, DCT), `crypto.c` (RC4, AES, MD5, SHA-2, the standard security handler), `font.c`/`pfont.c`/`cmap.c`/`pdfenc.c`/`fonts.c`/`ttraster.c` (fonts), `render.c`/`raster.c`/`shade.c`/`pimage.c`/`func.c` (content interpreter and rasteriser), `textpage.c` (text extraction and search), `pdfwrite.c` (writing: compression, object streams, AES-128/256 password protection)/`pdfedit.c` (comments, pages), `pngout.c`; after 0.1.2: `pagecontent.c` (adding to page content, object helpers), `forms.c` (AcroForm fill, appearances, FDF/XFDF, preparing forms), `pagetools.c` (boxes, labels, headers/footers, watermarks, backgrounds, Bates, text, pictures, links, attachments, bookmarks, stamps, measuring, new documents, XMP), `contentedit.c` (content rewritten operator by operator), `redact.c` (redaction, hidden information), `optimize.c` (smaller files, print production), `jpegout.c`, `export.c` (HTML, RTF, .docx, .pptx, pictures), `review.c` (compare, accessibility, signatures, PDF/A). |
-| `amiga/` | The MUI front end: `main.c`, `view.c` (the page view: off-screen buffer, blitter scrolling, background rendering of the next page), `bars.c`, `panes.c`, `edits.c` (comments and page editing), `dialogs.c`, `doctools.c` (every tool added after 0.1.2: menus Document, Forms, Protect, the Tools page's groups, form filling by clicking, undo by snapshot), `lang.c`/`lang_table.h` (interface strings). |
-| `tests/` | Native tests (`filtertest.c`, `fonttest.c`, `edittest.c`, `annotdrawtest.c`, `robusttest.c` (hostile PDFs), `allocfail.c` (out of memory everywhere), `savetest.c`, `formtest.c`, `pagetest.c`, `redacttest.c`, `exporttest.c`, `reviewtest.c` (the tools after 0.1.2)), generated PDFs (`gen/`, made by `make_pdfs.py`), PDFs made by Quill (`pdfs/`), test fonts (`fonts/`), `compare.py` (compares rendered pages with poppler's). |
+| `core/` | Portable C99, no AmigaOS calls: `pdf.c` (objects, xref, page tree), `filters.c` (Flate, LZW, ASCII85/Hex, RunLength, CCITT, DCT), `crypto.c` (RC4, AES, MD5, SHA-2, the standard security handler), `font.c`/`pfont.c`/`cmap.c`/`pdfenc.c`/`fonts.c`/`ttraster.c` (fonts), `render.c`/`raster.c`/`shade.c`/`pimage.c`/`func.c` (content interpreter and rasteriser), `textpage.c` (text extraction and search), `pdfwrite.c` (writing: compression, object streams, AES-128/256 password protection)/`pdfedit.c` (comments, pages), `pngout.c`; after 0.1.2: `pagecontent.c` (adding to page content, object helpers), `forms.c` (AcroForm fill, appearances, FDF/XFDF, preparing forms), `pagetools.c` (boxes, labels, headers/footers, watermarks, backgrounds, Bates, text, pictures, links, attachments, bookmarks, stamps, measuring, new documents, XMP), `contentedit.c` (content rewritten operator by operator), `redact.c` (redaction, hidden information), `optimize.c` (smaller files, print production), `jpegout.c`, `export.c` (HTML, RTF, .docx, .pptx, pictures), `review.c` (compare, accessibility, signatures, PDF/A); round 2: `pki.c` (DER, big numbers, RSA/ECDSA, X.509, CMS, PKCS #12/PEM), `sign.c` (signing as an incremental update; `pdf_save_incremental` is in `pdfwrite.c`), `editpage.c` (retyping page text, pictures replaced/moved, snap points), `scan.c` (OCR, deskew, despeckle, levels, CCITT G4 via `filters.c`). |
+| `amiga/` | The MUI front end: `main.c`, `view.c` (the page view: off-screen buffer, blitter scrolling, background rendering of the next page), `bars.c`, `panes.c`, `edits.c` (comments and page editing), `dialogs.c`, `doctools.c` (every tool added after 0.1.2: menus Document, Forms, Protect, the Tools page's groups, form filling by clicking, undo by snapshot; round 2 at its end: edit text & images, certificates, Scan & OCR, polygons and snapping), `signpad.c` (drawing a signature), `lang.c`/`lang_table.h` (interface strings, the table made from `lang/strings.txt`). |
+| `tests/` | Native tests (`filtertest.c`, `fonttest.c`, `edittest.c`, `annotdrawtest.c`, `robusttest.c` (hostile PDFs), `allocfail.c` (out of memory everywhere), `savetest.c`, `formtest.c`, `pagetest.c`, `redacttest.c`, `exporttest.c`, `reviewtest.c` (the tools after 0.1.2), `signtest.c`, `edit2test.c`, `scantest.c` (round 2)), generated PDFs (`gen/`, made by `make_pdfs.py`), PDFs made by Quill (`pdfs/`), test fonts (`fonts/`), `compare.py` (compares rendered pages with poppler's). |
+| `lang/` | `strings.txt`: every interface string with German, French, Spanish and Italian (Acrobat's terms); `ignore.txt`: literals that aren't words. `tools/mklang.py` makes `amiga/lang_table.h`, `tools/langcheck.py` checks the source (both in `tools/test.sh`). |
 | `docs/` | `pdfcraft-gap.md`: every PDFCraft tool, menu command and panel with Folio's status and evidence (recount with `tools/gapcount.py`). |
 | `tools/` | `test.sh` (the native tests; what CI runs), `gapcount.py`, `fuzz.c`/`fuzz.sh` (the fuzzer), `pdfrender.c` (renders a page to PNG on the host), `Install-Folio` (Installer script), `mkicons.py`, `vbcc-aos68k-fpu` (the vbcc config for the 68040+FPU build). |
 | `sample/` | `Welcome.pdf`, shipped in the package. |
@@ -51,10 +52,13 @@ for certificate or key material (`BEGIN CERTIFICATE`, `PRIVATE KEY`, `*.crt`, `*
   printing everything, rare `-O2` miscompiles). 68040 + FPU code.
 - The window fits 640x480. Rendering never blocks the interface: the view renders in steps and keeps
   what was drawn on screen until a later try gets further.
-- Every interface string goes through `amiga/lang.c`/`lang_table.h`.
-- Folio leaves out on purpose: printing to printers, ARexx/scripting/MCP, JavaScript (so form
-  formats, validation and calculations aren't run), sound/video/3D, network, cloud and AI services,
-  and signing with certificates over the network. Filling and saving AcroForm forms (appearance
+- Every interface string goes through `tr()` (`amiga/lang.c`) and has a row in `lang/strings.txt` with all four
+  translations; run `python3 tools/mklang.py` and `python3 tools/langcheck.py` after changing strings.
+  Keep sentences for requesters short; `ask()` wraps them at 66 characters.
+- No certificate or key material in the repository: tests make keys at test time in `$TMP` (openssl).
+- Folio leaves out on purpose: printing to printers, ARexx/scripting/MCP and the Action Wizard,
+  JavaScript (so form formats, validation and calculations aren't run), sound/video/3D, network,
+  cloud and AI services, timestamps and revocation checks (CRL/OCSP). Filling and saving AcroForm forms (appearance
   streams generated) and the page editing PDFCraft offers (text, pictures, headers and footers,
   watermarks, redaction, cropping, labels, bookmarks, attachments, metadata, optimizing, splitting,
   password protection) are in scope since the `pcsync` branch. JBIG2 and JPEG 2000 images show blank.
@@ -97,15 +101,19 @@ for a 32-bit build; crashes are kept as `$TMP/folio_fuzz/crash-<seed>.pdf`, repl
 CPU); Folio has no other per-document work counter. Each new fuzzer finding gets a robusttest case.
 Next: fuzz for longer (also with fonts given through `FUZZ_FONTS`, and seeds from `tests/pdfs/`).
 
-PDFCraft parity (branch `pcsync`, not released yet): `docs/pdfcraft-gap.md` compares Folio with
-PDFCraft's tool catalogue at `2251a75` (2026-11-17): 105 of 131 applicable tools done, 14 partly, 12
-missing (OCR, signing with a certificate, editing page text in place, Action Wizard), 21 left out. New
-core files (forms, pagetools, contentedit, redact, optimize, export, review) have native tests; the
-Amiga side (`amiga/doctools.c`: menus Document, Forms, Protect, more in File/Tools/Pages, the Tools
-page's group cards, click-to-fill fields) builds with vbcc but has **not been tried on an Amiga or
-in an emulator yet**: that check comes first. The fuzzer doesn't cover the new editing code yet
-(`tools/fuzz.c` could run the redaction and form paths on fuzzed files). Next steps: section 3 of
-the gap document.
+PDFCraft parity (branches `pcsync` and `fr2`, not released yet): `docs/pdfcraft-gap.md` compares Folio
+with PDFCraft's tool catalogue at `2251a75` (2026-11-17): 121 of 130 applicable tools done, 9 partly,
+none missing, 22 left out (it was 105/14/12/21 after `pcsync`). Round 2 (`fr2`) added: the interface
+in German, French, Spanish and Italian (Locale prefs or View › Language); editing a page's own text
+and pictures; signing and certifying with a PKCS #12/PEM certificate (RSA, ECDSA P-256/P-384) and
+checking signatures' certificates and chains offline; incremental saving; OCR and scan clean-up
+(G4); drawn signatures; polygons and snapping; colours to RGB/CMYK; PDF/A font embedding; picture
+fields; Prepare for Distribution. The core has native tests for all of it (signtest checks Folio's
+signatures with OpenSSL and pdfsig, keys made at test time). The Amiga side builds with vbcc but has
+**not been tried on an Amiga or in an emulator yet** (neither `pcsync`'s nor `fr2`'s windows): that
+check comes first, including German at 640x480, the sign pad, OCR speed on a 68040 (templates are
+made at the first OCR from the TrueType drawer; a page at 200 dpi is a few MB) and RSA signing time.
+Next steps: section 3 of the gap document.
 
 ## Issues
 

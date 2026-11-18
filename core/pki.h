@@ -90,4 +90,6 @@ typedef struct {
    read: 1 ok, else 0 with err set (English) */
 int signer_load(const u8 *data, size_t n, const char *password, SignerId *s);
 void signer_free(SignerId *s);
+/* the certificates of a DER or PEM file (no key wanted) into s->certs: how many (signer_free after) */
+int  pki_read_certs(const u8 *data, size_t n, SignerId *s);
 #endif

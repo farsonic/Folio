@@ -35,8 +35,16 @@
 #include "../core/optimize.h"
 #include "../core/export.h"
 #include "../core/review.h"
+#include "../core/editpage.h"
+#include "../core/pki.h"
+#include "../core/sign.h"
+#include "../core/scan.h"
 
 extern int comment_mode;
+static void sign_doc(DocView *v, int page, const double *rect, int certify, const char *field);
+static void signatures2(DocView *v);
+static void hidden_info(DocView *v, int sanitize);
+static void reduce(DocView *v, int advanced);
 static ULONG xget(Object *o, ULONG attr) { ULONG v = 0; get(o, attr, &v); return v; }
 
 /* ------------------------------------------------------------------ small helpers */
@@ -317,17 +325,29 @@ int form_click(DocView *v, int page, double x, double y)
       break; }
     case FF_SIG: {
       SigInfo *si;
-      int n = sig_list(v->pdf, &si), k;
-      char m[400];
-      m[0] = 0;
-      for (k = 0; k < n; k++) {
-        char t[300];
-        snprintf(t, sizeof t, "%s: %s %s\n", si[k].field, si[k].name[0] ? si[k].name : "?", si[k].digest_ok == 1 ? tr("(unchanged since signing)") : si[k].digest_ok == 0 ? tr("(CHANGED since signing)") : "");
-        if (strlen(m) + strlen(t) < sizeof m) strcat(m, t);
+      int n = sig_list(v->pdf, &si), k, mine = 0;
+      for (k = 0; k < n; k++) if (!strcmp(si[k].field, f->name)) mine = 1;
+      if (n) sig_free(si, n);
+      if (mine) signatures2(v);
+      else if (yes("This signature field isn't signed. Sign it with a certificate?")) {
+        char fname[200];
+        snprintf(fname, sizeof fname, "%s", f->name);
+        form_free(&fm);
+        sign_doc(v, page, NULL, 0, fname);
+        return 1;
       }
-      free(si);
-      dshow("Signatures", m[0] ? m : tr("This signature field isn't signed. Folio can't sign with a certificate."));
       done = 1;
+      break; }
+    case FF_PUSH: {
+      /* (round 2) a picture field: a picture chosen into it */
+      char path[512] = "";
+      size_t len;
+      u8 *data;
+      if (!file_request(0, "Choose a picture (JPEG or PNG)", path, sizeof path, "#?.(jpg|jpeg|png)") || !(data = read_file(path, &len))) { done = 1; break; }
+      doc_snapshot(v);
+      if (!form_set_picture(v->pdf, f, data, len)) say("That picture couldn't be read (Folio takes JPEG and PNG).");
+      free(data);
+      done = 2;
       break; }
     default: done = 1;
     }
@@ -439,12 +459,22 @@ static void added(DocView *v, int page)
   page_edited(v, page, 1);
   doc_changed_panes();
 }
+static void edit_at(DocView *v, int page, double x, double y);
+static int sign_drawn(DocView *v, int page, int initials, double x, double y);
+static void poly_click(DocView *v, int page, int area, double x, double y);
+static void snap(DocView *v, int page, double *x, double *y);
+static int r2_command(ULONG id);
+static void draw_ink(int initials);
+static void inks_load(void);
+static char sig_ink[16000], init_ink[8000];
 void tool_click(DocView *v, int page, int t, double x, double y)
 {
   char buf[512];
   char *u;
   PDoc *d = v->pdf;
   switch (t) {
+  case TL_EDIT: edit_at(v, page, x, y); return;
+  case TL_AREA: case TL_PERIM: poly_click(v, page, t == TL_AREA, x, y); return;
   case TL_STAMP:
     if (!opt.stamp[0]) stamp_pick();
     if (opt.stamp[0] && (u = u8of(opt.stamp))) { if (annot_stamp(d, page, x, y, u, opt.color[TL_STAMP], author())) added(v, page); free(u); }
@@ -466,6 +496,7 @@ void tool_click(DocView *v, int page, int t, double x, double y)
       if (tm) sprintf(buf, "%02d/%02d/%04d", tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900);
     } else if (t == TL_SIGN || t == TL_INITIALS) {
       char *s = t == TL_SIGN ? opt.signature : opt.initials;
+      if (sign_drawn(v, page, t == TL_INITIALS, x, y)) return;
       if (!s[0]) { if (!ask_string(t == TL_SIGN ? "Signature" : "Initials", t == TL_SIGN ? "Your name, to sign with:" : "Your initials:", s, t == TL_SIGN ? (int)sizeof opt.signature : (int)sizeof opt.initials) || !s[0]) return; }
       strcpy(buf, s);
     } else if (!ask_text("Add Text", "Text (\\n: new line):", buf, sizeof buf) || !buf[0]) return;
@@ -498,13 +529,14 @@ void tool_drag(DocView *v, int page, int t, const double *c, int moved)
   if (!moved) return;
   switch (t) {
   case TL_ARROW: if (annot_arrow(d, page, c, opt.width, opt.color[t], author())) added(v, page); return;
-  case TL_MEASURE: if (annot_measure(d, page, c, opt.scale, opt.unit, opt.color[t], author())) added(v, page); return;
-  case TL_CLOUD: if (annot_cloud(d, page, r, opt.width, opt.color[t], author())) added(v, page); return;
-  case TL_AREA: case TL_PERIM: {
-    double pts[8];
-    pts[0] = r[0]; pts[1] = r[1]; pts[2] = r[2]; pts[3] = r[1]; pts[4] = r[2]; pts[5] = r[3]; pts[6] = r[0]; pts[7] = r[3];
-    if (annot_measure_area(d, page, pts, 4, t == TL_AREA, opt.scale, opt.unit, opt.color[t], author())) added(v, page);
+  case TL_MEASURE: {
+    double c2[4];
+    memcpy(c2, c, sizeof c2);
+    snap(v, page, &c2[0], &c2[1]); snap(v, page, &c2[2], &c2[3]);
+    if (annot_measure(d, page, c2, opt.scale, opt.unit, opt.color[t], author())) added(v, page);
     return; }
+  case TL_DIGSIGN: case TL_CERTIFY: sign_doc(v, page, r, t == TL_CERTIFY, NULL); return;
+  case TL_CLOUD: if (annot_cloud(d, page, r, opt.width, opt.color[t], author())) added(v, page); return;
   case TL_REDACT: if (redact_mark_area(d, page, r, rp_get())) added(v, page); return;
   case TL_LINK: {
     char buf[300] = "";
@@ -1240,27 +1272,6 @@ static void a11y(DocView *v, ULONG id)
     return; }
   }
 }
-static void signatures(DocView *v)
-{
-  SigInfo *si;
-  int n = sig_list(v->pdf, &si), i;
-  Buf b;
-  if (!n) { say("This document has no signatures."); return; }
-  buf_init(&b);
-  for (i = 0; i < n; i++) {
-    buf_printf(&b, "%s: %s%s\n", si[i].field, si[i].name[0] ? si[i].name : tr("(signer not named)"), si[i].certify ? tr(" (certifies the document)") : "");
-    if (si[i].reason[0]) buf_printf(&b, "  %s: %s\n", tr("Reason"), si[i].reason);
-    if (si[i].date[0]) buf_printf(&b, "  %s: %s\n", tr("Date"), si[i].date);
-    buf_printf(&b, "  %s\n", si[i].digest_ok == 1 ? tr("The signed part of the file hasn't changed since signing.") :
-                             si[i].digest_ok == 0 ? tr("The signed part of the file HAS CHANGED since signing.") : tr("Folio couldn't check this signature's digest."));
-    buf_printf(&b, "  %s\n", si[i].covers_all ? tr("Nothing was added after it.") : tr("The document was changed after it was signed (an update was added)."));
-  }
-  buf_adds(&b, "\n");
-  buf_adds(&b, tr("Folio checks the digest only: it doesn't check the signer's certificate."));
-  free(si);
-  dshow("Signatures", b.data ? b.data : "");
-  buf_free(&b);
-}
 static void pdfa(DocView *v)
 {
   char probs[600], path[512];
@@ -1321,7 +1332,7 @@ static void word_count(DocView *v)
 
 /* ------------------------------------------------------------------ the Tools page's groups */
 typedef struct { const char *label; ULONG id; } GItem;
-static const GItem g_edit[] = { { "Add Text", ID_TOOL0 + TL_ADDTEXT }, { "Add Picture", ID_TOOL0 + TL_ADDIMAGE }, { "Add Link", ID_TOOL0 + TL_LINK },
+static const GItem g_edit[] = { { "Edit Text & Images", ID_TOOL0 + TL_EDIT }, { "Add Text", ID_TOOL0 + TL_ADDTEXT }, { "Add Picture", ID_TOOL0 + TL_ADDIMAGE }, { "Add Link", ID_TOOL0 + TL_LINK },
   { "Header & Footer...", ID_HEADER }, { "Watermark...", ID_WATERMARK }, { "Background...", ID_BACKGROUND }, { "Bates Numbering...", ID_BATES },
   { "Attach File...", ID_ATTACH }, { "Rotate Pages", ID_ROTR }, { "Insert Pages...", ID_INSFILE }, { "Delete Pages...", ID_DELPAGES },
   { "Extract Pages...", ID_EXTRACT }, { "Organize Pages", ID_ORGANIZE }, { 0, 0 } };
@@ -1329,7 +1340,8 @@ static const GItem g_create[] = { { "Blank Document...", ID_NEWBLANK }, { "From 
   { "From the Clipboard", ID_FROMCLIP }, { "Pictures to Separate PDFs...", ID_SEPARATE }, { "Combine Files...", ID_COMBINE }, { 0, 0 } };
 static const GItem g_fill[] = { { "Add Text", ID_TOOL0 + TL_FTEXT }, { "Checkmark", ID_TOOL0 + TL_CHECK }, { "Cross", ID_TOOL0 + TL_CROSS },
   { "Dot", ID_TOOL0 + TL_DOT }, { "Line", ID_TOOL0 + TL_LINE }, { "Date", ID_TOOL0 + TL_DATE }, { "Signature", ID_TOOL0 + TL_SIGN },
-  { "Initials", ID_TOOL0 + TL_INITIALS }, { "Change Signature...", ID_SIGCHANGE }, { "Change Initials...", ID_INITCHANGE }, { 0, 0 } };
+  { "Initials", ID_TOOL0 + TL_INITIALS }, { "Change Signature...", ID_SIGCHANGE }, { "Change Initials...", ID_INITCHANGE },
+  { "Draw Signature...", ID_SIGDRAW }, { "Draw Initials...", ID_INITDRAW }, { 0, 0 } };
 static const GItem g_form[] = { { "Field List...", ID_FIELDLIST }, { "Detect Form Fields", ID_DETECT }, { "Clear Form", ID_CLEARFORM },
   { "Field Properties...", ID_FIELDPROPS }, { "Tab Order by Rows", ID_TABROWS }, { "Tab Order by Columns", ID_TABCOLS }, { "Calculation Order...", ID_CALCORDER },
   { "Flatten Form", ID_FLATTENFORM }, { "Import Data...", ID_IMPORTDATA }, { "Export Data...", ID_EXPORTDATA }, { "Add Text Field", ID_FIELDTOOL + 0 },
@@ -1340,21 +1352,26 @@ static const GItem g_protect[] = { { "Protect with Password...", ID_SAVEPW }, { 
   { "Remove Security", ID_REMSEC }, { 0, 0 } };
 static const GItem g_redact[] = { { "Redact Area", ID_TOOL0 + TL_REDACT }, { "Redact Page", ID_REDACTPAGE }, { "Find Text and Redact...", ID_REDACTTEXT },
   { "Redaction Properties...", ID_REDACTPROPS }, { "Apply Redactions", ID_REDACTAPPLY }, { "Sanitize Document...", ID_SANITIZE }, { 0, 0 } };
-static const GItem g_compress[] = { { "Reduce File Size...", ID_REDUCE }, { "Advanced Optimization...", ID_ADVOPT }, { "Audit Space Usage...", ID_AUDIT }, { 0, 0 } };
+static const GItem g_compress[] = { { "Prepare for Distribution...", ID_DISTRIB }, { "Reduce File Size...", ID_REDUCE }, { "Advanced Optimization...", ID_ADVOPT }, { "Audit Space Usage...", ID_AUDIT }, { 0, 0 } };
 static const GItem g_measure[] = { { "Distance", ID_TOOL0 + TL_MEASURE }, { "Perimeter", ID_TOOL0 + TL_PERIM }, { "Area", ID_TOOL0 + TL_AREA },
   { "Drawing Scale...", ID_SCALE }, { "Measurements...", ID_MEASINFO }, { "Export Measurements...", ID_MEASEXPORT }, { 0, 0 } };
 static const GItem g_a11y[] = { { "Automatically Tag", ID_AUTOTAG }, { "Reading Options...", ID_READOPTS }, { "Check for Accessibility...", ID_A11YCHECK },
   { "Find Untagged Content", ID_UNTAGGED }, { "Alternate Text...", ID_ALTTEXT }, { "Tags...", ID_TAGTREE }, { 0, 0 } };
 static const GItem g_print[] = { { "Fix Hairlines...", ID_HAIRLINES }, { "Convert Colours to Grey", ID_TOGRAY }, { "Add Printer Marks...", ID_MARKS },
-  { "Set Page Boxes...", ID_BOXES }, { "Crop Pages...", ID_CROP }, { 0, 0 } };
+  { "Set Page Boxes...", ID_BOXES }, { "Crop Pages...", ID_CROP }, { "Convert Colours to RGB", ID_TORGB }, { "Convert Colours to CMYK", ID_TOCMYK }, { 0, 0 } };
 static const GItem g_export[] = { { "Page as PNG Picture...", ID_EXPPAGE }, { "Text...", ID_EXPTEXT }, { "Web Page (HTML)...", ID_EXPHTML },
   { "Rich Text (RTF)...", ID_EXPRTF }, { "Word (.docx)...", ID_EXPDOCX }, { "PowerPoint (.pptx)...", ID_EXPPPTX }, { "All Pictures...", ID_EXPIMAGES }, { 0, 0 } };
 static const GItem g_organize[] = { { "Organize Pages", ID_ORGANIZE }, { "Replace Pages...", ID_REPLACE }, { "Split Document...", ID_SPLIT },
   { "Duplicate Page...", ID_DUPLICATE }, { "Reverse Pages", ID_REVERSE }, { "Crop Pages...", ID_CROP }, { "Set Page Boxes...", ID_BOXES }, { "Page Labels...", ID_LABELS }, { 0, 0 } };
-static const GItem g_standards[] = { { "Save as PDF/A...", ID_PDFA }, { "Signatures...", ID_SIGNATURES }, { "Compare Files...", ID_COMPARE }, { 0, 0 } };
-static const GItem *const groups[13] = { g_edit, g_create, g_fill, g_form, g_protect, g_redact, g_compress, g_measure, g_a11y, g_print, g_export, g_organize, g_standards };
-static const char *const group_names[13] = { "Edit a PDF", "Create a PDF", "Fill & Sign", "Prepare a Form", "Protect a PDF", "Redact a PDF", "Compress a PDF",
-  "Measure Objects", "Prepare for Accessibility", "Print Production", "Export a PDF", "Organize Pages", "Standards and Signatures" };
+static const GItem g_standards[] = { { "Save as PDF/A...", ID_PDFA }, { "Sign with a Certificate...", ID_SIGNTOOL }, { "Sign Invisibly...", ID_SIGNINVIS },
+  { "Certify with a Visible Signature...", ID_CERTIFYTOOL }, { "Certify Invisibly...", ID_CERTIFYINVIS }, { "Validate All Signatures...", ID_SIGNATURES },
+  { "Trust a Signer's Certificate...", ID_TRUSTSIGNER }, { "Compare Files...", ID_COMPARE }, { 0, 0 } };
+static const GItem g_scan[] = { { "Recognise Text on This Page", ID_OCRPAGE }, { "Recognise Text on Every Page", ID_OCRALL }, { "Recognise Text in Files...", ID_OCRFILES },
+  { "Correct Recognised Text...", ID_OCRCORRECT }, { "Enhance Scanned Pages...", ID_ENHANCE }, { "Enhance Camera Image", ID_ENHANCECAM },
+  { "Optimize Scanned Document...", ID_OPTSCAN }, { 0, 0 } };
+static const GItem *const groups[14] = { g_edit, g_create, g_fill, g_form, g_protect, g_redact, g_compress, g_measure, g_a11y, g_print, g_export, g_organize, g_standards, g_scan };
+static const char *const group_names[14] = { "Edit a PDF", "Create a PDF", "Fill & Sign", "Prepare a Form", "Protect a PDF", "Redact a PDF", "Compress a PDF",
+  "Measure Objects", "Prepare for Accessibility", "Print Production", "Export a PDF", "Organize Pages", "Standards and Signatures", "Scan & OCR" };
 static void group(int g)
 {
   char *it[24];
@@ -1369,6 +1386,7 @@ ULONG doc_strip_state(ULONG id) { return 0; }
 int doc_command(ULONG id)
 {
   DocView *v = cur_view();
+  if (r2_command(id)) return 1;
   /* commands that need no document */
   switch (id) {
   case ID_NEWBLANK: {
@@ -1420,10 +1438,16 @@ int doc_command(ULONG id)
     }
     MUI_FreeAslRequest(fr);
     return 1; }
-  case ID_SIGCHANGE: case ID_INITCHANGE:
+  case ID_SIGCHANGE: case ID_INITCHANGE: {
+    /* typed or drawn */
+    int k = ask("Type...|Draw...|Cancel", "%s", tr("Type your name, or draw it with the mouse?"));
+    if (k == 2) { draw_ink(id == ID_INITCHANGE); return 1; }
+    if (k != 1) return 1;
+    if (id == ID_SIGCHANGE) { inks_load(); sig_ink[0] = 0; DeleteFile((STRPTR)"PROGDIR:Folio.signature"); }
+    else { inks_load(); init_ink[0] = 0; DeleteFile((STRPTR)"PROGDIR:Folio.initials"); }
     if (id == ID_SIGCHANGE) ask_string("Signature", "Your name, to sign with:", opt.signature, sizeof opt.signature);
     else ask_string("Initials", "Your initials:", opt.initials, sizeof opt.initials);
-    return 1;
+    return 1; }
   case ID_SCALE: {
     char s[16], u[8];
     DField df[2];
@@ -1436,7 +1460,7 @@ int doc_command(ULONG id)
     return 1; }
   case ID_STAMPPICK: stamp_pick(); if (opt.stamp[0] && v) DoMethod(app, MUIM_Application_ReturnID, ID_TOOL0 + TL_STAMP); return 1;
   }
-  if (id >= ID_GROUP0 && id < ID_GROUP0 + 13) { group((int)(id - ID_GROUP0)); return 1; }
+  if (id >= ID_GROUP0 && id < ID_GROUP0 + 14) { group((int)(id - ID_GROUP0)); return 1; }
   if (id >= ID_FIELDTOOL && id < ID_FIELDTOOL + 10) {
     if (!v) return 1;
     opt.field_kind = (int)(id - ID_FIELDTOOL);
@@ -1477,7 +1501,7 @@ int doc_command(ULONG id)
   case ID_BOXES: boxes_dialog(v); return 1;
   case ID_COMPARE: compare(v); return 1;
   case ID_A11YCHECK: case ID_READOPTS: case ID_AUTOTAG: case ID_TAGTREE: case ID_ALTTEXT: case ID_UNTAGGED: a11y(v, id); return 1;
-  case ID_SIGNATURES: signatures(v); return 1;
+  case ID_SIGNATURES: signatures2(v); return 1;
   case ID_HAIRLINES: { char w[12] = "0.25"; if (ask_string("Fix Hairlines", "Lines thinner than this (points) made this wide:", w, sizeof w) && atof(w) > 0) { int n; doc_snapshot(v); busy(1); n = fix_hairlines(v->pdf, atof(w), atof(w)); busy(0); sayf("%ld pages had hairlines fixed.", n); doc_redraw_all(v); } return 1; }
   case ID_TOGRAY: if (yes("Convert the document's colours (and colour pictures) to grey?")) { doc_snapshot(v); busy(1); convert_to_gray(v->pdf); busy(0); doc_redraw_all(v); } return 1;
   case ID_MARKS: { char b[12] = "3"; if (ask_string("Add Printer Marks", "Bleed (mm):", b, sizeof b)) { doc_snapshot(v); printer_marks(v->pdf, atof(b) * 72 / 25.4); doc_redraw_all(v); } return 1; }
@@ -1537,6 +1561,546 @@ int doc_command(ULONG id)
     undo_clear(v);
     doc_redraw_all(v);
     return 1; }
+  }
+  return 0;
+}
+
+/* ================================================================== (round 2) */
+/* editing the page's own text and pictures; drawn signatures; signing with a certificate and the
+   certificates trusted; colours to RGB and CMYK; measuring polygons with snapping; scans and OCR */
+static int move_img = -1, move_img_page = -1;          /* a picture waiting for the click that moves it */
+static char sig_ink[16000], init_ink[8000];             /* the drawn signature and initials (ink_format) */
+static int inks_loaded;
+static void inks_load(void)
+{
+  size_t n;
+  u8 *b;
+  if (inks_loaded) return;
+  inks_loaded = 1;
+  if ((b = read_file("PROGDIR:Folio.signature", &n))) { if (n < sizeof sig_ink) { memcpy(sig_ink, b, n); sig_ink[n] = 0; } free(b); }
+  if ((b = read_file("PROGDIR:Folio.initials", &n))) { if (n < sizeof init_ink) { memcpy(init_ink, b, n); init_ink[n] = 0; } free(b); }
+}
+static void draw_ink(int initials)
+{
+  char *dst = initials ? init_ink : sig_ink;
+  static char buf[16000];
+  inks_load();
+  if (!signpad_dialog(initials ? "Draw Your Initials" : "Draw Your Signature", buf, initials ? (int)sizeof init_ink : (int)sizeof sig_ink)) return;
+  strcpy(dst, buf);
+  write_file(initials ? "PROGDIR:Folio.initials" : "PROGDIR:Folio.signature", (const u8 *)dst, strlen(dst));
+}
+/* Fill & Sign's signature or initials at x, y: drawn if there is a drawing, else typed (1 done) */
+static int sign_drawn(DocView *v, int page, int initials, double x, double y)
+{
+  double pts[4000], r[4];
+  int np[64], ns;
+  inks_load();
+  ns = ink_parse(initials ? init_ink : sig_ink, pts, np, 2000, 64);
+  if (!ns) return 0;
+  r[0] = x; r[1] = y - (initials ? 12 : 20); r[2] = x + (initials ? 50 : 150); r[3] = y + (initials ? 12 : 20);
+  if (annot_ink_fit(v->pdf, page, r, pts, np, ns, initials ? 1.2 : 1.5, opt.color[initials ? TL_INITIALS : TL_SIGN], author())) added(v, page);
+  return 1;
+}
+
+/* ------------------------------------------------------------------ editing text and pictures */
+static void edit_text_at(DocView *v, int page, double x, double y)
+{
+  TextPage *t = page_text(v, page);
+  int c = t ? textpage_hit(t, x, y, 2) : -1, a, b, i, r;
+  double box[4];
+  char *u, lat[600];
+  if (c < 0) return;
+  if (v->sel_page == page && v->sel_a >= 0 && c >= (v->sel_a < v->sel_b ? v->sel_a : v->sel_b) && c <= (v->sel_a < v->sel_b ? v->sel_b : v->sel_a)) {
+    a = v->sel_a < v->sel_b ? v->sel_a : v->sel_b; b = v->sel_a < v->sel_b ? v->sel_b : v->sel_a;
+  } else {
+    /* the line clicked */
+    a = b = c;
+    while (a > 0 && t->o[a - 1].u != 10) a--;
+    while (b + 1 < t->no && t->o[b + 1].u != 10) b++;
+  }
+  box[0] = box[1] = 1e9; box[2] = box[3] = -1e9;
+  for (i = a; i <= b; i++) {
+    TChar *ch = &t->o[i];
+    if (ch->x1 <= ch->x0) continue;
+    if (ch->x0 < box[0]) box[0] = ch->x0;
+    if (ch->y0 < box[1]) box[1] = ch->y0;
+    if (ch->x1 > box[2]) box[2] = ch->x1;
+    if (ch->y1 > box[3]) box[3] = ch->y1;
+  }
+  if (box[2] < box[0]) return;
+  u = textpage_text(t, a, b);
+  to_latin1(u ? u : "", lat, sizeof lat);
+  free(u);
+  {
+    char old[600];
+    strcpy(old, lat);
+    if (!ask_string("Edit Text", "Text:", lat, sizeof lat) || !strcmp(old, lat)) return;
+  }
+  if (!(u = u8of(lat))) return;
+  doc_snapshot(v);
+  busy(1);
+  r = text_replace(v->pdf, page, box, u);
+  busy(0);
+  free(u);
+  if (r == TE_NONE) { say("That text can't be edited here (Folio edits text set straight across)."); return; }
+  if (r == TE_STD_FONT) say("Some of the characters aren't in the text's own font, so the text was set in a standard font.");
+  v->sel_page = -1;
+  doc_redraw_all(v);
+}
+static void edit_picture(DocView *v, int page, int img)
+{
+  int k = ask("Replace...|Move|Resize...|Delete|Cancel", "%s", tr("A picture: replace it with another, move it, resize it or delete it?"));
+  PDoc *d = v->pdf;
+  if (k == 1) {
+    char path[512] = "";
+    size_t len;
+    u8 *data;
+    if (!file_request(0, "Choose a picture (JPEG or PNG)", path, sizeof path, "#?.(jpg|jpeg|png)") || !(data = read_file(path, &len))) return;
+    doc_snapshot(v);
+    if (!image_replace(d, page, img, data, len)) say("That picture couldn't be read (Folio takes JPEG and PNG).");
+    free(data);
+    doc_redraw_all(v);
+  } else if (k == 2) {
+    move_img = img; move_img_page = page;
+    snprintf(view_info, sizeof view_info, "%s", tr("Click where the picture's top left corner goes."));
+    refresh_bars();
+  } else if (k == 3) {
+    char pc[12] = "100";
+    PageImage *im;
+    int n;
+    if (!ask_string("Resize Picture", "Size (% of what it is now):", pc, sizeof pc) || atof(pc) <= 0) return;
+    n = page_images(d, page, &im);
+    if (img < n) {
+      double s = atof(pc) / 100, m[6], cx, cy;
+      int i;
+      memcpy(m, im[img].m, sizeof m);
+      cx = m[4] + (m[0] + m[2]) / 2; cy = m[5] + (m[1] + m[3]) / 2;
+      for (i = 0; i < 4; i++) m[i] *= s;
+      m[4] = cx - (m[0] + m[2]) / 2; m[5] = cy - (m[1] + m[3]) / 2;
+      doc_snapshot(v);
+      image_set_matrix(d, page, img, m);
+      doc_redraw_all(v);
+    }
+    free(im);
+  } else if (k == 4) {
+    doc_snapshot(v);
+    image_delete(d, page, img);
+    doc_redraw_all(v);
+  }
+}
+static void edit_at(DocView *v, int page, double x, double y)
+{
+  TextPage *t = page_text(v, page);
+  int img;
+  if (move_img >= 0) {
+    PageImage *im;
+    int n = page_images(v->pdf, page, &im);
+    if (page == move_img_page && move_img < n) {
+      double m[6], tx, ty;
+      memcpy(m, im[move_img].m, sizeof m);
+      tx = m[2] + m[4]; ty = m[3] + m[5];            /* (the top left: the unit square's 0,1) */
+      m[4] += x - tx; m[5] += y - ty;
+      doc_snapshot(v);
+      image_set_matrix(v->pdf, page, move_img, m);
+      doc_redraw_all(v);
+    }
+    free(im);
+    move_img = move_img_page = -1;
+    view_info[0] = 0;
+    return;
+  }
+  if (t && textpage_hit(t, x, y, 2) >= 0) { edit_text_at(v, page, x, y); return; }
+  if ((img = page_image_at(v->pdf, page, x, y)) >= 0) { edit_picture(v, page, img); return; }
+  say("Click on text or a picture to edit it.");
+}
+
+/* ------------------------------------------------------------------ measuring polygons, snapping */
+static double poly[400]; static int npoly, poly_page = -1; static PDoc *poly_doc;
+static double *snaps; static int nsnaps, snap_page = -1; static PDoc *snap_doc;
+static void snap(DocView *v, int page, double *x, double *y)
+{
+  double sx, sy;
+  if (!opt.snap) return;
+  if (snap_doc != v->pdf || snap_page != page) {
+    free(snaps); snaps = NULL;
+    nsnaps = page_snap_points(v->pdf, page, &snaps);
+    snap_doc = v->pdf; snap_page = page;
+  }
+  if (snap_nearest(snaps, nsnaps, *x, *y, 8 / (v->zoom > 0.05 ? v->zoom : 1), &sx, &sy)) { *x = sx; *y = sy; }
+}
+static void poly_click(DocView *v, int page, int area, double x, double y)
+{
+  double tol = 6 / (v->zoom > 0.05 ? v->zoom : 1);
+  char m[120];
+  snap(v, page, &x, &y);
+  if (poly_doc != v->pdf || poly_page != page) { npoly = 0; poly_doc = v->pdf; poly_page = page; }
+  /* finished by clicking the first point (a polygon) or the last one again */
+  if ((npoly >= 3 && fabs(x - poly[0]) < tol && fabs(y - poly[1]) < tol) || (npoly >= 2 && fabs(x - poly[npoly * 2 - 2]) < tol && fabs(y - poly[npoly * 2 - 1]) < tol)) {
+    if (annot_measure_area(v->pdf, page, poly, npoly, area, opt.scale, opt.unit, opt.color[area ? TL_AREA : TL_PERIM], author())) added(v, page);
+    npoly = 0; poly_page = -1;
+    view_info[0] = 0;
+    refresh_bars();
+    return;
+  }
+  if (npoly < 200) { poly[npoly * 2] = x; poly[npoly * 2 + 1] = y; npoly++; }
+  snprintf(m, sizeof m, tr("%d points: click the first point (or the last again) to finish."), npoly);
+  snprintf(view_info, sizeof view_info, "%s", m);
+  refresh_bars();
+}
+
+/* ------------------------------------------------------------------ certificates */
+static u8 *trust_c[32]; static size_t trust_l[32]; static int trust_n;
+/* the certificates in PROGDIR:Certificates (each file DER or PEM), trusted when signatures are checked */
+static void trust_load(void)
+{
+  BPTR lock;
+  struct FileInfoBlock *fib;
+  while (trust_n) free(trust_c[--trust_n]);
+  if (!(lock = Lock((STRPTR)"PROGDIR:Certificates", ACCESS_READ))) { sig_trust(NULL, NULL, 0); return; }
+  if ((fib = (struct FileInfoBlock *)AllocDosObject(DOS_FIB, NULL))) {
+    if (Examine(lock, fib)) while (ExNext(lock, fib) && trust_n < 32) {
+      char path[300];
+      size_t n;
+      u8 *b;
+      SignerId s;
+      int i;
+      if (fib->fib_DirEntryType > 0) continue;
+      snprintf(path, sizeof path, "PROGDIR:Certificates/%s", (const char *)fib->fib_FileName);
+      if (!(b = read_file(path, &n))) continue;
+      pki_read_certs(b, n, &s);
+      for (i = 0; i < s.ncerts && trust_n < 32; i++) { trust_c[trust_n] = s.certs[i]; trust_l[trust_n++] = s.clen[i]; s.certs[i] = NULL; }
+      s.ncerts = 0;
+      free(b);
+    }
+    FreeDosObject(DOS_FIB, fib);
+  }
+  UnLock(lock);
+  sig_trust((const u8 *const *)trust_c, trust_l, trust_n);
+}
+static const char *chain_words(int c)
+{
+  return c == CHAIN_TRUSTED ? "Its certificate leads to one you trust." : c == CHAIN_SELF ? "Its certificate is self-signed: trust it only if you know where it came from." :
+         c == CHAIN_BAD ? "Its certificate chain is broken (a certificate isn't signed by its issuer)." : "Its certificate's issuer isn't among the certificates you trust.";
+}
+static void signatures2(DocView *v)
+{
+  SigInfo *si;
+  int n, i;
+  Buf b;
+  trust_load();
+  if (!(n = sig_list(v->pdf, &si))) { say("This document has no signatures."); return; }
+  buf_init(&b);
+  for (i = 0; i < n; i++) {
+    char lat[200];
+    to_latin1(si[i].name[0] ? si[i].name : si[i].signer, lat, sizeof lat);
+    buf_printf(&b, "%s: %s%s\n", si[i].field, lat[0] ? lat : tr("(signer not named)"), si[i].certify ? tr(" (certifies the document)") : "");
+    if (si[i].reason[0]) { to_latin1(si[i].reason, lat, sizeof lat); buf_printf(&b, "  %s: %s\n", tr("Reason"), lat); }
+    if (si[i].date[0]) buf_printf(&b, "  %s: %s\n", tr("Date"), si[i].date);
+    if (si[i].issuer[0]) { to_latin1(si[i].issuer, lat, sizeof lat); buf_printf(&b, "  %s: %s\n", tr("Issued by"), lat); }
+    buf_printf(&b, "  %s\n", si[i].digest_ok == 1 ? tr("The signed part of the file hasn't changed since signing.") :
+                             si[i].digest_ok == 0 ? tr("The signed part of the file HAS CHANGED since signing.") : tr("Folio couldn't check this signature's digest."));
+    buf_printf(&b, "  %s\n", si[i].sig_ok == 1 ? tr("The signature matches the signer's certificate.") : si[i].sig_ok == 0 ? tr("The signature does NOT match the signer's certificate.") :
+                             tr("Folio couldn't check the signature against a certificate."));
+    if (si[i].sig_ok >= 0) buf_printf(&b, "  %s\n", tr(chain_words(si[i].chain)));
+    if (si[i].time_ok == 0) buf_printf(&b, "  %s\n", tr("It was signed outside the time its certificate was valid."));
+    buf_printf(&b, "  %s\n", si[i].covers_all ? tr("Nothing was added after it.") : tr("The document was changed after it was signed (an update was added)."));
+  }
+  buf_adds(&b, "\n");
+  buf_adds(&b, tr("Folio checks offline: no revocation lists or OCSP. Certificates you trust go in the Certificates drawer next to Folio."));
+  sig_free(si, n);
+  dshow("Signatures", b.data ? b.data : "");
+  buf_free(&b);
+}
+/* a signer's certificate put into PROGDIR:Certificates */
+static void trust_signer(DocView *v)
+{
+  SigInfo *si;
+  int n = sig_list(v->pdf, &si), i, r, k = 0;
+  char *it[32];
+  if (!n) { say("This document has no signatures."); return; }
+  for (i = 0; i < n && i < 32; i++) { static char names[32][100]; to_latin1(si[i].signer[0] ? si[i].signer : si[i].field, names[i], sizeof names[i]); it[k++] = names[i]; }
+  r = dlist("Trust a Signer's Certificate", it, k, 0, NULL, NULL);
+  if (r >= 0 && si[r].cert) {
+    char path[300], nm[100];
+    int j;
+    BPTR l = Lock((STRPTR)"PROGDIR:Certificates", ACCESS_READ);
+    if (l) UnLock(l); else if ((l = CreateDir((STRPTR)"PROGDIR:Certificates"))) UnLock(l);
+    snprintf(nm, sizeof nm, "%s", it[r]);
+    for (j = 0; nm[j]; j++) if (nm[j] == '/' || nm[j] == ':' || nm[j] == '"') nm[j] = '_';
+    snprintf(path, sizeof path, "PROGDIR:Certificates/%s.cer", nm);
+    if (write_file(path, si[r].cert, si[r].certlen)) say("The certificate was added to those you trust.");
+    else say("The file couldn't be saved (out of memory, or the disk is full or write-protected).");
+  } else if (r >= 0) say("Folio couldn't find the signer's certificate in that signature.");
+  sig_free(si, n);
+}
+/* signed with the user's certificate: visible in rect (NULL invisible), certifying or not */
+static void sign_doc(DocView *v, int page, const double *rect, int certify, const char *field)
+{
+  char pw[128] = "", reason[160] = "", path[512];
+  size_t n, ol;
+  u8 *b, *out;
+  SignerId id;
+  SignOpts so;
+  char err[160];
+  char *ru;
+  strcpy(path, opt.certfile);
+  if (!file_request(0, "Choose your certificate (PKCS #12 or PEM)", path, sizeof path, "#?.(p12|pfx|pem)")) return;
+  if (!(b = read_file(path, &n))) { say("That file couldn't be read."); return; }
+  strncpy(opt.certfile, path, sizeof opt.certfile - 1);
+  if (b[0] == 0x30 || strstr((const char *)b, "ENCRYPTED")) {
+    if (!ask_secret("Digitally Sign", "The certificate's password:", pw, sizeof pw)) { free(b); return; }
+  }
+  busy(1);
+  if (!signer_load(b, n, pw, &id)) {
+    busy(0);
+    memset(pw, 0, sizeof pw);
+    free(b);
+    {
+      char m[300];
+      snprintf(m, sizeof m, "%s\n\n%s", tr("The certificate couldn't be used:"), id.err);
+      ask("OK", "%s", m);
+    }
+    return;
+  }
+  busy(0);
+  memset(pw, 0, sizeof pw);
+  free(b);
+  if (!ask_string(certify ? "Certify" : "Digitally Sign", "Reason (may be left empty):", reason, sizeof reason)) { signer_free(&id); return; }
+  base_with(v, path, sizeof path, "-signed.pdf");
+  if (!file_request(1, "Save the signed document as", path, sizeof path, "#?.pdf")) { signer_free(&id); return; }
+  memset(&so, 0, sizeof so);
+  so.page = page;
+  so.field = field;
+  if (rect) memcpy(so.rect, rect, sizeof so.rect);
+  ru = reason[0] ? u8of(reason) : NULL;
+  so.reason = ru;
+  so.certify = certify ? 2 : 0;
+  so.label = tr("Digitally signed by");
+  busy(1);
+  out = pdf_sign(v->pdf, &id, &so, &ol, err, sizeof err);
+  busy(0);
+  free(ru);
+  signer_free(&id);
+  if (!out) { char m[300]; snprintf(m, sizeof m, "%s\n\n%s", tr("The document couldn't be signed:"), err); ask("OK", "%s", m); return; }
+  if (!write_file(path, out, ol)) { free(out); say("The file couldn't be saved (out of memory, or the disk is full or write-protected)."); return; }
+  free(out);
+  {
+    int enc;
+    PDoc *nd = open_pdf(path, &enc);
+    extern void doc_show_new(PDoc *d, const char *path, int enc);
+    if (nd) doc_show_new(nd, path, enc);
+  }
+}
+
+/* ------------------------------------------------------------------ scans and OCR */
+static int ocr_abort(void *ud) { (void)ud; return 0; }
+/* (the last recognition of each page, for Correct Recognised Text) */
+static OcrResult last_ocr; static int last_ocr_page = -1; static PDoc *last_ocr_doc;
+static int ocr_one(DocView *v, PDoc *d, RCache *rc, int page, int keep)
+{
+  OcrResult r;
+  int ok;
+  if (!ocr_page(d, rc, page, 200, ocr_abort, NULL, &r)) return 0;
+  ok = r.n && ocr_add_text_layer(d, page, &r);
+  if (keep && ok) { ocr_free(&last_ocr); last_ocr = r; last_ocr_page = page; last_ocr_doc = d; }
+  else ocr_free(&r);
+  (void)v;
+  return ok;
+}
+static int page_has_text(DocView *v, int page) { TextPage *t = page_text(v, page); int i; if (t) for (i = 0; i < t->no; i++) if (t->o[i].u > 32) return 1; return 0; }
+static void ocr_doc(DocView *v, int all)
+{
+  int p, n = 0, skipped = 0;
+  doc_snapshot(v);
+  busy(1);
+  for (p = all ? 0 : v->page; p < (all ? v->pdf->npages : v->page + 1); p++) {
+    if (all && page_has_text(v, p)) { skipped++; continue; }
+    n += ocr_one(v, v->pdf, v->rc, p, !all || p == v->page);
+  }
+  busy(0);
+  doc_redraw_all(v);
+  if (all) { char m[200]; snprintf(m, sizeof m, tr("Text was recognised on %ld pages (%ld pages had text already)."), (long)n, (long)skipped); ask("OK", "%s", m); }
+  else if (!n) say("No text was recognised on this page.");
+}
+static void ocr_files(void)
+{
+  struct FileRequester *fr;
+  int i, n = 0;
+  if (!(fr = (struct FileRequester *)MUI_AllocAslRequestTags(ASL_FileRequest, ASLFR_TitleText, (ULONG)tr("Recognise text in files: each is saved beside it with -ocr added"),
+        ASLFR_DoMultiSelect, TRUE, ASLFR_InitialPattern, (ULONG)"#?.pdf", ASLFR_DoPatterns, TRUE, TAG_DONE))) return;
+  if (MUI_AslRequestTags(fr, ASLFR_Window, (ULONG)xget(win, MUIA_Window_Window), TAG_DONE)) {
+    busy(1);
+    for (i = 0; i < (fr->fr_NumArgs > 0 ? (int)fr->fr_NumArgs : 1); i++) {
+      char path[512];
+      int enc, p, k = 0;
+      PDoc *d;
+      strncpy(path, (const char *)fr->fr_Drawer, sizeof path - 1); path[sizeof path - 1] = 0;
+      AddPart((STRPTR)path, (STRPTR)(fr->fr_NumArgs > 0 ? (const char *)fr->fr_ArgList[i].wa_Name : (const char *)fr->fr_File), sizeof path);
+      if (!(d = open_pdf(path, &enc))) continue;
+      {
+        RCache *rc = rcache_new(d);
+        for (p = 0; p < d->npages; p++) k += ocr_one(NULL, d, rc, p, 0);
+        rcache_free(rc);
+      }
+      if (k) {
+        size_t ol;
+        u8 *out = pdf_save(d, NULL, 0, &ol);
+        char *dot = strrchr((char *)FilePart((STRPTR)path), '.');
+        if (dot) *dot = 0;
+        strncat(path, "-ocr.pdf", sizeof path - 1 - strlen(path));
+        if (out && write_file(path, out, ol)) n++;
+        free(out);
+      }
+      pdf_close(d);
+    }
+    busy(0);
+    sayf("%ld files were saved with their text recognised.", n);
+  }
+  MUI_FreeAslRequest(fr);
+}
+static int cmp_conf(const void *a, const void *b) { float x = ((const OcrWord *)a)->conf, y = ((const OcrWord *)b)->conf; return x < y ? -1 : x > y; }
+static void ocr_correct(DocView *v)
+{
+  OcrWord *w;
+  char *it[200];
+  static char lines[200][80];
+  int n, i, r;
+  if (last_ocr_doc != v->pdf || last_ocr_page != v->page || !last_ocr.n) { say("Recognise the text on this page first (Scan & OCR)."); return; }
+  n = last_ocr.n < 200 ? last_ocr.n : 200;
+  if (!(w = (OcrWord *)malloc(sizeof(OcrWord) * (size_t)n))) return;
+  memcpy(w, last_ocr.w, sizeof(OcrWord) * (size_t)n);
+  qsort(w, (size_t)n, sizeof(OcrWord), cmp_conf);
+  for (i = 0; i < n; i++) { snprintf(lines[i], sizeof lines[i], "%3d%%  %s", (int)(w[i].conf * 100), w[i].text); it[i] = lines[i]; }
+  r = dlist("Correct Recognised Text: the least certain words first", it, n, 0, NULL, NULL);
+  if (r >= 0) {
+    char buf[64];
+    strcpy(buf, w[r].text);
+    if (ask_string("Correct Recognised Text", "The word:", buf, sizeof buf) && strcmp(buf, w[r].text)) {
+      char *u = u8of(buf);
+      int k;
+      if (u) {
+        doc_snapshot(v);
+        text_replace(v->pdf, v->page, w[r].box, u);
+        free(u);
+        for (k = 0; k < last_ocr.n; k++) if (!memcmp(last_ocr.w[k].box, w[r].box, sizeof w[r].box)) { snprintf(last_ocr.w[k].text, sizeof last_ocr.w[k].text, "%s", buf); last_ocr.w[k].conf = 1; }
+        doc_redraw_all(v);
+      }
+    }
+  }
+  free(w);
+}
+static void scans(DocView *v, ULONG id)
+{
+  ScanOpts so;
+  int p, n = 0, all = id == ID_OPTSCAN, ocr = 0;
+  memset(&so, 0, sizeof so);
+  if (id == ID_ENHANCE) {
+    static int sk = 1, sp = 1, wh = 1, bw = 0, al = 1;
+    DField df[5];
+    memset(df, 0, sizeof df);
+    df[0].label = "Straighten:"; df[0].kind = DF_CHECK; df[0].val = &sk;
+    df[1].label = "Remove specks:"; df[1].kind = DF_CHECK; df[1].val = &sp;
+    df[2].label = "White background:"; df[2].kind = DF_CHECK; df[2].val = &wh;
+    df[3].label = "Black and white (smallest):"; df[3].kind = DF_CHECK; df[3].val = &bw;
+    df[4].label = "Every page:"; df[4].kind = DF_CHECK; df[4].val = &al;
+    if (!dform("Enhance Scanned Pages", df, 5, "OK")) return;
+    so.deskew = sk; so.despeckle = sp; so.whiten = wh; so.bitonal = bw; all = al;
+  } else if (id == ID_ENHANCECAM) { so.camera = 1; so.whiten = 1; so.deskew = 1; }
+  else {
+    static int o = 1;
+    DField df[1];
+    memset(df, 0, sizeof df);
+    df[0].label = "Recognise the text too:"; df[0].kind = DF_CHECK; df[0].val = &o;
+    if (!dform("Optimize Scanned Document", df, 1, "OK")) return;
+    ocr = o;
+    so.deskew = 1; so.despeckle = 1; so.bitonal = 2;
+  }
+  doc_snapshot(v);
+  busy(1);
+  for (p = all ? 0 : v->page; p < (all ? v->pdf->npages : v->page + 1); p++) {
+    n += scan_clean_page(v->pdf, p, &so, NULL);
+    if (ocr && !page_has_text(v, p)) { if (v->rc) rcache_free(v->rc); v->rc = rcache_new(v->pdf); ocr_one(v, v->pdf, v->rc, p, p == v->page); }
+  }
+  busy(0);
+  doc_redraw_all(v);
+  if (!n) say("No scanned pages were found (a scan is a picture covering most of a page).");
+  else sayf("%ld scanned pages were cleaned up.", n);
+}
+
+/* every match of some text replaced in the pages' own text (each match retyped in place, the last
+   on a page first so the earlier ones stay where they were found) */
+static void replace_text(DocView *v)
+{
+  static char f[128], r[128];
+  DField df[2];
+  char *fu, *ru;
+  int p, n = 0;
+  memset(df, 0, sizeof df);
+  df[0].label = "Find:"; df[0].kind = DF_STR; df[0].buf = f; df[0].cap = sizeof f;
+  df[1].label = "Replace with:"; df[1].kind = DF_STR; df[1].buf = r; df[1].cap = sizeof r;
+  if (!dform("Replace Text", df, 2, "Replace All") || !f[0]) return;
+  fu = u8of(f); ru = u8of(r);
+  if (!fu || !ru) { free(fu); free(ru); return; }
+  doc_snapshot(v);
+  busy(1);
+  for (p = 0; p < v->pdf->npages; p++) {
+    TextPage *t = page_text(v, p);
+    double boxes[64][4];
+    int nb = 0, from = 0, a, b, i, k;
+    while (t && nb < 64 && textpage_find(t, fu, from, &a, &b)) {
+      double *bx = boxes[nb];
+      bx[0] = bx[1] = 1e9; bx[2] = bx[3] = -1e9;
+      for (i = a; i <= b; i++) {
+        TChar *c = &t->o[i];
+        if (c->x1 <= c->x0) continue;
+        if (c->x0 < bx[0]) bx[0] = c->x0;
+        if (c->y0 < bx[1]) bx[1] = c->y0;
+        if (c->x1 > bx[2]) bx[2] = c->x1;
+        if (c->y1 > bx[3]) bx[3] = c->y1;
+      }
+      if (bx[2] > bx[0]) nb++;
+      from = b + 1;
+    }
+    for (k = nb - 1; k >= 0; k--) if (text_replace(v->pdf, p, boxes[k], ru) != TE_NONE) n++;
+  }
+  busy(0);
+  free(fu); free(ru);
+  doc_redraw_all(v);
+  sayf("%ld places were replaced.", n);
+}
+
+/* ------------------------------------------------------------------ the commands */
+static int r2_command(ULONG id)
+{
+  DocView *v = cur_view();
+  switch (id) {
+  case ID_SIGDRAW: draw_ink(0); return 1;
+  case ID_INITDRAW: draw_ink(1); return 1;
+  case ID_SNAP: opt.snap = !opt.snap; refresh_bars(); return 1;
+  case ID_OCRFILES: ocr_files(); return 1;
+  case ID_TRUSTED:
+    say("Folio trusts the certificates in the Certificates drawer next to it (DER or PEM files). Add one from a signed document with Trust a Signer's Certificate, or copy it there.");
+    return 1;
+  }
+  if (id < ID_SIGNINVIS || id > ID_REPLACETEXT) return 0;
+  if (!v) { say("Open a document first."); return 1; }
+  switch (id) {
+  case ID_SIGNINVIS: sign_doc(v, v->page, NULL, 0, NULL); return 1;
+  case ID_CERTIFYINVIS: sign_doc(v, v->page, NULL, 1, NULL); return 1;
+  case ID_SIGNTOOL: set_tool(TL_DIGSIGN); return 1;
+  case ID_CERTIFYTOOL: set_tool(TL_CERTIFY); return 1;
+  case ID_TRUSTSIGNER: trust_signer(v); return 1;
+  case ID_DISTRIB: hidden_info(v, 0); reduce(v, 0); return 1;
+  case ID_REPLACETEXT: replace_text(v); return 1;
+  case ID_TORGB: case ID_TOCMYK:
+    if (yes(id == ID_TORGB ? "Convert the document's colours (and pictures) to RGB?" : "Convert the document's colours (and pictures) to CMYK?")) {
+      doc_snapshot(v); busy(1); convert_colors(v->pdf, id == ID_TORGB ? CC_RGB : CC_CMYK); busy(0); doc_redraw_all(v);
+    }
+    return 1;
+  case ID_OCRPAGE: ocr_doc(v, 0); return 1;
+  case ID_OCRALL: ocr_doc(v, 1); return 1;
+  case ID_OCRCORRECT: ocr_correct(v); return 1;
+  case ID_ENHANCE: case ID_ENHANCECAM: case ID_OPTSCAN: scans(v, id); return 1;
   }
   return 0;
 }

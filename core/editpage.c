@@ -89,11 +89,8 @@ static int encode_in(const PdfFont *f, int nb, const u32 *u, int nu, Buf *codes,
     for (i = 0; i < nu; i++) code[i] = -1;
     for (k = 0; k < 65536 && left; k++) {
       u32 out[4];
-      u8 b2[2];
-      b2[0] = (u8)(k >> 8); b2[1] = (u8)k;
       if (cmap_unicode(f->tounicode, k, 2, out, 4) == 1 && font_gid(f, k, 2) > 0)
         for (i = 0; i < nu; i++) if (code[i] < 0 && out[0] == u[i]) { code[i] = (long)k; left--; }
-      (void)b2;
     }
     for (i = 0; i < nu && ok; i++) {
       if (code[i] < 0) { ok = 0; break; }

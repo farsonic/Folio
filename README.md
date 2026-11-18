@@ -65,6 +65,40 @@ program.
     keeps a copy of the document from before the last three of them.
   - Not tried on an Amiga yet: the native tests cover the core, and the Amiga build compiles and
     links, but the new windows and tools still need checking on a real or emulated Amiga.
+- Round 2 (branch `fr2`), also not tried on an Amiga yet:
+  - **Languages**: Folio speaks German, French, Spanish and Italian as well as English, in
+    Acrobat's words for each (Lesezeichen, Signets, Marcadores, Segnalibri...). It takes the first
+    of Locale prefs' languages it has; View › Language chooses another (kept in Folio.prefs; the
+    menus change the next time Folio starts). Long messages are broken into lines so they fit a
+    640-pixel screen in every language. The Window menu's two items moved into View, so the
+    German menu bar fits too.
+  - **Edit Text & Images** (Edit menu, Edit a PDF card): click a line of the page's own text (or
+    select part of one first) and retype it. It is set in the text's own font when that has the
+    letters, otherwise in the nearest standard font, and the rest of the line moves along. Click a
+    picture to replace it with a JPEG or PNG, move it, resize it or delete it.
+  - **Signing with a certificate** (Protect › Certificates): sign or certify, with a visible box
+    (drag it) or invisibly, using your key and certificate from a PKCS #12 (.p12/.pfx) or PEM file
+    (RSA or elliptic-curve keys; the files OpenSSL 3 and most programs make). An empty signature
+    field is signed by clicking it. Signed documents are saved as incremental updates, so their
+    signatures stay valid when comments are added later.
+  - **Checking signatures**: each signature's certificate and chain are checked offline (RSA and
+    ECDSA with SHA-1/256/384/512), as well as the signing time and whether the signed part
+    changed. Certificates you trust go in a Certificates drawer next to Folio; Trust a Signer's
+    Certificate puts one there. Revocation (CRL, OCSP) needs a network and isn't checked.
+  - **Scan & OCR** (Document menu, Scan & OCR card): Folio reads the text of scanned pages with
+    its own OCR and lays it over the page invisibly, so it can be found, selected and copied; on
+    this page, every page, or a set of files. Correct Recognised Text lists the least certain
+    words to put right. It reads clean printed text in common typefaces; handwriting and unusual
+    type don't come out. Enhance Scanned Pages straightens scans, removes specks, whitens the
+    background and can store them black and white (CCITT G4, small); Enhance Camera Image evens
+    out uneven light; Optimize Scanned Document does all that for the whole document.
+  - **Fill & Sign**: signatures and initials can be drawn with the mouse (Draw Signature, Draw
+    Initials) and are placed as drawn.
+  - **Measuring**: perimeter and area of polygons clicked point by point; View › Snap to Page
+    Objects snaps the points to the ends and corners of the page's lines and shapes.
+  - **More**: picture fields take a picture when clicked; Convert Colours to RGB or CMYK as well as
+    grey; Save as PDF/A embeds fonts that weren't embedded (Folio's own TrueType stand-ins);
+    Prepare for Distribution (hidden information removed, then the file made smaller).
 
 ## New in 0.1.2
 
@@ -194,16 +228,18 @@ drawer, stretched to the document's own widths.
 
 Folio keeps a few settings in `PROGDIR:Folio.prefs`: the dark interface, which panes show, the
 comment colours, line width and author, the files opened lately, the public screen and the last
-drawer used. Start it with `PUBSCREEN=name` (or a PUBSCREEN tool type) to open on another
+drawer used, the interface language, snapping and the certificate signed with last; a drawn
+signature and initials go in `Folio.signature` and `Folio.initials`, and certificates you trust in
+the `Certificates` drawer. Start it with `PUBSCREEN=name` (or a PUBSCREEN tool type) to open on another
 screen, and with file names to open them. `DEBUG=file` writes a log.
 
 ## Not included
 
 Folio leaves out printing, ARexx and scripting, JavaScript (so forms' formats and calculations
 aren't run), sound, video and 3D, and anything needing a network (cloud, AI, signing through a
-server). It doesn't recognize text in scans (OCR), sign with a certificate, or edit the text and
-pictures a page already has (it adds to pages and redacts). JBIG2 and JPEG 2000 pictures show as
-blank.
+server, timestamps, certificate revocation checks), and the Action Wizard (recorded steps are
+scripting). Its OCR reads clean print, not handwriting; text set at an angle can't be retyped in
+place. JBIG2 and JPEG 2000 pictures show as blank.
 
 ## Source
 
@@ -212,10 +248,12 @@ cross-reference, filters, encryption), the fonts, the renderer, text extraction,
 and editor. It has native tests (`tests/filtertest.c`, `tests/fonttest.c`, `tests/edittest.c`,
 `tests/robusttest.c`, `tests/allocfail.c`, and for the tools after 0.1.2 `tests/savetest.c`,
 `tests/formtest.c`, `tests/pagetest.c`, `tests/redacttest.c`, `tests/exporttest.c`,
-`tests/reviewtest.c`, plus `tests/compare.py`, which compares pages with
+`tests/reviewtest.c`, and for round 2 `tests/signtest.c` (its keys made at test time by
+OpenSSL), `tests/edit2test.c` and `tests/scantest.c`, plus `tests/compare.py`, which compares pages with
 poppler's) run under the address and undefined-behaviour sanitizers, and a fuzzer
-(`tools/fuzz.c`, `tools/fuzz.sh`). `amiga/` is the MUI front end. `build.sh` runs the tests and
-builds Folio with vbcc.
+(`tools/fuzz.c`, `tools/fuzz.sh`). `amiga/` is the MUI front end; its words are in `lang/strings.txt` with their
+translations (`tools/mklang.py` makes `amiga/lang_table.h`, `tools/langcheck.py` checks every string
+is translated). `build.sh` runs the tests and builds Folio with vbcc.
 
 The fonts in the TrueType drawer are Liberation (SIL Open Font License), Carlito and Caladea
 (SIL Open Font License); see `TrueType/LICENSE-fonts.txt`.

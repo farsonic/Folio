@@ -991,7 +991,7 @@ static void press(struct Data *d, Object *obj, LONG mx, LONG my, UWORD qual, ULO
   case TL_LINE: d->drag = DR_LINE; break;
   /* (after 0.1.2) the tools of doctools.c: a drag makes a box or a line, or a click */
   case TL_ARROW: case TL_MEASURE: d->drag = DR_LINE; break;
-  case TL_CLOUD: case TL_AREA: case TL_PERIM: case TL_ADDIMAGE: case TL_LINK: case TL_REDACT: case TL_FIELD: case TL_CROP: d->drag = DR_RECT; break;
+  case TL_CLOUD: case TL_ADDIMAGE: case TL_LINK: case TL_REDACT: case TL_FIELD: case TL_CROP: case TL_DIGSIGN: case TL_CERTIFY: d->drag = DR_RECT; break;
   case TL_INK:
     d->nink = 0;
     if (d->capink < 64) { free(d->ink); d->ink = (double *)malloc(64 * 2 * sizeof(double)); d->capink = d->ink ? 64 : 0; }

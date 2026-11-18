@@ -32,10 +32,12 @@ enum { TL_SELECT, TL_HAND, TL_NOTE, TL_HIGHLIGHT, TL_UNDERLINE, TL_STRIKE, TL_TE
        /* page tools (doctools.c): */
        TL_ADDTEXT, TL_ADDIMAGE, TL_LINK, TL_REDACT, TL_FIELD, TL_CROP,
        /* Fill & Sign: */
-       TL_FTEXT, TL_CHECK, TL_CROSS, TL_DOT, TL_DATE, TL_SIGN, TL_INITIALS, TL_N };
+       TL_FTEXT, TL_CHECK, TL_CROSS, TL_DOT, TL_DATE, TL_SIGN, TL_INITIALS,
+       /* (round 2) editing the page's own text and pictures; signing with a certificate (a drag) */
+       TL_EDIT, TL_DIGSIGN, TL_CERTIFY, TL_N };
 #define TL_LASTCOMMENT TL_PERIM
 /* tools that take a click (the others a drag) */
-#define TL_IS_CLICK(t) ((t) == TL_STAMP || (t) == TL_ADDTEXT || ((t) >= TL_FTEXT && (t) <= TL_INITIALS))
+#define TL_IS_CLICK(t) ((t) == TL_STAMP || (t) == TL_ADDTEXT || ((t) >= TL_FTEXT && (t) <= TL_INITIALS) || (t) == TL_EDIT || (t) == TL_AREA || (t) == TL_PERIM)
 extern int tool;                       /* TL_ */
 extern const char *const tool_names[TL_N];
 typedef struct {
@@ -49,6 +51,9 @@ typedef struct {
   char signature[64], initials[16];    /* Fill & Sign (typed) */
   double scale;                        /* measuring: points per unit */
   char unit[8];
+  /* (round 2) */
+  int snap;                            /* measuring snaps to the page's paths */
+  char certfile[256];                  /* the certificate signed with last */
 } Opts;
 extern Opts opt;
 void set_tool(int t);                  /* (main.c) the tool chosen: view and toolbars told */
@@ -234,6 +239,9 @@ ULONG  run_modal(Object *w, const ULONG *ends, void (*each)(ULONG id));
 Object *dialog_window(const char *title, Object *contents, const char *oklabel);
 int    ask_string(const char *title, const char *label, char *buf, int cap);
 int    ask_text(const char *title, const char *label, char *buf, int cap);   /* several lines */
+int    ask_secret(const char *title, const char *label, char *buf, int cap); /* (round 2) a password, unseen */
+int    signpad_dialog(const char *title, char *out, int cap);              /* (round 2) signpad.c */
+void   signpad_class_free(void);
 LONG   pick_color(const char *title, ULONG start);
 int    file_request(int save, const char *title, char *path, size_t cap, const char *pattern);
 u8    *read_file(const char *path, size_t *len);

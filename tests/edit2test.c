@@ -20,6 +20,7 @@
 #include "optimize.h"
 #include "review.h"
 #include "font.h"
+#include "forms.h"
 #include "pdfedit.h"
 
 static int fails, checks;
@@ -119,7 +120,7 @@ static void fonts_from(const char *pdf, const char *dir)
     if ((ff = pdf_dget(d, o, "FontFile2")) && ff->type == PO_STREAM && (!strcmp(fn, "LiberationSans") || !strcmp(fn, "LiberationSerif"))) {
       size_t sl;
       u8 *sd = pdf_stream_data(d, ff, &sl);
-      char p[600];
+      char p[800];
       FILE *f;
       snprintf(p, sizeof p, "%s/%s-Regular.ttf", dir, fn);
       if (sd && (f = fopen(p, "wb"))) { fwrite(sd, 1, sl, f); fclose(f); }
@@ -249,6 +250,30 @@ int main(int argc, char **argv)
     d = open_file(graphics);
     if (d) { n = page_snap_points(d, 0, &pts); CHECK(n > 10); free(pts); pdf_close(d); }
   }
+  /* ------------------------------------------------------------ a picture field given a picture */
+  {
+    PDoc *d = doc_new_blank(400, 400, 1);
+    double r[4] = { 50, 50, 250, 150 };
+    FForm fm;
+    size_t pn;
+    u8 *pb = slurp(png, &pn);
+    memset(&fm, 0, sizeof fm);
+    CHECK(form_add_field(d, 0, FF_PUSH, r, "Picture", NULL, 0, 0));
+    CHECK(form_load(d, &fm) && fm.n == 1 && fm.f[0].type == FF_PUSH);
+    CHECK(pb && fm.n == 1 && form_set_picture(d, &fm.f[0], pb, pn) == 1);
+    if (fm.n == 1) {
+      PObj *ap = pdf_dget(d, fm.f[0].w[0].dict, "AP"), *nf = ap ? pdf_dget(d, ap, "N") : NULL, *res = nf ? pdf_dget(d, nf, "Resources") : NULL;
+      CHECK(nf && nf->type == PO_STREAM && res && pdf_dget(d, pdf_dget(d, res, "XObject"), "Im0"));
+    }
+    form_free(&fm);
+    free(pb);
+    {
+      PDoc *r2 = again(d, "edit_picfield.pdf");
+      CHECK(r2 != NULL);
+      if (r2) pdf_close(r2);
+    }
+    pdf_close(d);
+  }
   /* ------------------------------------------------------------ polygons measured */
   {
     PDoc *d = doc_new_blank(400, 400, 1);
@@ -333,7 +358,7 @@ int main(int argc, char **argv)
         pdf_close(r2);
       }
       pdf_close(d);
-      snprintf(cmd, sizeof cmd, "command -v pdffonts >/dev/null && pdffonts '%s/edit_pdfa.pdf' | tail -n +3 | grep -v ' yes ' | grep -q .", outdir);
+      snprintf(cmd, sizeof cmd, "command -v pdffonts >/dev/null && pdffonts '%s/edit_pdfa.pdf' 2>/dev/null | tail -n +3 | grep -v ' yes ' | grep -q .", outdir);
       CHECK(system(cmd) != 0);
       font_free_substitutes();
       font_set_dir(argv[6]);
