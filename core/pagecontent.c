@@ -101,7 +101,16 @@ PObj *om_std_font(const char *name)
   pobj_dict_set(f, "Type", pobj_name("Font"));
   pobj_dict_set(f, "Subtype", pobj_name("Type1"));
   pobj_dict_set(f, "BaseFont", pobj_name(name));
-  if (strcmp(name, "ZapfDingbats") && strcmp(name, "Symbol")) pobj_dict_set(f, "Encoding", pobj_name("WinAnsiEncoding"));
+  if (strcmp(name, "ZapfDingbats") && strcmp(name, "Symbol")) {
+    /* the widths written out, so every reader (and Folio without its stand-in fonts) spaces the text alike */
+    int font = !strcmp(name, "Helvetica-Bold") ? 1 : !strncmp(name, "Times", 5) ? 2 : !strncmp(name, "Courier", 7) ? 3 : 0, c;
+    PObj *w = pobj_new(PO_ARRAY);
+    pobj_dict_set(f, "Encoding", pobj_name("WinAnsiEncoding"));
+    for (c = 32; w && c < 256; c++) { char ch = (char)c; pobj_array_add(w, pobj_int((long)(om_text_width(&ch, 1, 1000, font) + 0.5))); }
+    pobj_dict_set(f, "FirstChar", pobj_int(32));
+    pobj_dict_set(f, "LastChar", pobj_int(255));
+    pobj_dict_set(f, "Widths", w);
+  }
   return f;
 }
 void om_num(Buf *b, double v)

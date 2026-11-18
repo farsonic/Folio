@@ -127,7 +127,13 @@ def forms():
     c.showPage()
     c.save()
 
-graphics(); fonts(); images(); rotated_and_encrypted(); forms()
+def pictures():
+    # small pictures (ours) for adding images, watermarks, backgrounds and making PDFs from pictures
+    im = Image.new('RGB', (120, 80), (255, 255, 255)); dr = ImageDraw.Draw(im)
+    dr.rectangle([10, 10, 110, 70], fill=(200, 30, 30)); dr.ellipse([40, 20, 80, 60], fill=(30, 60, 200))
+    im.save(os.path.join(OUT, 'pic.jpg'), quality=85); im.save(os.path.join(OUT, 'pic.png'))
+
+graphics(); fonts(); images(); rotated_and_encrypted(); forms(); pictures()
 # object streams + xref stream (pypdf compress)
 w = pypdf.PdfWriter(); w.append(os.path.join(OUT, 'graphics.pdf')); w.compress_identical_objects()
 for p in w.pages: p.compress_content_streams()
