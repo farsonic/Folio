@@ -102,8 +102,8 @@ static void add_field(Ld *l, PObj *node, const char *name, const Inh *in)
   else f->type = FF_TEXT;
   f->value = text_of(l->d, in->v);
   if ((f->type == FF_CHECK || f->type == FF_RADIO) && !f->value) f->value = str_dup("Off");
-  f->maxlen = in->maxlen ? (int)pobj_num(pdf_resolve(l->d, in->maxlen)) : 0;
-  f->quad = in->q ? (int)pobj_num(pdf_resolve(l->d, in->q)) : 0;
+  f->maxlen = in->maxlen ? dbl_int(pobj_num(pdf_resolve(l->d, in->maxlen))) : 0;
+  f->quad = in->q ? dbl_int(pobj_num(pdf_resolve(l->d, in->q))) : 0;
   if (in->opt) {
     PObj *o = pdf_resolve(l->d, in->opt);
     if (o && o->type == PO_ARRAY && o->u.arr.n > 0 && o->u.arr.n < 10000) {
@@ -130,7 +130,7 @@ static void walk(Ld *l, PObj *node, const char *parent, Inh in, int depth)
   int i, has_t_kids = 0;
   if (!node || node->type != PO_DICT || depth > 32) return;
   if ((v = pdf_dget(l->d, node, "FT")) && v->type == PO_NAME) in.ft = v->u.str.s;
-  if ((v = pdf_dget(l->d, node, "Ff"))) in.ff = (long)pobj_num(v);
+  if ((v = pdf_dget(l->d, node, "Ff"))) in.ff = dbl_long(pobj_num(v));
   if ((v = pobj_dict_get(node, "V"))) in.v = v;
   if ((v = pobj_dict_get(node, "DV"))) in.dv = v;
   if ((v = pobj_dict_get(node, "DA"))) in.da = v;
@@ -1066,7 +1066,7 @@ int form_add_table(PDoc *d, int page, const double *rect, int rows, int cols, co
 }
 int form_set_props(PDoc *d, FField *f, const char *name, const char *tooltip, long set, long clear, int maxlen, int quad, double size)
 {
-  long ff = (long)pdf_dnum(d, f->dict, "Ff", (double)f->flags);
+  long ff = dbl_long(pdf_dnum(d, f->dict, "Ff", (double)f->flags));
   if (name && *name) {
     const char *dot = strrchr(f->name, '.');
     size_t pl = dot ? (size_t)(dot - f->name) + 1 : 0, l = pl + strlen(name) + 1;

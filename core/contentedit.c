@@ -40,9 +40,9 @@ static void apply(const double m[6], double x, double y, double *ox, double *oy)
 /* ------------------------------------------------------------------ writing operands */
 static void put_num(Buf *b, double v)
 {
-  char t[40];
+  char t[340];
   int n;
-  if (fabs(v) < 1e-9) v = 0;
+  if (fabs(v) < 1e-9 || !(v == v) || fabs(v) > 1e300) v = 0;
   if (v == floor(v) && fabs(v) < 2e9) { buf_printf(b, "%ld", (long)v); return; }
   n = snprintf(t, sizeof t, "%.5f", v);
   while (n > 0 && t[n - 1] == '0') t[--n] = 0;
@@ -354,7 +354,7 @@ static void run(CE *c, const u8 *data, size_t len)
     else if (!strcmp(kw, "Tz") && nargs) { s->th = pobj_num(args[nargs - 1]) / 100; emit(c, args, nargs, kw); }
     else if (!strcmp(kw, "TL") && nargs) { s->tl = pobj_num(args[nargs - 1]); emit(c, args, nargs, kw); }
     else if (!strcmp(kw, "Ts") && nargs) { s->rise = pobj_num(args[nargs - 1]); emit(c, args, nargs, kw); }
-    else if (!strcmp(kw, "Tr") && nargs) { s->tmode = (int)pobj_num(args[nargs - 1]); emit(c, args, nargs, kw); }
+    else if (!strcmp(kw, "Tr") && nargs) { s->tmode = dbl_int(pobj_num(args[nargs - 1])); emit(c, args, nargs, kw); }
     else if ((!strcmp(kw, "Td") || !strcmp(kw, "TD")) && nargs >= 2) {
       double t[6] = { 1, 0, 0, 1, 0, 0 };
       t[4] = pobj_num(args[nargs - 2]); t[5] = pobj_num(args[nargs - 1]);

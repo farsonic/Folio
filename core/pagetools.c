@@ -122,7 +122,7 @@ static void labels_walk(PDoc *d, PObj *node, PLabel **out, int *n, int *cap, int
       if (*n >= *cap) { int nc = *cap ? *cap * 2 : 8; PLabel *t = (PLabel *)realloc(*out, (size_t)nc * sizeof(PLabel)); if (!t) return; *out = t; *cap = nc; }
       l = &(*out)[(*n)++];
       memset(l, 0, sizeof *l);
-      l->start = (int)pobj_num(k);
+      l->start = dbl_int(pobj_num(k));
       s = pdf_dname(d, v, "S");
       l->style = s ? s[0] : 0;
       l->first = (int)pdf_dint(d, v, "St", 1);
@@ -599,7 +599,7 @@ int attach_list(PDoc *d, PAttach **out)
     (*out)[i].name = p[i].name; p[i].name = NULL;
     (*out)[i].desc = ds && ds->type == PO_STRING ? pdf_text_string(ds) : NULL;
     par = f ? pdf_dget(d, f, "Params") : NULL;
-    (*out)[i].size = par ? (long)pdf_dnum(d, par, "Size", -1) : -1;
+    (*out)[i].size = par ? dbl_long(pdf_dnum(d, par, "Size", -1)) : -1;
     if ((*out)[i].size < 0 && f && f->type == PO_STREAM) { size_t k; u8 *dt = pdf_stream_data(d, f, &k); (*out)[i].size = dt ? (long)k : -1; free(dt); }
   }
   pairs_free(p, n);

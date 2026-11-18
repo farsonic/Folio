@@ -115,9 +115,9 @@ PObj *om_std_font(const char *name)
 }
 void om_num(Buf *b, double v)
 {
-  char t[40];
+  char t[340];
   int n;
-  if (fabs(v) < 1e-6) v = 0;
+  if (fabs(v) < 1e-6 || !(v == v) || fabs(v) > 1e300) v = 0;
   n = snprintf(t, sizeof t, "%.3f", v);
   while (n > 0 && t[n - 1] == '0') t[--n] = 0;
   if (n > 0 && t[n - 1] == '.') t[--n] = 0;
