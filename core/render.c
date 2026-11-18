@@ -146,7 +146,7 @@ CSpace *cs_load(PDoc *d, PObj *o, PObj *res, int depth)
   if ((!strcmp(n, "Indexed") || !strcmp(n, "I")) && o->u.arr.n >= 4) {
     CSpace *base = cs_load(d, o->u.arr.v[1], res, depth + 1), *c;
     PObj *lk = pdf_resolve(d, o->u.arr.v[3]);
-    int hival = (int)pobj_num(pdf_resolve(d, o->u.arr.v[2]));
+    int hival = dbl_int(pobj_num(pdf_resolve(d, o->u.arr.v[2])));
     size_t need, have = 0;
     u8 *data = NULL;
     if (!base || base->kind == CS_PATTERN || base->kind == CS_INDEXED) { cs_release(base); return NULL; }
@@ -217,7 +217,7 @@ void cs_to_rgb(const CSpace *c, const double *v, double *rgb)
     rgb[2] = clamp01(bb > 0.0031308 ? 1.055 * pow(bb, 1 / 2.4) - 0.055 : 12.92 * bb);
     return; }
   case CS_INDEXED: {
-    int i = (int)(v[0] + 0.5), k;
+    int i = dbl_int(v[0] + 0.5), k;
     double b[4];
     if (i < 0) i = 0;
     if (i > c->hival) i = c->hival;
@@ -305,7 +305,13 @@ static int path_is_rect(const Path *p, int *x0, int *y0, int *x1, int *y1)
   }
   a = xs[0]; b = xs[0]; c = ys[0]; d = ys[0];
   for (i = 1; i < 4; i++) { if (xs[i] < a) a = xs[i]; if (xs[i] > b) b = xs[i]; if (ys[i] < c) c = ys[i]; if (ys[i] > d) d = ys[i]; }
-  *x0 = (int)floor(a + 0.5); *x1 = (int)floor(b + 0.5); *y0 = (int)floor(c + 0.5); *y1 = (int)floor(d + 0.5);
+  /* (far beyond any page, kept to where the arithmetic below is defined) */
+  if (!(a > -1e8)) a = -1e8;
+  if (!(b < 1e8)) b = 1e8;
+  if (!(c > -1e8)) c = -1e8;
+  if (!(d < 1e8)) d = 1e8;
+  if (a > b || c > d) return 0;
+  *x0 = dbl_int(floor(a + 0.5)); *x1 = dbl_int(floor(b + 0.5)); *y0 = dbl_int(floor(c + 0.5)); *y1 = dbl_int(floor(d + 0.5));
   if (*x1 <= *x0 && b - a > 0.1) *x1 = *x0 + 1;     /* (a thin rectangle keeps a pixel) */
   if (*y1 <= *y0 && d - c > 0.1) *y1 = *y0 + 1;
   return 1;
@@ -328,7 +334,7 @@ static void clip_to(Render *r, const Path *dev, int evenodd)
     Mask *m;
     ClipSpan cs;
     if (!path_bounds(dev, &bx0, &by0, &bx1, &by1)) { bx0 = by0 = bx1 = by1 = 0; }
-    x0 = (int)floor(bx0); y0 = (int)floor(by0); x1 = (int)ceil(bx1); y1 = (int)ceil(by1);
+    x0 = dbl_int(floor(bx0)); y0 = dbl_int(floor(by0)); x1 = dbl_int(ceil(bx1)); y1 = dbl_int(ceil(by1));
     if (x0 < old->x0) x0 = old->x0;
     if (y0 < old->y0) y0 = old->y0;
     if (x1 > old->x1) x1 = old->x1;
@@ -400,7 +406,7 @@ static void fill_solid(Render *r, const Path *dev, int evenodd, const u8 *rgb, d
   const Clip *c = GS(r)->clip;
   if (r->hidden || r->o->text_only) return;
   memset(&p, 0, sizeof p);
-  p.r = r; p.rgb = rgb; p.alpha = (int)(alpha * 255 + 0.5); p.clip = c; p.blend = GS(r)->blend;
+  p.r = r; p.rgb = rgb; p.alpha = dbl_int(alpha * 255 + 0.5); p.clip = c; p.blend = GS(r)->blend;
   if (p.alpha <= 0) return;
   rast_path(dev, evenodd, c->x0, c->y0, c->x1, c->y1, paint_span, &p);
 }
@@ -455,14 +461,18 @@ static void bm_span(void *ud, int y, int x0, int x1, const u8 *cov)
 static int glyph_cached(Render *r, const PFont *prog, int gid, const Mat *gm, const u8 *rgb, double alpha)
 {
   RCache *c = r->c;
-  i32 ka = (i32)floor(gm->a * 1048576 + 0.5), kb = (i32)floor(gm->b * 1048576 + 0.5), kc = (i32)floor(gm->c * 1048576 + 0.5), kd = (i32)floor(gm->d * 1048576 + 0.5);
-  double ox = floor(gm->e), oy = floor(gm->f);
-  i32 fx = (i32)floor((gm->e - ox) * 4), fy = (i32)floor((gm->f - oy) * 4);
+  i32 ka, kb, kc, kd, fx, fy;
+  double ox, oy;
   u32 h;
   GEntry *e;
-  int x, y, a0 = (int)(alpha * 255 + 0.5);
+  int x, y, a0 = dbl_int(alpha * 255 + 0.5);
   const Clip *cl = GS(r)->clip;
-  if (fabs(gm->a) + fabs(gm->b) > 0.4 || fabs(gm->c) + fabs(gm->d) > 0.4) return 0;   /* (over about 400 pixels: drawn directly) */
+  if (!(fabs(gm->a) + fabs(gm->b) <= 0.4) || !(fabs(gm->c) + fabs(gm->d) <= 0.4)) return 0;   /* (over about 400 pixels: drawn directly) */
+  /* (the keys worked out after that test, and a glyph far off the page is nothing) */
+  if (!(fabs(gm->e) < 1e8 && fabs(gm->f) < 1e8)) return 1;
+  ka = (i32)floor(gm->a * 1048576 + 0.5); kb = (i32)floor(gm->b * 1048576 + 0.5); kc = (i32)floor(gm->c * 1048576 + 0.5); kd = (i32)floor(gm->d * 1048576 + 0.5);
+  ox = floor(gm->e); oy = floor(gm->f);
+  fx = (i32)floor((gm->e - ox) * 4); fy = (i32)floor((gm->f - oy) * 4);
   h = hashg(prog, gid, ka, kb, kc, kd, fx, fy);
   for (e = c->g[h]; e; e = e->next)
     if (e->prog == prog && e->gid == gid && e->ka == ka && e->kb == kb && e->kc == kc && e->kd == kd && e->fx == fx && e->fy == fy) break;
@@ -478,8 +488,8 @@ static int glyph_cached(Render *r, const PFont *prog, int gid, const Mat *gm, co
     if (!(e = (GEntry *)calloc(1, sizeof *e))) { path_free(&gp); return 0; }
     e->prog = prog; e->gid = gid; e->ka = ka; e->kb = kb; e->kc = kc; e->kd = kd; e->fx = fx; e->fy = fy;
     if (path_bounds(&gp, &bx0, &by0, &bx1, &by1)) {
-      e->x0 = (int)floor(bx0); e->y0 = (int)floor(by0);
-      e->w = (int)ceil(bx1) - e->x0 + 1; e->h = (int)ceil(by1) - e->y0 + 1;
+      e->x0 = dbl_int(floor(bx0)); e->y0 = dbl_int(floor(by0));
+      e->w = dbl_int(ceil(bx1)) - e->x0 + 1; e->h = dbl_int(ceil(by1)) - e->y0 + 1;
       if (e->w > 0 && e->h > 0 && e->w < 2000 && e->h < 2000 && (e->bm = (u8 *)calloc((size_t)e->w * e->h, 1))) {
         bs.bm = e->bm; bs.x0 = e->x0; bs.y0 = e->y0; bs.w = e->w;
         rast_path(&gp, 0, e->x0, e->y0, e->x0 + e->w, e->y0 + e->h, bm_span, &bs);
@@ -656,8 +666,8 @@ static void ext_gstate(Render *r, PObj *res, const char *name)
   GState *g = GS(r);
   if (!e || e->type != PO_DICT) return;
   if ((v = pdf_dget(r->d, e, "LW")) && pobj_isnum(v)) g->lw = pobj_num(v);
-  if ((v = pdf_dget(r->d, e, "LC")) && pobj_isnum(v)) g->cap = (int)pobj_num(v);
-  if ((v = pdf_dget(r->d, e, "LJ")) && pobj_isnum(v)) g->join = (int)pobj_num(v);
+  if ((v = pdf_dget(r->d, e, "LC")) && pobj_isnum(v)) g->cap = dbl_int(pobj_num(v));
+  if ((v = pdf_dget(r->d, e, "LJ")) && pobj_isnum(v)) g->join = dbl_int(pobj_num(v));
   if ((v = pdf_dget(r->d, e, "ML")) && pobj_isnum(v)) g->miter = pobj_num(v);
   if ((v = pdf_dget(r->d, e, "CA")) && pobj_isnum(v)) g->sa = clamp01(pobj_num(v));
   if ((v = pdf_dget(r->d, e, "ca")) && pobj_isnum(v)) g->fa = clamp01(pobj_num(v));
@@ -710,12 +720,10 @@ static void set_color(Render *r, int stroke, PObj **ops, int n)
   if (r->t3_uncoloured) return;
   for (i = 0; i < n && k < 32; i++) if (pobj_isnum(ops[i])) v[k++] = pobj_num(ops[i]);
   if (cs->kind == CS_PATTERN) {
-    PObj *nm = n ? ops[n - 1] : NULL;
+    /* the pattern's name is looked up in the resources by the caller, after the operator (the
+       operand itself is freed then, so it is never kept: a page with sc and no resources kept a
+       pointer to it) */
     if (stroke) g->spat = NULL; else g->fpat = NULL;
-    if (nm && nm->type == PO_NAME) {
-      /* (looked up in the resources by the caller: stored by name here and resolved at paint time) */
-      if (stroke) g->spat = nm; else g->fpat = nm;
-    }
     if (cs->base) set_rgb(stroke ? g->srgb : g->frgb, cs->base, v);
     return;
   }
@@ -755,9 +763,9 @@ static void inline_image(Render *r, Lex *l, PObj *res)
   {
     /* an unfiltered image's length is known from its size */
     PObj *f = pobj_dict_get(dict, "F"), *ff = f ? f : pobj_dict_get(dict, "Filter");
-    long w = (long)pobj_num(pobj_dict_get(dict, "W") ? pobj_dict_get(dict, "W") : pobj_dict_get(dict, "Width"));
-    long h = (long)pobj_num(pobj_dict_get(dict, "H") ? pobj_dict_get(dict, "H") : pobj_dict_get(dict, "Height"));
-    long bpc = (long)pobj_num(pobj_dict_get(dict, "BPC") ? pobj_dict_get(dict, "BPC") : pobj_dict_get(dict, "BitsPerComponent"));
+    long w = dbl_long(pobj_num(pobj_dict_get(dict, "W") ? pobj_dict_get(dict, "W") : pobj_dict_get(dict, "Width")));
+    long h = dbl_long(pobj_num(pobj_dict_get(dict, "H") ? pobj_dict_get(dict, "H") : pobj_dict_get(dict, "Height")));
+    long bpc = dbl_long(pobj_num(pobj_dict_get(dict, "BPC") ? pobj_dict_get(dict, "BPC") : pobj_dict_get(dict, "BitsPerComponent")));
     int im = pobj_dict_get(dict, "IM") && pobj_dict_get(dict, "IM")->type == PO_BOOL && pobj_dict_get(dict, "IM")->u.b;
     PObj *cs = pobj_dict_get(dict, "CS") ? pobj_dict_get(dict, "CS") : pobj_dict_get(dict, "ColorSpace");
     int ncomp = 1;
@@ -906,8 +914,8 @@ void run_content(Render *r, const u8 *data, size_t len, PObj *res)
     case 'n': if (!kw[1]) paint_path(r, 0, 0, 0); break;
     case 'W': if (!kw[1]) r->clip_pending = 1; else if (!strcmp(kw, "W*")) r->clip_pending = 2; break;
     case 'w': if (!kw[1] && n >= 1) g->lw = num(ops, n, 0); break;
-    case 'J': if (!kw[1] && n >= 1) g->cap = (int)num(ops, n, 0); break;
-    case 'j': if (!kw[1] && n >= 1) g->join = (int)num(ops, n, 0); break;
+    case 'J': if (!kw[1] && n >= 1) g->cap = dbl_int(num(ops, n, 0)); break;
+    case 'j': if (!kw[1] && n >= 1) g->join = dbl_int(num(ops, n, 0)); break;
     case 'M': if (!kw[1] && n >= 1) g->miter = num(ops, n, 0); else if (!strcmp(kw, "MP")) { } break;
     case 'd':
       if (!kw[1] && n >= 2 && ops[0]->type == PO_ARRAY) {
@@ -968,7 +976,7 @@ void run_content(Render *r, const u8 *data, size_t len, PObj *res)
       case 'w': if (n >= 1) g->ws = num(ops, n, 0); break;
       case 'z': if (n >= 1) g->th = num(ops, n, 0); break;
       case 'L': if (n >= 1) g->tl = num(ops, n, 0); break;
-      case 'r': if (n >= 1) g->tmode = (int)num(ops, n, 0); break;
+      case 'r': if (n >= 1) g->tmode = dbl_int(num(ops, n, 0)); break;
       case 's': if (n >= 1) g->rise = num(ops, n, 0); break;
       }
       break;
@@ -984,7 +992,7 @@ void run_content(Render *r, const u8 *data, size_t len, PObj *res)
     case 'i': break;
     }
     /* a colour operator naming a pattern: looked up here, where the resources are known */
-    if ((!strcmp(kw, "scn") || !strcmp(kw, "SCN")) && n >= 1 && ops[n - 1]->type == PO_NAME && res) {
+    if ((!strcmp(kw, "scn") || !strcmp(kw, "SCN") || !strcmp(kw, "sc") || !strcmp(kw, "SC")) && n >= 1 && ops[n - 1]->type == PO_NAME && res) {
       PObj *pd = pdf_dget(r->d, res, "Pattern"), *pat = pd ? pdf_dget(r->d, pd, ops[n - 1]->u.str.s) : NULL;
       if (kw[0] == 's') GS(r)->fpat = pat; else GS(r)->spat = pat;
     }
@@ -1098,7 +1106,7 @@ void pdf_page_pixels(PDoc *d, int page, double s, int rotate, int *w, int *h)
   int rot, pw, ph;
   pdf_page_box(d, page, b, &rot);
   rot = ((rot + rotate) % 360 + 360) % 360;
-  pw = (int)ceil((b[2] - b[0]) * s - 0.01); ph = (int)ceil((b[3] - b[1]) * s - 0.01);
+  pw = dbl_int(ceil((b[2] - b[0]) * s - 0.01)); ph = dbl_int(ceil((b[3] - b[1]) * s - 0.01));
   if (pw < 1) pw = 1;
   if (ph < 1) ph = 1;
   if (rot == 90 || rot == 270) { *w = ph; *h = pw; } else { *w = pw; *h = ph; }

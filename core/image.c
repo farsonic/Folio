@@ -276,6 +276,7 @@ static void build_huff(Huff *t, const u8 *bits, const u8 *vals, int nv)
     t->maxcode[l] = bits[l - 1] ? code - 1 : -1;
     if (l <= 8) for (i = t->mincode[l]; i <= t->maxcode[l]; i++) {
       int lo = (i << (8 - l)), j;
+      if (i >= (1 << l) || t->valptr[l] + i - t->mincode[l] >= nv) break;   /* (an over-full table wrote past look[]) */
       for (j = 0; j < (1 << (8 - l)); j++) t->look[lo + j] = (u16)((l << 8) | vals[t->valptr[l] + i - t->mincode[l]]);
     }
     code <<= 1;

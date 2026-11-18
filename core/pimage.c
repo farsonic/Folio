@@ -29,7 +29,11 @@ static PObj *expand_name(PObj *o)
   if (!o) return o;
   if (o->type == PO_NAME)
     for (i = 0; i < sizeof ab / sizeof ab[0]; i++)
-      if (!strcmp(o->u.str.s, ab[i][0])) { free(o->u.str.s); o->u.str.s = str_dup(ab[i][1]); o->u.str.len = (int)strlen(ab[i][1]); break; }
+      if (!strcmp(o->u.str.s, ab[i][0])) {
+        char *n = str_dup(ab[i][1]);             /* (out of memory, the short name stays) */
+        if (n) { free(o->u.str.s); o->u.str.s = n; o->u.str.len = (int)strlen(n); }
+        break;
+      }
   if (o->type == PO_ARRAY) for (i = 0; i < (size_t)o->u.arr.n; i++) expand_name(o->u.arr.v[i]);
   return o;
 }
@@ -52,14 +56,16 @@ static u32 sample(const u8 *row, long i, int bpc)
 static int unpack(PDoc *d, const u8 *data, size_t len, int w, int h, int bpc, CSpace *cs, const double *decode, int ndecode,
                   int stencil, const int *colorkey, int nkey, int tw, int th, Img *out)
 {
-  int nc = stencil ? 1 : cs->n, x, y, k, maxv = bpc == 16 ? 255 : (1 << bpc) - 1;
-  long rowbytes = ((long)w * nc * bpc + 7) / 8;
+  int nc = stencil ? 1 : cs->n, x, y, k, maxv;
+  long rowbytes;
   u32 *acc = NULL;
   u8 lut[256][3];
   double dmin[32], dmax[32];
   int uselut = 0, *cnt = NULL;
   (void)d;
   if (bpc != 1 && bpc != 2 && bpc != 4 && bpc != 8 && bpc != 16) return 0;
+  maxv = bpc == 16 ? 255 : (1 << bpc) - 1;   /* (after the test: a shift by any number was undefined) */
+  rowbytes = ((long)w * nc * bpc + 7) / 8;
   if (nc < 1 || nc > 32) return 0;
   out->w = tw; out->h = th;
   if (!(out->rgba = (u8 *)calloc((size_t)tw * th, 4))) return 0;
@@ -101,14 +107,14 @@ static int unpack(PDoc *d, const u8 *data, size_t len, int w, int h, int bpc, CS
         for (k = 0; k < nc; k++) sv[k] = sample(row, (long)x * nc + k, bpc);
         if (nkey) {
           int in = 1;
-          for (k = 0; k < nc && in; k++) if ((int)sv[k] < colorkey[k * 2] || (int)sv[k] > colorkey[k * 2 + 1]) in = 0;
+          for (k = 0; k < nc && in; k++) if (dbl_int(sv[k]) < colorkey[k * 2] || dbl_int(sv[k]) > colorkey[k * 2 + 1]) in = 0;
           if (in) px[3] = 0;
         }
         if (uselut) { px[0] = lut[sv[0]][0]; px[1] = lut[sv[0]][1]; px[2] = lut[sv[0]][2]; }
         else if (cs->kind == CS_RGB && bpc >= 8 && dmin[0] == 0 && dmax[0] == 1) { px[0] = (u8)sv[0]; px[1] = (u8)sv[1]; px[2] = (u8)sv[2]; }
         else if (cs->kind == CS_CMYK && bpc >= 8 && dmin[0] == 0 && dmax[0] == 1) {
-          int kk = 255 - (int)sv[3];
-          px[0] = (u8)((255 - (int)sv[0]) * kk / 255); px[1] = (u8)((255 - (int)sv[1]) * kk / 255); px[2] = (u8)((255 - (int)sv[2]) * kk / 255);
+          int kk = 255 - dbl_int(sv[3]);
+          px[0] = (u8)((255 - dbl_int(sv[0])) * kk / 255); px[1] = (u8)((255 - dbl_int(sv[1])) * kk / 255); px[2] = (u8)((255 - dbl_int(sv[2])) * kk / 255);
         } else {
           double v[32], rgb[3];
           for (k = 0; k < nc; k++) v[k] = dmin[k] + sv[k] * (dmax[k] - dmin[k]) / (maxv ? maxv : 1);
@@ -219,7 +225,7 @@ static void blit(Render *r, const Img *im, const Img *mask, int stencil, int smo
   GState *g = GS(r);
   Mat inv;
   double xs[4], ys[4], bx0, by0, bx1, by1;
-  int x0, y0, x1, y1, x, y, k, ga = (int)(g->fa * 255 + 0.5);
+  int x0, y0, x1, y1, x, y, k, ga = dbl_int(g->fa * 255 + 0.5);
   const Clip *c = g->clip;
   const u8 *mrow;
   if (!mat_invert(g->ctm, &inv)) return;
@@ -227,7 +233,7 @@ static void blit(Render *r, const Img *im, const Img *mask, int stencil, int smo
   mat_apply(&g->ctm, 1, 1, &xs[2], &ys[2]); mat_apply(&g->ctm, 0, 1, &xs[3], &ys[3]);
   bx0 = bx1 = xs[0]; by0 = by1 = ys[0];
   for (k = 1; k < 4; k++) { if (xs[k] < bx0) bx0 = xs[k]; if (xs[k] > bx1) bx1 = xs[k]; if (ys[k] < by0) by0 = ys[k]; if (ys[k] > by1) by1 = ys[k]; }
-  x0 = (int)floor(bx0); y0 = (int)floor(by0); x1 = (int)ceil(bx1); y1 = (int)ceil(by1);
+  x0 = dbl_int(floor(bx0)); y0 = dbl_int(floor(by0)); x1 = dbl_int(ceil(bx1)); y1 = dbl_int(ceil(by1));
   if (x0 < c->x0) x0 = c->x0;
   if (y0 < c->y0) y0 = c->y0;
   if (x1 > c->x1) x1 = c->x1;
@@ -248,7 +254,7 @@ static void blit(Render *r, const Img *im, const Img *mask, int stencil, int smo
       if (smooth && im->w > 1 && im->h > 1) {
         /* bilinear between the four samples around the point */
         double ax = fx - 0.5, ay = fy - 0.5, wx, wy, acc[4] = { 0, 0, 0, 0 };
-        int jx = (int)floor(ax), jy = (int)floor(ay), dx, dy;
+        int jx = dbl_int(floor(ax)), jy = dbl_int(floor(ay)), dx, dy;
         wx = ax - jx; wy = ay - jy;
         for (dy = 0; dy < 2; dy++) for (dx = 0; dx < 2; dx++) {
           int sx = jx + dx, sy = jy + dy;
@@ -261,7 +267,7 @@ static void blit(Render *r, const Img *im, const Img *mask, int stencil, int smo
           p = im->rgba + ((long)sy * im->w + sx) * 4;
           acc[0] += p[0] * wgt * p[3]; acc[1] += p[1] * wgt * p[3]; acc[2] += p[2] * wgt * p[3]; acc[3] += p[3] * wgt;
         }
-        a = (int)(acc[3] + 0.5);
+        a = dbl_int(acc[3] + 0.5);
         if (acc[3] > 0) for (k = 0; k < 3; k++) rgb[k] = (u8)(acc[k] / acc[3] + 0.5);
         else rgb[0] = rgb[1] = rgb[2] = 0;
       } else {
@@ -269,7 +275,7 @@ static void blit(Render *r, const Img *im, const Img *mask, int stencil, int smo
         rgb[0] = p[0]; rgb[1] = p[1]; rgb[2] = p[2]; a = p[3];
       }
       if (mask) {
-        int mx = (int)(u * mask->w), my = (int)((1 - v) * mask->h);
+        int mx = dbl_int(u * mask->w), my = dbl_int((1 - v) * mask->h);
         if (mx >= mask->w) mx = mask->w - 1;
         if (my >= mask->h) my = mask->h - 1;
         a = a * mask->rgba[((long)my * mask->w + mx) * 4 + 3] / 255;
@@ -297,20 +303,20 @@ void draw_image(Render *r, PObj *img, PObj *res, PObj *idict, const u8 *idata, s
   GState *g = GS(r);
   memset(&im, 0, sizeof im); memset(&mk, 0, sizeof mk);
   if (!dict) return;
-  w = (int)pobj_num(ikey(d, dict, "Width", idict ? "W" : NULL));
-  h = (int)pobj_num(ikey(d, dict, "Height", idict ? "H" : NULL));
+  w = dbl_int(pobj_num(ikey(d, dict, "Width", idict ? "W" : NULL)));
+  h = dbl_int(pobj_num(ikey(d, dict, "Height", idict ? "H" : NULL)));
   {
     PObj *im_ = ikey(d, dict, "ImageMask", idict ? "IM" : NULL);
     stencil = im_ && im_->type == PO_BOOL && im_->u.b;
   }
-  bpc = stencil ? 1 : (int)pobj_num(ikey(d, dict, "BitsPerComponent", idict ? "BPC" : NULL));
+  bpc = stencil ? 1 : dbl_int(pobj_num(ikey(d, dict, "BitsPerComponent", idict ? "BPC" : NULL)));
   if (w < 1 || h < 1 || w > 30000 || h > 30000) return;
   if (!bpc) bpc = 8;
   /* how big it will be on the device: sizes to unpack it at */
   sw = sqrt(g->ctm.a * g->ctm.a + g->ctm.b * g->ctm.b);
   sh = sqrt(g->ctm.c * g->ctm.c + g->ctm.d * g->ctm.d);
-  tw = sw * 1.25 < w ? (int)ceil(sw * 1.25) : w;
-  th = sh * 1.25 < h ? (int)ceil(sh * 1.25) : h;
+  tw = sw * 1.25 < w ? dbl_int(ceil(sw * 1.25)) : w;
+  th = sh * 1.25 < h ? dbl_int(ceil(sh * 1.25)) : h;
   if (tw < 1) tw = 1;
   if (th < 1) th = 1;
   if ((long)tw * th > 12000000L) { tw = w > 3000 ? 3000 : w; th = (int)((long)h * tw / w); if (th < 1) th = 1; }
@@ -350,7 +356,7 @@ void draw_image(Render *r, PObj *img, PObj *res, PObj *idict, const u8 *idata, s
     dec = ikey(d, dict, "Decode", idict ? "D" : NULL);
     if (dec && dec->type == PO_ARRAY) for (i = 0; i < dec->u.arr.n && i < 64; i++) decode[ndecode++] = pobj_num(pdf_resolve(d, dec->u.arr.v[i]));
     mask = img ? pdf_dget(d, dict, "Mask") : NULL;
-    if (mask && mask->type == PO_ARRAY) for (i = 0; i < mask->u.arr.n && i < 64; i++) colorkey[nkey++] = (int)pobj_num(pdf_resolve(d, mask->u.arr.v[i]));
+    if (mask && mask->type == PO_ARRAY) for (i = 0; i < mask->u.arr.n && i < 64; i++) colorkey[nkey++] = dbl_int(pobj_num(pdf_resolve(d, mask->u.arr.v[i])));
     nkey /= 2;
     ok = unpack(d, data, len, w, h, bpc, cs, ndecode ? decode : NULL, ndecode, stencil, nkey ? colorkey : NULL, nkey, tw, th, &im);
     free(data);

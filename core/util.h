@@ -57,4 +57,40 @@ int    iatan2(i32 y, i32 x);
 u8    *file_read(const char *path, size_t *len);
 int    file_write(const char *path, const void *data, size_t len);
 
+/* a double to an int or a long without undefined behaviour (an out-of-range conversion is, and the
+   68040 and x86 give different answers for it): NaN is 0, anything too big the nearest limit */
+#include <limits.h>
+static inline int dbl_int(double v)
+{
+  if (!(v == v)) return 0;
+  if (v >= 2147483647.0) return INT_MAX;
+  if (v <= -2147483648.0) return INT_MIN;
+  return (int)v;
+}
+static inline long dbl_long(double v)
+{
+  if (!(v == v)) return 0;
+#if LONG_MAX > 2147483647L
+  if (v >= 9.2e18) return LONG_MAX;
+  if (v <= -9.2e18) return LONG_MIN;
+#else
+  if (v >= 2147483647.0) return LONG_MAX;
+  if (v <= -2147483648.0) return LONG_MIN;
+#endif
+  return (long)v;
+}
+
+#ifdef FOLIO_ALLOC_TEST
+/* (the native allocation test, tests/allocfail.c: every allocation counted, and one made to fail) */
+#include <stdlib.h>
+void *fa_malloc(size_t n);
+void *fa_calloc(size_t n, size_t m);
+void *fa_realloc(void *p, size_t n);
+void  fa_free(void *p);
+#define malloc fa_malloc
+#define calloc fa_calloc
+#define realloc fa_realloc
+#define free fa_free
+#endif
+
 #endif

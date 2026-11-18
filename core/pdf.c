@@ -46,7 +46,7 @@ static PObj *pobj_bytes(int type, const char *s, int len)
   PObj *o = pobj_new(type);
   if (!o) return NULL;
   if (!(o->u.str.s = (char *)malloc((size_t)len + 1))) { free(o); return NULL; }
-  if (len) memcpy(o->u.str.s, s, (size_t)len);
+  if (len && s) memcpy(o->u.str.s, s, (size_t)len); else len = 0;   /* (s NULL) */
   o->u.str.s[len] = 0;
   o->u.str.len = len;
   return o;
@@ -244,7 +244,7 @@ int lex_next(Lex *l, Token *t)
       if (ch >= '0' && ch <= '9') {
         digits++;
         if (dot) { scale /= 10; v += (ch - '0') * scale; }
-        else { v = v * 10 + (ch - '0'); if (iv < 100000000000L) iv = iv * 10 + (ch - '0'); else big = 1; }
+        else { v = v * 10 + (ch - '0'); if (iv < 214748364L || (iv == 214748364L && ch <= '7')) iv = iv * 10 + (ch - '0'); else big = 1; }   /* (no overflow with a 32-bit long; the same tokens) */
       } else if (ch == '.' && !dot) dot = 1;
       else break;
       l->p++;
@@ -349,7 +349,12 @@ static PObj *parse_obj(Lex *l, Token *t, int depth, char **kw)
       Token u;
       int ty = lex_next(l, &u);
       if (ty == TK_BRACE_CLOSE || ty == TK_EOF || ty == TK_ERROR) { tok_free(&u); break; }
-      if (ty == TK_KEYWORD) pobj_array_add(o, pobj_bytes(PO_NAME, u.s, u.len)), o->u.arr.v[o->u.arr.n - 1]->type = PO_NAME, o->u.arr.v[o->u.arr.n - 1]->onum = -1;
+      if (ty == TK_KEYWORD) {
+        /* (marked before it is added; out of memory, the previous item was retyped) */
+        PObj *k = pobj_bytes(PO_NAME, u.s ? u.s : "", u.s ? u.len : 0);
+        if (k) k->onum = -1;
+        pobj_array_add(o, k);
+      }
       else pobj_array_add(o, parse_obj(l, &u, depth + 1, NULL));
       tok_free(&u);
     }
@@ -441,8 +446,8 @@ static long stream_length(PDoc *d, size_t start, PObj *dict)
   if (lo && lo->type == PO_REF) {
     /* (an indirect length: never a stream itself, so no loop) */
     PObj *r = pdf_resolve(d, lo);
-    if (pobj_isnum(r)) len = (long)pobj_num(r);
-  } else if (pobj_isnum(lo)) len = (long)pobj_num(lo);
+    if (pobj_isnum(r)) len = dbl_long(pobj_num(r));
+  } else if (pobj_isnum(lo)) len = dbl_long(pobj_num(lo));
   if (len >= 0 && start + (size_t)len <= d->len) {
     size_t e = start + (size_t)len;
     while (e < d->len && is_ws(d->data[e])) e++;
@@ -468,6 +473,7 @@ static PObj *parse_at(PDoc *d, size_t off, int want, int *gotnum, int *gotgen)
   char *kw = NULL;
   int ok;
   if (off >= d->len) return NULL;
+  memset(&b, 0, sizeof b); memset(&c, 0, sizeof c);   /* (freed below even when not read) */
   lex_init(&l, d->data + off, d->len - off, d);
   ok = lex_next(&l, &a) == TK_INT && lex_next(&l, &b) == TK_INT && lex_next(&l, &c) == TK_KEYWORD && !strcmp(c.s, "obj");
   if (ok) { *gotnum = (int)a.i; *gotgen = (int)b.i; }
@@ -591,7 +597,7 @@ double pdf_dnum(PDoc *d, const PObj *dict, const char *key, double def)
 long pdf_dint(PDoc *d, const PObj *dict, const char *key, long def)
 {
   PObj *o = pdf_dget(d, dict, key);
-  return pobj_isnum(o) ? (long)pobj_num(o) : def;
+  return pobj_isnum(o) ? dbl_long(pobj_num(o)) : def;
 }
 const char *pdf_dname(PDoc *d, const PObj *dict, const char *key)
 {
@@ -781,8 +787,8 @@ static PObj *read_xref_table(PDoc *d, size_t off)
       ok = lex_next(&l, &g) == TK_INT && ok;
       ok = lex_next(&l, &f) == TK_KEYWORD && ok;
       if (ok) {
-        if (f.s[0] == 'n' && o.i > 0) xref_set(d, (int)(start + k), 1, o.i, (int)g.i);
-        else if (f.s[0] == 'f') xref_free(d, (int)(start + k));
+        if (f.s[0] == 'n' && o.i > 0) xref_set(d, dbl_int(start + k), 1, o.i, (int)g.i);
+        else if (f.s[0] == 'f') xref_free(d, dbl_int(start + k));
       }
       tok_free(&o); tok_free(&g); tok_free(&f);
       if (!ok) return NULL;
@@ -822,9 +828,9 @@ static PObj *read_xref_stream(PDoc *d, size_t off)
         for (b = 0; b < w[c]; b++) f[c] = (f[c] << 8) | data[pos++];
       }
       if (!w[0]) f[0] = 1;
-      if (f[0] == 1 && f[1] > 0) xref_set(d, (int)(start + k), 1, f[1], (int)f[2]);
-      else if (f[0] == 2) xref_set(d, (int)(start + k), 2, f[1], (int)f[2]);
-      else if (f[0] == 0) xref_free(d, (int)(start + k));
+      if (f[0] == 1 && f[1] > 0) xref_set(d, dbl_int(start + k), 1, f[1], dbl_int(f[2]));
+      else if (f[0] == 2) xref_set(d, dbl_int(start + k), 2, f[1], dbl_int(f[2]));
+      else if (f[0] == 0) xref_free(d, dbl_int(start + k));
     }
   }
   free(data);
@@ -850,7 +856,7 @@ static int read_xrefs(PDoc *d)
       if (pobj_isnum(xs)) { PObj *t2 = read_xref_stream(d, (size_t)pobj_num(xs)); pobj_free(t2); }
     } else tr = read_xref_stream(d, (size_t)off);
     if (!tr) return d->trailer != NULL;
-    off = pobj_isnum(pobj_dict_get(tr, "Prev")) ? (long)pobj_num(pobj_dict_get(tr, "Prev")) : -1;
+    off = pobj_isnum(pobj_dict_get(tr, "Prev")) ? dbl_long(pobj_num(pobj_dict_get(tr, "Prev"))) : -1;
     if (!d->trailer) d->trailer = tr; else pobj_free(tr);
   }
   return d->trailer != NULL;
@@ -879,7 +885,7 @@ static void reconstruct(PDoc *d)
       while (j > 0 && d->data[j - 1] >= '0' && d->data[j - 1] <= '9' && mul < 100000000L) { num += (d->data[j - 1] - '0') * mul; mul *= 10; j--; }
       if (num <= 0 || num > 8000000 || !xref_grow(d, (int)num + 1)) continue;
       d->xref[num].type = 1; d->xref[num].off = (long)j; d->xref[num].gen = (int)gen;
-    } else if (d->data[i] == 't' && !memcmp(d->data + i, "trailer", 7) && i + 7 < d->len) {
+    } else if (d->data[i] == 't' && i + 7 < d->len && !memcmp(d->data + i, "trailer", 7)) {   /* (length first) */
       Lex l;
       char *kw = NULL;
       PObj *t;
@@ -1241,7 +1247,7 @@ void pdf_page_box(PDoc *d, int page, double box[4], int *rotate)
     double x1 = c[2] < box[2] ? c[2] : box[2], y1 = c[3] < box[3] ? c[3] : box[3];
     if (x1 - x0 > 1 && y1 - y0 > 1) { box[0] = x0; box[1] = y0; box[2] = x1; box[3] = y1; }
   }
-  rot = (int)pobj_num(pdf_page_attr(d, p, "Rotate"));
+  rot = dbl_int(pobj_num(pdf_page_attr(d, p, "Rotate")));
   rot %= 360;
   if (rot < 0) rot += 360;
   rot = (rot + 45) / 90 * 90 % 360;
@@ -1406,7 +1412,7 @@ int pdf_dest(PDoc *d, PObj *dest, int *page, double *top)
   {
     PObj *p = dest->u.arr.v[0];
     if (p && p->type == PO_REF) *page = pdf_page_index(d, pdf_resolve(d, p));
-    else if (pobj_isnum(p)) *page = (int)pobj_num(p);
+    else if (pobj_isnum(p)) *page = dbl_int(pobj_num(p));
     if (*page < 0 || *page >= d->npages) { *page = -1; return 0; }
     if (dest->u.arr.n >= 4 && pobj_is_name(dest->u.arr.v[1], "XYZ") && pobj_isnum(dest->u.arr.v[3])) *top = pobj_num(dest->u.arr.v[3]);
     else if (dest->u.arr.n >= 3 && (pobj_is_name(dest->u.arr.v[1], "FitH") || pobj_is_name(dest->u.arr.v[1], "FitBH")) && pobj_isnum(dest->u.arr.v[2])) *top = pobj_num(dest->u.arr.v[2]);
