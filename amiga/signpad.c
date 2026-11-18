@@ -40,9 +40,10 @@ static void pad_draw(struct PadData *d, Object *obj)
 {
   struct RastPort *rp = _rp(obj);
   int s, k = 0, j;
-  SetAPen(rp, 2);                                   /* (white in the Workbench pens) */
-  RectFill(rp, _mleft(obj), _mtop(obj), _mright(obj), _mbottom(obj));
-  SetAPen(rp, 1);
+  /* white as the pages are drawn (pen 2 was taken for white, but on AROS's Workbench it is grey,
+     and so was the theme's white there), the ink in the theme's text pen */
+  draw_rgb_box(rp, _screen(obj), _mleft(obj), _mtop(obj), _mright(obj), _mbottom(obj), 0xFFFFFF);
+  SetAPen(rp, tpen(T_TEXT));
   /* the line to sign on */
   Move(rp, _mleft(obj) + 8, _mbottom(obj) - _mheight(obj) / 4); Draw(rp, _mright(obj) - 8, _mbottom(obj) - _mheight(obj) / 4);
   for (s = 0; s < d->ns; s++) {
@@ -113,7 +114,7 @@ static ULONG pdispatch(__reg("a0") struct IClass *cl, __reg("a2") Object *obj, _
       d->npts[d->ns - 1]++;
       {
         struct RastPort *rp = _rp(obj);
-        SetAPen(rp, 1);
+        SetAPen(rp, tpen(T_TEXT));
         pad_line(rp, obj, &d->pts[(d->n - 2) * 2], &d->pts[(d->n - 1) * 2]);
       }
       return MUI_EventHandlerRC_Eat;

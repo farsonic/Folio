@@ -165,9 +165,11 @@ static struct NewMenu menus[] = {
   I("Redact Area", 0, ID_TOOL0 + TL_REDACT), I("Find Text and Redact...", 0, ID_REDACTTEXT), I("Redact Page", 0, ID_REDACTPAGE),
   I("Redaction Properties...", 0, ID_REDACTPROPS), I("Apply Redactions", 0, ID_REDACTAPPLY), BAR,
   I("Remove Hidden Information...", 0, ID_HIDDEN), I("Sanitize Document...", 0, ID_SANITIZE), BAR,
-  H("Certificates"), S("Sign with a Certificate...", 0, ID_SIGNTOOL), S("Sign Invisibly...", 0, ID_SIGNINVIS),
-  S("Certify with a Visible Signature...", 0, ID_CERTIFYTOOL), S("Certify Invisibly...", 0, ID_CERTIFYINVIS), S("Validate All Signatures...", 0, ID_SIGNATURES),
-  S("Trust a Signer's Certificate...", 0, ID_TRUSTSIGNER), S("Trusted Certificates...", 0, ID_TRUSTED),
+  /* (items, not a submenu: Protect is the last menu, so a submenu would open past the right edge
+     of a 640-pixel screen) */
+  I("Sign with a Certificate...", 0, ID_SIGNTOOL), I("Sign Invisibly...", 0, ID_SIGNINVIS),
+  I("Certify with a Visible Signature...", 0, ID_CERTIFYTOOL), I("Certify Invisibly...", 0, ID_CERTIFYINVIS), I("Validate All Signatures...", 0, ID_SIGNATURES),
+  I("Trust a Signer's Certificate...", 0, ID_TRUSTSIGNER), I("Trusted Certificates...", 0, ID_TRUSTED),
   { NM_END, 0, 0, 0, 0, 0 }
 };
 
@@ -290,6 +292,7 @@ int ask(const char *gadgets, const char *fmt, const char *arg)
     if (m[i] == ' ') sp = i;
     if (i - start >= WRAP && sp > start) { m[sp] = '\n'; start = sp + 1; sp = -1; }
   }
+  LOG("ask: %s", m);
   return (int)MUI_Request(app, win, 0, (STRPTR)"Folio", (STRPTR)tr(gadgets), (STRPTR)"%s", (ULONG)m);
 }
 static void menu_set(ULONG id, ULONG attr, ULONG val)
@@ -348,6 +351,11 @@ ULONG run_modal(Object *w, const ULONG *ends, void (*each)(ULONG id))
   DoMethod(w, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (ULONG)app, 2, MUIM_Application_ReturnID, ID_DLGCANCEL);
   set(win, MUIA_Window_Sleep, TRUE);
   set(w, MUIA_Window_Open, TRUE);
+  if (qlog) {
+    char *t = (char *)xget(w, MUIA_Window_Title);
+    if (!xget(w, MUIA_Window_Open)) LOG("dialog '%s' could not open", t ? t : "?");
+    else LOG("dialog '%s' %ldx%ld", t ? t : "?", (long)xget(w, MUIA_Window_Width), (long)xget(w, MUIA_Window_Height));
+  }
   while (!done) {
     id = DoMethod(app, MUIM_Application_NewInput, (ULONG)&sigs);
     if (id == ID_DLGCANCEL || id == MUIV_Application_ReturnID_Quit) { id = ID_DLGCANCEL; break; }
@@ -371,7 +379,7 @@ Object *dialog_window(const char *t, Object *contents, const char *oklabel)
       Child, HGroup, Child, HSpace(0), Child, ok = QButton(tr(oklabel ? oklabel : "OK")), Child, cancel = QButton(tr("Cancel")), End,
     End,
   End;
-  if (!w) { if (contents) MUI_DisposeObject(contents); return NULL; }
+  if (!w) { LOG("dialog '%s' could not be made", t); if (contents) MUI_DisposeObject(contents); return NULL; }
   DoMethod(ok, MUIM_Notify, MUIA_Pressed, FALSE, (ULONG)app, 2, MUIM_Application_ReturnID, ID_DLGOK);
   DoMethod(cancel, MUIM_Notify, MUIA_Pressed, FALSE, (ULONG)app, 2, MUIM_Application_ReturnID, ID_DLGCANCEL);
   return w;
@@ -419,8 +427,10 @@ LONG pick_color(const char *t, ULONG start)
   LONG c = -1;
   rgb[0] = ((start >> 16) & 255) * 0x01010101UL; rgb[1] = ((start >> 8) & 255) * 0x01010101UL; rgb[2] = (start & 255) * 0x01010101UL;
   sprintf(buf, "%06lX", (unsigned long)(start & 0xFFFFFF));
+  /* (Coloradjust.mui is an external class on Zune: without it, only the hex field) */
+  ca = ColoradjustObject, MUIA_Coloradjust_RGB, (ULONG)rgb, End;
   w = dialog_window(t, VGroup,
-        Child, ca = ColoradjustObject, MUIA_Coloradjust_RGB, (ULONG)rgb, End,
+        Child, ca ? ca : HSpace(0),
         Child, HGroup, Child, QLabel(tr("Hex #"), MUIO_Label_SingleFrame),
           Child, hex = StringObject, StringFrame, MUIA_String_Contents, (ULONG)buf, MUIA_String_MaxLen, 8, MUIA_String_Accept, (ULONG)"0123456789abcdefABCDEF", MUIA_CycleChain, 1, End,
           Child, HSpace(0), End,
@@ -433,12 +443,14 @@ LONG pick_color(const char *t, ULONG start)
     if (id == ID_DLGCHANGE) {
       ULONG v = strtoul((const char *)xget(hex, MUIA_String_Contents), NULL, 16);
       rgb[0] = ((v >> 16) & 255) * 0x01010101UL; rgb[1] = ((v >> 8) & 255) * 0x01010101UL; rgb[2] = (v & 255) * 0x01010101UL;
-      set(ca, MUIA_Coloradjust_RGB, (ULONG)rgb);
+      if (ca) set(ca, MUIA_Coloradjust_RGB, (ULONG)rgb);
+      else { c = (LONG)(v & 0xFFFFFF); break; }
       continue;
     }
     if (id == ID_DLGOK) {
-      ULONG *p = (ULONG *)xget(ca, MUIA_Coloradjust_RGB);
+      ULONG *p = ca ? (ULONG *)xget(ca, MUIA_Coloradjust_RGB) : NULL;
       if (p) c = (LONG)(((p[0] >> 24) << 16) | ((p[1] >> 24) << 8) | (p[2] >> 24));
+      else if (!ca) c = (LONG)(strtoul((const char *)xget(hex, MUIA_String_Contents), NULL, 16) & 0xFFFFFF);
     }
     break;
   }
@@ -904,8 +916,9 @@ static void command(ULONG id)
     if (!want_doc()) return;
     v = cur_view();
     if (v->mode == VM_ORGANIZE) set_mode(v, VM_READ);
-    /* the comment tools open the comment bar, as PDFCraft does */
-    if (((t >= TL_NOTE && t <= TL_LASTCOMMENT) || t >= TL_FTEXT) && !comment_mode) { comment_mode = 1; refresh_all(); }
+    /* the comment tools and Fill & Sign's open the comment bar, as PDFCraft does (not Edit Text &
+       Images or the certificate tools after them: they had opened it too) */
+    if (((t >= TL_NOTE && t <= TL_LASTCOMMENT) || (t >= TL_FTEXT && t <= TL_INITIALS)) && !comment_mode) { comment_mode = 1; refresh_all(); }
     if (t == TL_STAMP && !opt.stamp[0]) doc_command(ID_STAMPPICK);
     set_tool(t);
     return;
@@ -1325,6 +1338,8 @@ int main(int argc, char **argv)
   char start[8][512];
   int nstart = 0;
   char arg_screen[64] = "";
+  ULONG arg_cmd[8];
+  int ncmd = 0, arg_lang = -1;
   if (!(IntuitionBase = (struct IntuitionBase *)OpenLibrary((STRPTR)"intuition.library", 39)) ||
       !(GfxBase = (struct GfxBase *)OpenLibrary((STRPTR)"graphics.library", 39)) ||
       !(LayersBase = OpenLibrary((STRPTR)"layers.library", 39)) ||
@@ -1336,6 +1351,10 @@ int main(int argc, char **argv)
   for (i = 1; i < argc; i++) {
     if (!strncmp(argv[i], "DEBUG=", 6)) qlog = fopen(argv[i] + 6, "w");
     else if (!Strnicmp((STRPTR)argv[i], (STRPTR)"PUBSCREEN=", 10)) strncpy(arg_screen, argv[i] + 10, sizeof arg_screen - 1);
+    /* for testing: CMD=<id> runs a command (ids.h) once the documents are open, LANG=<code> (de, fr...)
+       sets the interface's language for this run only */
+    else if (!Strnicmp((STRPTR)argv[i], (STRPTR)"CMD=", 4)) { if (ncmd < 8) arg_cmd[ncmd++] = strtoul(argv[i] + 4, NULL, 10); }
+    else if (!Strnicmp((STRPTR)argv[i], (STRPTR)"LANG=", 5)) arg_lang = lang_by_code(argv[i] + 5);
     else if (nstart < 8) { strncpy(start[nstart], argv[i], 511); start[nstart++][511] = 0; }
   }
   if (argc == 0 && _WBenchMsg) {
@@ -1353,7 +1372,7 @@ int main(int argc, char **argv)
     if (sc) UnlockPubScreen(NULL, sc); else pub_screen[0] = 0;
   }
   LOG("Folio starting, cybergraphics %p", (void *)CyberGfxBase);
-  lang_set(pref_lang >= 0 ? pref_lang : lang_system());
+  lang_set(arg_lang >= 0 ? arg_lang : pref_lang >= 0 ? pref_lang : lang_system());
   theme_set_dark(pref_dark);
   splash_open(pub_screen, "Folio 0.1.2");
   splash_step(5, tr("Adding Folio's fonts drawer"));
@@ -1383,6 +1402,10 @@ int main(int argc, char **argv)
   splash_close();
   refresh_all();
   if (!theme_fonts_ok()) ask("OK", "%s", tr("Folio couldn't open its own screen fonts, so text is drawn in the\nsystem font. Keep the Fonts drawer next to Folio."));
+  for (i = 0; i < ncmd; i++) {
+    LOG("CMD=%lu", (unsigned long)arg_cmd[i]);
+    command(arg_cmd[i]);
+  }
   for (;;) {
     ULONG id = DoMethod(app, MUIM_Application_NewInput, (ULONG)&sigs);
     if (id) LOG("id %lu", (unsigned long)id);

@@ -30,6 +30,12 @@ static struct ColorMap *cube_cm;
 static LONG cube[216];
 static int ncube, cubelv;
 static UBYTE *chunky; static LONG chunky_cap;
+/* the pens of boxes filled in one colour on a screen with a palette, kept until pens_free: a pen
+   given back at once could be taken again for another colour (by the cube or another program), and
+   the box then changed colour (the grey around the pages turned dark blue on an 8-bit screen) */
+#define NBOXPENS 16
+static struct ColorMap *box_cm;
+static ULONG box_rgb[NBOXPENS]; static LONG box_pen[NBOXPENS]; static int nbox;
 static const UBYTE bayer[4][4] = { { 0, 8, 2, 10 }, { 12, 4, 14, 6 }, { 3, 11, 1, 9 }, { 15, 7, 13, 5 } };
 
 /* (see easel.h) a screen deeper than 8 bits with cybergraphics to write to it */
@@ -60,6 +66,8 @@ void pens_free(void)
   int i;
   for (i = 0; i < ncube; i++) ReleasePen(cube_cm, cube[i]);
   ncube = 0;
+  for (i = 0; i < nbox; i++) ReleasePen(box_cm, box_pen[i]);
+  nbox = 0;
   if (chunky) { FreeVec(chunky); chunky = NULL; chunky_cap = 0; }
 }
 void draw_rgb(struct RastPort *rp, struct Screen *scr, const UBYTE *rgb, LONG mod, LONG x, LONG y, LONG w, LONG h)
@@ -100,10 +108,30 @@ void draw_rgb_box(struct RastPort *rp, struct Screen *scr, LONG x0, LONG y0, LON
     return;
   }
   {
-    LONG pen = rgb_pen(scr, c);
+    LONG pen = -1;
+    int i;
+    c &= 0xFFFFFF;
+    if (box_cm != scr->ViewPort.ColorMap) { for (i = 0; i < nbox; i++) ReleasePen(box_cm, box_pen[i]); nbox = 0; box_cm = scr->ViewPort.ColorMap; }
+    for (i = 0; i < nbox; i++) if (box_rgb[i] == c) { pen = box_pen[i]; break; }
+    if (pen < 0) {
+      pen = rgb_pen(scr, c);
+      if (pen < 0) {
+        /* no pen to be had (the palette full): the nearest of the cube's (pen -1 drew in pen 255,
+           whatever colour that had) */
+        int q[3], k;
+        LOG("box: no pen for %06lX", (unsigned long)c);
+        get_cube(scr);
+        for (k = 0; k < 3; k++) q[k] = (int)(((c >> (16 - 8 * k)) & 255) * (cubelv - 1) + 127) / 255;
+        SetAPen(rp, cube[(q[0] * cubelv + q[1]) * cubelv + q[2]]);
+        RectFill(rp, x0, y0, x1, y1);
+        return;
+      }
+      LOG("box: %06lX pen %ld", (unsigned long)c, (long)pen);
+      if (nbox < NBOXPENS) { box_rgb[nbox] = c; box_pen[nbox++] = pen; }
+      else { SetAPen(rp, pen); RectFill(rp, x0, y0, x1, y1); ReleasePen(box_cm, pen); return; }
+    }
     SetAPen(rp, pen);
     RectFill(rp, x0, y0, x1, y1);
-    ReleasePen(scr->ViewPort.ColorMap, pen);
   }
 }
 

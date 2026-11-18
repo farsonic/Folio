@@ -176,15 +176,22 @@ static int dlist(const char *title, char **items, int n, int cur, const char *al
   Object *lv, *lst, *w, *ab = NULL, *grp;
   int i, r = -1;
   ULONG id;
+  static char wide[48];
+  size_t m = 16;
+  /* as wide as the longest item (up to 40 characters; the list was 130 pixels wide on Zune,
+     cutting every line) and ten lines high, both given when it is made (MUI takes them only then) */
+  for (i = 0; i < n; i++) if (strlen(items[i]) > m) m = strlen(items[i]);
+  if (m > 40) m = 40;
+  memset(wide, 'M', m + 3); wide[m + 3] = 0;   /* (M: the list's font may be wider than the window's; 3 more for the scroller) */
   grp = VGroup,
     Child, lv = ListviewObject, MUIA_Listview_List, lst = ListObject, InputListFrame, MUIA_List_ConstructHook, MUIV_List_ConstructHook_String,
-           MUIA_List_DestructHook, MUIV_List_DestructHook_String, End, MUIA_CycleChain, 1, End,
+           MUIA_List_DestructHook, MUIV_List_DestructHook_String, End, MUIA_CycleChain, 1,
+           MUIA_FixWidthTxt, (ULONG)wide, MUIA_FixHeightTxt, (ULONG)"\n\n\n\n\n\n\n\n\n\n", End,
     Child, HGroup, Child, HSpace(0), Child, ab = alt_label ? QButton(tr(alt_label)) : HSpace(0), End,
   End;
   if (!grp) return -1;
   for (i = 0; i < n; i++) DoMethod(lst, MUIM_List_InsertSingle, (ULONG)items[i], MUIV_List_Insert_Bottom);
   if (cur >= 0 && cur < n) set(lst, MUIA_List_Active, cur);
-  set(lv, MUIA_FixHeightTxt, (ULONG)"\n\n\n\n\n\n\n\n\n\n");
   if (!(w = dialog_window(title, grp, "OK"))) return -1;
   DoMethod(lv, MUIM_Notify, MUIA_Listview_DoubleClick, TRUE, (ULONG)app, 2, MUIM_Application_ReturnID, ID_DLGOK);
   if (alt_label && ab) DoMethod(ab, MUIM_Notify, MUIA_Pressed, FALSE, (ULONG)app, 2, MUIM_Application_ReturnID, ID_DLGCHANGE);
@@ -205,19 +212,39 @@ static int is_utf8(const char *s)
   }
   return 1;
 }
-/* text to read: UTF-8 (from the document or the core), or Latin-1 (the interface's translated words) */
+/* text to read: UTF-8 (from the document or the core), or Latin-1 (the interface's translated words).
+   Shown as a read-only list of lines, wrapped here at DSHOW_WRAP characters: a Floattext object
+   would wrap them itself, but Floattext.mui is an external class on Zune and wasn't there in the
+   emulator check, so the dialog never opened */
+#define DSHOW_WRAP 44
 static void dshow(const char *title, const char *utf8)
 {
   static const ULONG ends[] = { ID_DLGOK, 0 };
   size_t n = utf8 ? strlen(utf8) : 0;
-  char *lat = (char *)malloc(n * 3 + 4);
-  Object *w;
+  char *lat = (char *)malloc(n * 3 + 4), *p, line[DSHOW_WRAP + 2];
+  Object *w, *lst;
   if (!lat) return;
   if (utf8 && !is_utf8(utf8)) memcpy(lat, utf8, n + 1);
   else utf8_to_latin1(utf8 ? utf8 : "", n, lat, n * 3 + 4);
-  w = dialog_window(title, ListviewObject, MUIA_Listview_Input, FALSE, MUIA_Listview_List, FloattextObject, ReadListFrame,
-                    MUIA_Floattext_Text, (ULONG)lat, End, MUIA_FixWidthTxt, (ULONG)"MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", MUIA_FixHeightTxt, (ULONG)"\n\n\n\n\n\n\n\n\n\n\n\n", End, "OK");
-  if (w) { run_modal(w, ends, NULL); MUI_DisposeObject(w); }
+  w = dialog_window(title, ListviewObject, MUIA_Listview_Input, FALSE, MUIA_Listview_List, lst = ListObject, ReadListFrame,
+                    MUIA_List_ConstructHook, MUIV_List_ConstructHook_String, MUIA_List_DestructHook, MUIV_List_DestructHook_String, End,
+                    MUIA_FixWidthTxt, (ULONG)"MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", MUIA_FixHeightTxt, (ULONG)"\n\n\n\n\n\n\n\n\n\n\n\n", End, "OK");
+  if (!w) { free(lat); return; }
+  set(lst, MUIA_List_Quiet, TRUE);
+  for (p = lat; ; ) {
+    /* the next line: up to a newline, or broken at the last space within DSHOW_WRAP characters */
+    size_t k = 0, sp = 0;
+    while (p[k] && p[k] != '\n' && k < DSHOW_WRAP) { if (p[k] == ' ') sp = k; k++; }
+    if (p[k] && p[k] != '\n' && sp > 0) k = sp;
+    memcpy(line, p, k); line[k] = 0;
+    DoMethod(lst, MUIM_List_InsertSingle, (ULONG)line, MUIV_List_Insert_Bottom);
+    p += k;
+    if (*p == '\n' || *p == ' ') p++;
+    if (!*p) break;
+  }
+  set(lst, MUIA_List_Quiet, FALSE);
+  run_modal(w, ends, NULL);
+  MUI_DisposeObject(w);
   free(lat);
 }
 /* "3-5" (or "all", or empty) as a range of pages, 0-based; 0 if it can't be read */
@@ -278,11 +305,12 @@ static TextPage *get_text(void *ud, int p) { return page_text((DocView *)ud, p);
 static int pick_option(FField *f, int cur)
 {
   char **it = (char **)calloc((size_t)(f->nopts + 1), sizeof(char *));
+  static char none[1];   /* (an option's words when there was no memory for them) */
   int i, r;
   if (!it) return -1;
-  for (i = 0; i < f->nopts; i++) { it[i] = (char *)malloc(strlen(f->opts[i]) * 3 + 4); if (it[i]) to_latin1(f->opts[i], it[i], strlen(f->opts[i]) * 3 + 4); else it[i] = (char *)""; }
+  for (i = 0; i < f->nopts; i++) { it[i] = (char *)malloc(strlen(f->opts[i]) * 3 + 4); if (it[i]) to_latin1(f->opts[i], it[i], strlen(f->opts[i]) * 3 + 4); else it[i] = none; }
   r = dlist(f->name, it, f->nopts, cur, NULL, NULL);
-  for (i = 0; i < f->nopts; i++) if (it[i][0] || f->opts[i][0]) free(it[i]);
+  for (i = 0; i < f->nopts; i++) if (it[i] != none) free(it[i]);
   free(it);
   return r;
 }
@@ -619,7 +647,7 @@ static void header_footer(DocView *v, int bates)
   } else {
     static const char *const labels[6] = { "Header left:", "Header centre:", "Header right:", "Footer left:", "Footer centre:", "Footer right:" };
     for (i = 0; i < 6; i++) { df[n].label = labels[i]; df[n].kind = DF_STR; df[n].buf = lat[i]; df[n].cap = 200; n++; }
-    df[n].label = "Tokens:"; df[n].kind = DF_INFO; df[n].buf = (char *)"<<page>> <<pages>> <<label>> <<date>>"; n++;
+    df[n].label = "Tokens:"; df[n].kind = DF_INFO; df[n].buf = (char *)"<<page>> <<pages>>\n<<label>> <<date>>"; n++;   /* (two lines: one was cut off) */
   }
   df[n].label = "Text size:"; df[n].kind = DF_STR; df[n].buf = size; df[n].cap = sizeof size; n++;
   df[n].label = "Pages (e.g. 2-5, or all):"; df[n].kind = DF_STR; df[n].buf = range; df[n].cap = sizeof range; n++;

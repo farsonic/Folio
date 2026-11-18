@@ -14,7 +14,7 @@
 150 dpi
 <<bates>>
 <<page>> / <<pages>>
-<<page>> <<pages>> <<label>> <<date>>
+<<page>> <<pages>>\n<<label>> <<date>>
 AES-128
 AES-256
 Amiga User

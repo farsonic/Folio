@@ -309,17 +309,17 @@ static const ToolDef tooldefs[] = {
   { ID_GROUP0 + 0, IC_F_TEXTBOX, "Edit a PDF", "Add text, pictures, links, headers and footers, watermarks, backgrounds, Bates numbers and attachments." },
   { ID_GROUP0 + 2, IC_F_INK, "Fill & Sign", "Type into a form without fields, tick, cross, date and sign." },
   { ID_GROUP0 + 3, IC_F_RECT, "Prepare a Form", "Add form fields, find them, set their properties and tab order, clear, flatten, import and export data." },
-  { ID_GROUP0 + 4, IC_F_PROPS, "Protect a PDF", "Password protection with permissions, hidden information, security." },
+  { ID_GROUP0 + 4, IC_LOCKL, "Protect a PDF", "Password protection with permissions, hidden information, security." },
   { ID_GROUP0 + 5, IC_F_DELETE, "Redact a PDF", "Mark areas, pages or text found, then remove what is under them for good." },
-  { ID_GROUP0 + 6, IC_F_EXTRACT, "Compress a PDF", "Make the file smaller: pictures at a lower resolution, streams compressed, objects packed." },
+  { ID_GROUP0 + 6, IC_PICSIZE, "Compress a PDF", "Make the file smaller: pictures at a lower resolution, streams compressed, objects packed." },
   { ID_GROUP0 + 1, IC_F_BLANK, "Create a PDF", "A blank document, or one from pictures, a text file or the clipboard." },
   { ID_GROUP0 + 11, IC_F_ORGANIZE, "More Page Tools", "Replace, split, duplicate, reverse and crop pages; page boxes and labels." },
   { ID_STAMPPICK, IC_F_NOTE, "Add a Stamp", "Approved, Draft, Confidential and other stamps, or your own text." },
   { ID_GROUP0 + 7, IC_F_LINE, "Measure", "Distances, perimeters and areas at a drawing scale." },
-  { ID_GROUP0 + 8, IC_F_PROPS, "Accessibility", "Tag the document, check it, reading options and alternate text." },
-  { ID_GROUP0 + 9, IC_F_EXPORT, "Print Production", "Hairlines, grey, printer's marks and page boxes." },
+  { ID_GROUP0 + 8, IC_ALTTEXT, "Accessibility", "Tag the document, check it, reading options and alternate text." },
+  { ID_GROUP0 + 9, IC_PRINT, "Print Production", "Hairlines, grey, printer's marks and page boxes." },
   { ID_GROUP0 + 12, IC_F_FIND, "Compare, Sign, Standards", "Compare two versions, sign with a certificate and check signatures, save as PDF/A." },
-  { ID_GROUP0 + 13, IC_F_EXPORT, "Scan & OCR", "Recognise the text of scanned pages, straighten and clean scans, make them smaller." },
+  { ID_GROUP0 + 13, IC_PICTURE, "Scan & OCR", "Recognise the text of scanned pages, straighten and clean scans, make them smaller." },
 };
 #define NTOOLDEFS (int)(sizeof tooldefs / sizeof tooldefs[0])
 typedef struct { int page, index, kind; char who[48], date[24], text[160]; } CRow;
@@ -329,9 +329,16 @@ struct PData {
   CRow *rows; int nrows, caprows;
 };
 extern int comment_mode;
-static LONG trow(void) { return fh() + 12; }
-static LONG crow(void) { return fh() * 3 + 12; }
 #define PHEAD (fh() + 12)
+/* a tool's row: shorter when the pane is too low for every tool (on a 640 x 480 screen the last
+   seven were cut off) */
+static LONG trow_in(Object *obj)
+{
+  LONG h = fh() + 12, avail = _mbottom(obj) - (_mtop(obj) + PHEAD) - 2;
+  if (NTOOLDEFS * h > avail) { h = avail / NTOOLDEFS; if (h < fh() + 2) h = fh() + 2; }
+  return h;
+}
+static LONG crow(void) { return fh() * 3 + 12; }
 static void pane_collect(struct PData *d)
 {
   DocView *v = cur_view();
@@ -391,13 +398,14 @@ static void pane_draw(struct PData *d, Object *obj)
   Move(rp, x0, top - 1); Draw(rp, x1, top - 1);
   if (!comment_mode) {
     theme_text(rp, theme_bold(), x0 + 8, _mtop(obj) + 6, "Tools", tpen(T_TEXT));
+    LONG th = trow_in(obj), is = th - 2 < 16 ? th - 2 : 16;
     for (i = 0; i < NTOOLDEFS; i++) {
-      LONG y = top + 2 + i * trow();
+      LONG y = top + 2 + i * th;
       ULONG st = strip_state(tooldefs[i].id);
-      if (y + trow() > _mbottom(obj)) break;
-      if (i == d->hot && !(st & SS_DISABLED)) theme_fill(rp, x0 + 2, y, x1 - 2, y + trow() - 2, tpen(T_HOVER));
-      theme_icon(rp, tooldefs[i].icon, x0 + 8, y + (trow() - 16) / 2 - 1, 16, (st & SS_DISABLED) != 0);
-      text_fit(rp, theme_font(), x0 + 30, y + (trow() - fh()) / 2 - 1, tr(tooldefs[i].name), x1 - x0 - 34, tpen(st & SS_DISABLED ? T_DISABLED : T_TEXT));
+      if (y + th > _mbottom(obj)) break;
+      if (i == d->hot && !(st & SS_DISABLED)) theme_fill(rp, x0 + 2, y, x1 - 2, y + th - 2, tpen(T_HOVER));
+      theme_icon(rp, tooldefs[i].icon, x0 + 8 + (16 - is) / 2, y + (th - is) / 2 - 1, is, (st & SS_DISABLED) != 0);
+      text_fit(rp, theme_font(), x0 + 30, y + (th - fh()) / 2 - 1, tr(tooldefs[i].name), x1 - x0 - 34, tpen(st & SS_DISABLED ? T_DISABLED : T_TEXT));
     }
     return;
   }
@@ -428,7 +436,7 @@ static int pane_hit(struct PData *d, Object *obj, LONG mx, LONG my)
 {
   LONG top = _mtop(obj) + PHEAD;
   if (!inside(obj, mx, my) || my < top) return -1;
-  if (!comment_mode) { int i = (int)((my - top - 2) / trow()); return i >= 0 && i < NTOOLDEFS ? i : -1; }
+  if (!comment_mode) { int i = (int)((my - top - 2) / trow_in(obj)); return i >= 0 && i < NTOOLDEFS ? i : -1; }
   { int i = d->first + (int)((my - top - 2) / crow()); return i >= 0 && i < d->nrows ? i : -1; }
 }
 static ULONG panedispatch(__reg("a0") struct IClass *cl, __reg("a2") Object *obj, __reg("a1") Msg msg)
