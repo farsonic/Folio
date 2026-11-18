@@ -1252,3 +1252,68 @@ done:
   free(t); free(a); free(su); free(k); free(pr); free(cd); free(md); free(cr);
   return ok;
 }
+
+/* ------------------------------------------------------------------ (round 2) drawn signatures */
+int ink_parse(const char *s, double *pts, int *npts, int maxpts, int maxstrokes)
+{
+  int ns = 0, np = 0;
+  if (!s) return 0;
+  while (*s && ns < maxstrokes) {
+    int n = 0;
+    while (*s && *s != ';' && np < maxpts) {
+      char *e;
+      double x = strtod(s, &e), y;
+      if (e == s || *e != ',') break;
+      s = e + 1;
+      y = strtod(s, &e);
+      if (e == s) break;
+      s = e;
+      pts[np * 2] = x / 1000; pts[np * 2 + 1] = y / 1000; np++; n++;
+      while (*s == ' ') s++;
+    }
+    while (*s && *s != ';') s++;
+    if (*s == ';') s++;
+    if (n) npts[ns++] = n;
+  }
+  return ns;
+}
+int ink_format(const double *pts, const int *npts, int nstrokes, char *out, int cap)
+{
+  int i, k = 0, o = 0;
+  out[0] = 0;
+  for (i = 0; i < nstrokes; i++) {
+    int j;
+    for (j = 0; j < npts[i]; j++, k++) {
+      char t[24];
+      int l = snprintf(t, sizeof t, "%s%d,%d", j ? " " : i ? ";" : "", (int)(pts[k * 2] * 1000 + 0.5), (int)(pts[k * 2 + 1] * 1000 + 0.5));
+      if (o + l + 1 >= cap) return 0;
+      memcpy(out + o, t, (size_t)l + 1); o += l;
+    }
+  }
+  return 1;
+}
+int annot_ink_fit(PDoc *d, int page, const double *rect, const double *pts, const int *npts, int nstrokes, double width, u32 color, const char *author)
+{
+  double minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9, sc, ox, oy, *p;
+  int i, n = 0, r;
+  for (i = 0; i < nstrokes; i++) n += npts[i];
+  if (n < 1) return 0;
+  for (i = 0; i < n; i++) {
+    if (pts[i * 2] < minx) minx = pts[i * 2];
+    if (pts[i * 2] > maxx) maxx = pts[i * 2];
+    if (pts[i * 2 + 1] < miny) miny = pts[i * 2 + 1];
+    if (pts[i * 2 + 1] > maxy) maxy = pts[i * 2 + 1];
+  }
+  if (maxx - minx < 1e-6) maxx = minx + 1e-6;
+  if (maxy - miny < 1e-6) maxy = miny + 1e-6;
+  /* the drawing fitted into the box, its shape kept, centred; y turned up */
+  sc = (rect[2] - rect[0]) / (maxx - minx);
+  if ((rect[3] - rect[1]) / (maxy - miny) < sc) sc = (rect[3] - rect[1]) / (maxy - miny);
+  ox = (rect[0] + rect[2]) / 2 - (minx + maxx) / 2 * sc;
+  oy = (rect[1] + rect[3]) / 2 + (miny + maxy) / 2 * sc;
+  if (!(p = (double *)malloc(sizeof(double) * 2 * (size_t)n))) return 0;
+  for (i = 0; i < n; i++) { p[i * 2] = ox + pts[i * 2] * sc; p[i * 2 + 1] = oy - pts[i * 2 + 1] * sc; }
+  r = annot_ink(d, page, p, npts, nstrokes, width, color, author);
+  free(p);
+  return r;
+}

@@ -13,6 +13,8 @@
 #include "redact.h"
 #include "crypto.h"
 #include "pki.h"
+#include "font.h"
+#include "filters.h"
 
 /* ------------------------------------------------------------------ compare */
 typedef struct { char *s; int page; u32 h; double box[4]; } Line;
@@ -222,7 +224,8 @@ int a11y_check(PDoc *d, ReviewText get, void *ud, A11yItem **out)
     for (i = 0; i < fonts->u.dict.n; i++) {
       PObj *f = pdf_resolve(d, fonts->u.dict.v[i]), *fd;
       if (!f || f->type != PO_DICT) continue;
-      if (pobj_is_name(pdf_dget(d, f, "Subtype"), "Type0")) { PObj *df = pdf_dget(d, f, "DescendantFonts"); f = df && df->type == PO_ARRAY && df->u.arr.n ? pdf_resolve(d, df->u.arr.v[0]) : f; }
+      int t0 = pobj_is_name(pdf_dget(d, f, "Subtype"), "Type0");
+      if (t0) { PObj *df = pdf_dget(d, f, "DescendantFonts"); f = df && df->type == PO_ARRAY && df->u.arr.n ? pdf_resolve(d, df->u.arr.v[0]) : f; }
       fd = pdf_dget(d, f, "FontDescriptor");
       if (pobj_is_name(pdf_dget(d, f, "Subtype"), "Type3")) continue;
       if (!fd || !(pdf_dget(d, fd, "FontFile") || pdf_dget(d, fd, "FontFile2") || pdf_dget(d, fd, "FontFile3"))) unemb++;
@@ -566,6 +569,65 @@ static void problem(char *out, int cap, const char *s)
   size_t l = strlen(out);
   if ((int)(l + strlen(s) + 2) < cap) { strcat(out, s); strcat(out, "\n"); }
 }
+/* (round 2) a font that isn't embedded given the TrueType program Folio draws it with (Liberation,
+   Carlito or Caladea, metric-compatible with Helvetica/Arial, Times, Courier, Calibri and Cambria):
+   Subtype TrueType, WinAnsi (unless it had an encoding), widths from the program, a descriptor */
+static int embed_font(PDoc *d, PObj *f)
+{
+  PdfFont *pf;
+  u8 *data;
+  size_t len;
+  PFont *prog;
+  char err[80];
+  PObj *fd, *ws, *st;
+  int c, num, flags;
+  double m[6];
+  if (!(pf = font_load(d, f))) return 0;
+  if (pf->kind != PFT_SIMPLE || !(data = font_subst_data(pf, &len))) { font_free(pf); return 0; }
+  if (!(prog = pf_load(data, len, err, sizeof err))) { free(data); font_free(pf); return 0; }
+  pf_font_matrix(prog, m);
+  if (!(ws = pobj_new(PO_ARRAY))) { pf_free(prog); free(data); font_free(pf); return 0; }
+  for (c = 32; c < 256; c++) {
+    int gid = pf->uni[c] ? pf_cmap(prog, 3, 1, pf->uni[c]) : -1;
+    pobj_array_add(ws, pobj_int(gid > 0 ? (long)(pf_glyph_advance(prog, gid) * m[0] * 1000 + 0.5) : 0));
+  }
+  pobj_dict_set(f, "FirstChar", pobj_int(32));
+  pobj_dict_set(f, "LastChar", pobj_int(255));
+  pobj_dict_set(f, "Widths", ws);
+  if (!pdf_dget(d, f, "Encoding")) pobj_dict_set(f, "Encoding", pobj_name("WinAnsiEncoding"));
+  pobj_dict_set(f, "Subtype", pobj_name("TrueType"));
+  if ((st = pobj_new(PO_DICT))) pobj_dict_set(st, "Length1", pobj_int((long)len));
+  {
+    size_t zl;
+    u8 *z = flt_deflate(data, len, 6, &zl);
+    if (z && st) { pobj_dict_set(st, "Filter", pobj_name("FlateDecode")); num = om_stream(d, st, z, zl); }
+    else num = om_stream(d, st, data, len);
+    free(z);
+  }
+  free(data);
+  fd = pdf_dget(d, f, "FontDescriptor");
+  if (!fd || fd->type != PO_DICT) {
+    double bb[4] = { -200, -300, 1200, 950 };
+    const char *bn = pdf_dname(d, f, "BaseFont");
+    if (!(fd = pobj_new(PO_DICT))) { pf_free(prog); font_free(pf); return 0; }
+    pobj_dict_set(fd, "Type", pobj_name("FontDescriptor"));
+    pobj_dict_set(fd, "FontName", pobj_name(bn ? bn : "Font"));
+    pobj_dict_set(fd, "FontBBox", om_arr(bb, 4));
+    pobj_dict_set(fd, "ItalicAngle", pobj_int(pf->italic ? -12 : 0));
+    pobj_dict_set(fd, "Ascent", pobj_int(905));
+    pobj_dict_set(fd, "Descent", pobj_int(-212));
+    pobj_dict_set(fd, "CapHeight", pobj_int(716));
+    pobj_dict_set(fd, "StemV", pobj_int(pf->bold ? 140 : 80));
+    pobj_dict_set(f, "FontDescriptor", om_ref(pdf_new_object(d, fd)));
+  }
+  flags = 32 | (pf->fixed ? 1 : 0) | (pf->serif ? 2 : 0) | (pf->italic ? 64 : 0);
+  pobj_dict_set(fd, "Flags", pobj_int(flags));
+  pobj_dict_del(fd, "FontFile"); pobj_dict_del(fd, "FontFile3");
+  pobj_dict_set(fd, "FontFile2", om_ref(num));
+  pf_free(prog);
+  font_free(pf);
+  return num != 0;
+}
 int pdfa_convert(PDoc *d, char *problems, int cap)
 {
   PObj *root = root_of(d), *md, *oi, *arr, *icc;
@@ -629,9 +691,11 @@ int pdfa_convert(PDoc *d, char *problems, int cap)
     if (fonts && fonts->type == PO_DICT) for (i = 0; i < fonts->u.dict.n; i++) {
       PObj *f = pdf_resolve(d, fonts->u.dict.v[i]), *fd;
       if (!f || f->type != PO_DICT || pobj_is_name(pdf_dget(d, f, "Subtype"), "Type3")) continue;
-      if (pobj_is_name(pdf_dget(d, f, "Subtype"), "Type0")) { PObj *df = pdf_dget(d, f, "DescendantFonts"); f = df && df->type == PO_ARRAY && df->u.arr.n ? pdf_resolve(d, df->u.arr.v[0]) : f; }
+      int t0 = pobj_is_name(pdf_dget(d, f, "Subtype"), "Type0");
+      if (t0) { PObj *df = pdf_dget(d, f, "DescendantFonts"); f = df && df->type == PO_ARRAY && df->u.arr.n ? pdf_resolve(d, df->u.arr.v[0]) : f; }
       fd = pdf_dget(d, f, "FontDescriptor");
-      if (!fd || !(pdf_dget(d, fd, "FontFile") || pdf_dget(d, fd, "FontFile2") || pdf_dget(d, fd, "FontFile3"))) unemb++;
+      if (!fd || !(pdf_dget(d, fd, "FontFile") || pdf_dget(d, fd, "FontFile2") || pdf_dget(d, fd, "FontFile3")))
+        if (t0 || !embed_font(d, f)) unemb++;
     }
   }
   if (unemb) { char t[100]; snprintf(t, sizeof t, "%d font uses aren't embedded (PDF/A needs every font embedded)", unemb); problem(problems, cap, t); }

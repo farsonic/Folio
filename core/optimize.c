@@ -230,7 +230,7 @@ int *optimize_dedupe(PDoc *d, int *found)
 }
 
 /* ------------------------------------------------------------------ print production */
-typedef struct { double min, width; int fill_cs, stroke_cs; PDoc *d; } PP;
+typedef struct { double min, width; int fill_cs, stroke_cs; PDoc *d; int target; } PP;
 static void set_num(PObj *o, double v) { o->type = PO_REAL; o->u.r = v; }
 static int hair_op(void *ud, char *kw, PObj **args, int *nargs, const CEState *s)
 {
@@ -250,86 +250,101 @@ int fix_hairlines(PDoc *d, double min, double width)
   for (pg = 0; pg < d->npages; pg++) n += ce_rewrite_page(d, pg, &ops);
   return n;
 }
-static double gray_of(PObj **a, int n)
+/* a colour (n components of a device space: 1 grey, 3 RGB, 4 CMYK) in the target space (CC_) */
+static int conv(const double *in, int n, int target, double *out)
 {
-  if (n == 3) return 0.3 * pobj_num(a[0]) + 0.59 * pobj_num(a[1]) + 0.11 * pobj_num(a[2]);
-  if (n == 4) { double g = 1 - (0.3 * pobj_num(a[0]) + 0.59 * pobj_num(a[1]) + 0.11 * pobj_num(a[2]) + pobj_num(a[3])); return g < 0 ? 0 : g; }
-  return pobj_num(a[0]);
-}
-static int gray_op(void *ud, char *kw, PObj **args, int *nargs, const CEState *s)
-{
-  PP *p = (PP *)ud;
-  int stroke = kw[0] >= 'A' && kw[0] <= 'Z';
-  if ((!strcmp(kw, "rg") || !strcmp(kw, "RG")) && *nargs >= 3) {
-    double g = gray_of(args + *nargs - 3, 3);
-    int i;
-    for (i = 1; i < *nargs; i++) pobj_free(args[i]);
-    set_num(args[0], g); *nargs = 1;
-    strcpy(kw, stroke ? "G" : "g");
-  } else if ((!strcmp(kw, "k") || !strcmp(kw, "K")) && *nargs >= 4) {
-    double g = gray_of(args + *nargs - 4, 4);
-    int i;
-    for (i = 1; i < *nargs; i++) pobj_free(args[i]);
-    set_num(args[0], g); *nargs = 1;
-    strcpy(kw, stroke ? "G" : "g");
-  } else if ((!strcmp(kw, "cs") || !strcmp(kw, "CS")) && *nargs >= 1 && args[*nargs - 1]->type == PO_NAME) {
-    const char *nm = args[*nargs - 1]->u.str.s;
-    int c = !strcmp(nm, "DeviceRGB") ? 3 : !strcmp(nm, "DeviceCMYK") ? 4 : 0;
-    if (stroke) p->stroke_cs = c; else p->fill_cs = c;
-    if (c) { pobj_free(args[*nargs - 1]); args[*nargs - 1] = pobj_name("DeviceGray"); return 2; }
-  } else if ((!strcmp(kw, "sc") || !strcmp(kw, "scn") || !strcmp(kw, "SC") || !strcmp(kw, "SCN"))) {
-    int c = stroke ? p->stroke_cs : p->fill_cs, i;
-    if (c && *nargs >= c) {
-      double g = gray_of(args + *nargs - c, c);
-      for (i = 1; i < *nargs; i++) pobj_free(args[i]);
-      set_num(args[0], g); *nargs = 1;
-      return 2;
-    }
+  double r, g, b, k;
+  if (n == 1) r = g = b = in[0];
+  else if (n == 3) { r = in[0]; g = in[1]; b = in[2]; }
+  else { r = (1 - in[0]) * (1 - in[3]); g = (1 - in[1]) * (1 - in[3]); b = (1 - in[2]) * (1 - in[3]); }
+  if (target == CC_GRAY) {
+    if (n == 4) { double v = 1 - (0.3 * in[0] + 0.59 * in[1] + 0.11 * in[2] + in[3]); out[0] = v < 0 ? 0 : v; }
+    else out[0] = 0.3 * r + 0.59 * g + 0.11 * b;
+    return 1;
   }
-  return 0;
+  if (target == CC_RGB) { out[0] = r; out[1] = g; out[2] = b; return 3; }
+  if (n == 4) { memcpy(out, in, 4 * sizeof(double)); return 4; }
+  k = 1 - (r > g ? (r > b ? r : b) : (g > b ? g : b));
+  if (k >= 1) { out[0] = out[1] = out[2] = 0; out[3] = 1; return 4; }
+  out[0] = (1 - r - k) / (1 - k); out[1] = (1 - g - k) / (1 - k); out[2] = (1 - b - k) / (1 - k); out[3] = k;
+  return 4;
 }
-static int gray_image(void *ud, PObj *img, int inl, const double *m, int *nn)
+static const char *const cc_space[3] = { "DeviceGray", "DeviceRGB", "DeviceCMYK" };
+static const char *const cc_fill[3] = { "g", "rg", "k" };
+static int colour_op(void *ud, char *kw, PObj **args, int *nargs, const CEState *s)
 {
   PP *p = (PP *)ud;
-  int w, h, comps, bpc, rgb, i, num;
+  int stroke = kw[0] >= 'A' && kw[0] <= 'Z', n = 0, tn = p->target == CC_GRAY ? 1 : p->target == CC_RGB ? 3 : 4, i, sc = 0;
+  double in[4], out[4];
+  if ((!strcmp(kw, "g") || !strcmp(kw, "G")) && *nargs >= 1) n = 1;
+  else if ((!strcmp(kw, "rg") || !strcmp(kw, "RG")) && *nargs >= 3) n = 3;
+  else if ((!strcmp(kw, "k") || !strcmp(kw, "K")) && *nargs >= 4) n = 4;
+  else if ((!strcmp(kw, "cs") || !strcmp(kw, "CS")) && *nargs >= 1 && args[*nargs - 1]->type == PO_NAME) {
+    const char *nm = args[*nargs - 1]->u.str.s;
+    int c = !strcmp(nm, "DeviceRGB") ? 3 : !strcmp(nm, "DeviceCMYK") ? 4 : !strcmp(nm, "DeviceGray") ? 1 : 0;
+    if (stroke) p->stroke_cs = c; else p->fill_cs = c;
+    if (c && c != tn) { pobj_free(args[*nargs - 1]); args[*nargs - 1] = pobj_name(cc_space[p->target]); return 2; }
+    return 0;
+  } else if (!strcmp(kw, "sc") || !strcmp(kw, "scn") || !strcmp(kw, "SC") || !strcmp(kw, "SCN")) {
+    n = stroke ? p->stroke_cs : p->fill_cs;
+    if (!n || *nargs < n) return 0;
+    sc = 1;
+  }
+  if (!n || n == tn) return 0;
+  for (i = 0; i < n; i++) in[i] = pobj_num(args[*nargs - n + i]);
+  conv(in, n, p->target, out);
+  for (i = 0; i < *nargs; i++) pobj_free(args[i]);
+  for (i = 0; i < tn; i++) args[i] = pobj_real(out[i]);
+  *nargs = tn;
+  if (!sc) { strcpy(kw, cc_fill[p->target]); if (stroke) kw[0] = (char)(kw[0] - 32), kw[1] = kw[1] ? (char)(kw[1] - 32) : 0; }
+  return 2;
+}
+static int colour_image(void *ud, PObj *img, int inl, const double *m, int *nn)
+{
+  PP *p = (PP *)ud;
+  int w, h, comps, bpc, rgb, i, num, tn = p->target == CC_GRAY ? 1 : p->target == CC_RGB ? 3 : 4, k;
   u8 *s, *g;
   PObj *tmp;
   if (inl || (num = om_num_of(p->d, img)) == 0) return 0;
   if (!(s = ce_image_samples(p->d, img, &w, &h, &comps, &bpc, &rgb))) return 0;
   {
     PObj *cs = pdf_dget(p->d, img, "ColorSpace");
-    int dev = rgb || (cs && cs->type == PO_NAME && (!strcmp(cs->u.str.s, "DeviceRGB") || !strcmp(cs->u.str.s, "DeviceCMYK")));
-    if (bpc != 8 || (comps != 3 && comps != 4) || !dev || pdf_dget(p->d, img, "Decode")) { free(s); return 0; }
+    int dev = rgb || (cs && cs->type == PO_NAME && (!strcmp(cs->u.str.s, "DeviceRGB") || !strcmp(cs->u.str.s, "DeviceCMYK") || !strcmp(cs->u.str.s, "DeviceGray")));
+    if (rgb) comps = 3;
+    if (bpc != 8 || (comps != 1 && comps != 3 && comps != 4) || comps == tn || !dev || pdf_dget(p->d, img, "Decode") || pobj_is_name(pdf_dget(p->d, img, "ImageMask"), "true")) { free(s); return 0; }
   }
-  if (!(g = (u8 *)malloc((size_t)w * h))) { free(s); return 0; }
+  if (!(g = (u8 *)malloc((size_t)w * h * (size_t)tn))) { free(s); return 0; }
   for (i = 0; i < w * h; i++) {
-    const u8 *q = s + (size_t)i * comps;
-    long v = comps == 3 ? (30L * q[0] + 59L * q[1] + 11L * q[2]) / 100 : 255 - (30L * q[0] + 59L * q[1] + 11L * q[2] + 100L * q[3]) / 100;
-    g[i] = (u8)(v < 0 ? 0 : v > 255 ? 255 : v);
+    double in[4], out[4];
+    for (k = 0; k < comps; k++) in[k] = s[(size_t)i * comps + k] / 255.0;
+    conv(in, comps, p->target, out);
+    for (k = 0; k < tn; k++) { double v = out[k] * 255 + 0.5; g[(size_t)i * tn + k] = (u8)(v < 0 ? 0 : v > 255 ? 255 : v); }
   }
   free(s);
   if (!(tmp = pobj_copy(img))) { free(g); return 0; }
   tmp->type = PO_DICT; free(tmp->sdata); tmp->sdata = NULL;
-  pobj_dict_set(tmp, "ColorSpace", pobj_name("DeviceGray"));
+  pobj_dict_set(tmp, "ColorSpace", pobj_name(cc_space[p->target]));
   pobj_dict_set(tmp, "BitsPerComponent", pobj_int(8));
-  *nn = ce_image_store(p->d, tmp, g, w, h, 1, 8, 0, 0);
+  *nn = ce_image_store(p->d, tmp, g, w, h, tn, 8, tn == 3, 0);
   pobj_free(tmp);
   free(g);
   if (*nn) { replace_obj(p->d, num, *nn); *nn = 0; }
   return 0;
 }
-int convert_to_gray(PDoc *d)
+int convert_colors(PDoc *d, int target)
 {
   PP p;
   CEOps ops;
   int pg, n = 0;
+  if (target < CC_GRAY || target > CC_CMYK) return 0;
   memset(&p, 0, sizeof p);
-  p.d = d;
+  p.d = d; p.target = target;
   memset(&ops, 0, sizeof ops);
-  ops.ud = &p; ops.op = gray_op; ops.image = gray_image;
+  ops.ud = &p; ops.op = colour_op; ops.image = colour_image;
   for (pg = 0; pg < d->npages; pg++) { p.fill_cs = p.stroke_cs = 0; n += ce_rewrite_page(d, pg, &ops); }
   return n;
 }
+int convert_to_gray(PDoc *d) { return convert_colors(d, CC_GRAY); }
 int printer_marks(PDoc *d, double bleed)
 {
   int p, n = 0;

@@ -4,7 +4,7 @@
  * moved along), pictures replaced, moved and deleted, snapping to the page's paths, polygon
  * measurements, drawn signatures, colours converted to CMYK and RGB, PDF/A with its fonts embedded.
  *
- *   edit2test quill_tables.pdf graphics.pdf pic.jpg pic.png outdir fontsdir
+ *   edit2test quill_tables.pdf graphics.pdf pic.jpg pic.png outdir fontsdir tables.pdf
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +20,7 @@
 #include "optimize.h"
 #include "review.h"
 #include "font.h"
+#include "pdfedit.h"
 
 static int fails, checks;
 #define CHECK(c) do { checks++; if (!(c)) { fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #c); fails++; } } while (0)
@@ -105,10 +106,42 @@ static int find_box(PDoc *d, int page, const char *what, double *box)
   return ok;
 }
 
+/* the whole Liberation fonts tables.pdf embeds, written out as the renderer's stand-ins */
+static void fonts_from(const char *pdf, const char *dir)
+{
+  PDoc *d = open_file(pdf);
+  int k;
+  if (!d) return;
+  for (k = 1; k < d->nxref; k++) {
+    PObj *o = pdf_get(d, k), *ff;
+    const char *fn;
+    if (!o || o->type != PO_DICT || !pobj_is_name(pobj_dict_get(o, "Type"), "FontDescriptor") || !(fn = pdf_dname(d, o, "FontName"))) continue;
+    if ((ff = pdf_dget(d, o, "FontFile2")) && ff->type == PO_STREAM && (!strcmp(fn, "LiberationSans") || !strcmp(fn, "LiberationSerif"))) {
+      size_t sl;
+      u8 *sd = pdf_stream_data(d, ff, &sl);
+      char p[600];
+      FILE *f;
+      snprintf(p, sizeof p, "%s/%s-Regular.ttf", dir, fn);
+      if (sd && (f = fopen(p, "wb"))) { fwrite(sd, 1, sl, f); fclose(f); }
+      free(sd);
+    }
+  }
+  pdf_close(d);
+}
+static int count_op(PDoc *d, int page, const char *op)
+{
+  size_t n, i, l = strlen(op);
+  u8 *c = pc_content(d, d->pages[page], &n);
+  int k = 0;
+  for (i = 0; c && i + l + 1 < n; i++) if ((i == 0 || c[i - 1] == ' ' || c[i - 1] == '\n') && !memcmp(c + i, op, l) && (c[i + l] == '\n' || c[i + l] == ' ')) k++;
+  free(c);
+  return k;
+}
+
 int main(int argc, char **argv)
 {
   const char *quill, *graphics, *jpg, *png;
-  if (argc < 7) { fprintf(stderr, "edit2test quill_tables.pdf graphics.pdf pic.jpg pic.png outdir fontsdir\n"); return 2; }
+  if (argc < 8) { fprintf(stderr, "edit2test quill_tables.pdf graphics.pdf pic.jpg pic.png outdir fontsdir tables.pdf\n"); return 2; }
   quill = argv[1]; graphics = argv[2]; jpg = argv[3]; png = argv[4]; outdir = argv[5];
   font_set_dir(argv[6]);
   /* ------------------------------------------------------------ text retyped */
@@ -215,6 +248,96 @@ int main(int argc, char **argv)
     pdf_close(d);
     d = open_file(graphics);
     if (d) { n = page_snap_points(d, 0, &pts); CHECK(n > 10); free(pts); pdf_close(d); }
+  }
+  /* ------------------------------------------------------------ polygons measured */
+  {
+    PDoc *d = doc_new_blank(400, 400, 1);
+    double tri[6] = { 100, 100, 172, 100, 100, 154 };   /* 1 x 0.75 inches: 0.375 sq in, 3 in round */
+    PObj *a;
+    char *t;
+    CHECK(annot_measure_area(d, 0, tri, 3, 1, 72, "in", 0xFF0000, "T"));
+    CHECK(annot_measure_area(d, 0, tri, 3, 0, 72, "in", 0xFF0000, "T"));
+    a = pdf_resolve(d, pdf_dget(d, d->pages[0], "Annots")->u.arr.v[0]);
+    t = pdf_text_string(pdf_dget(d, a, "Contents"));
+    CHECK(t && !strcmp(t, "0.38 sq in"));
+    free(t);
+    a = pdf_resolve(d, pdf_dget(d, d->pages[0], "Annots")->u.arr.v[1]);
+    t = pdf_text_string(pdf_dget(d, a, "Contents"));
+    CHECK(t && !strcmp(t, "3.00 in"));
+    free(t);
+    pdf_close(d);
+  }
+  /* ------------------------------------------------------------ drawn signatures */
+  {
+    double pts[64], back[64];
+    int np[4] = { 3, 2 }, nb[8], ns;
+    char txt[400];
+    PDoc *d = doc_new_blank(400, 400, 1);
+    double r[4] = { 50, 50, 250, 100 };
+    pts[0] = 0.1; pts[1] = 0.5; pts[2] = 0.3; pts[3] = 0.1; pts[4] = 0.5; pts[5] = 0.9;
+    pts[6] = 0.6; pts[7] = 0.5; pts[8] = 0.9; pts[9] = 0.45;
+    CHECK(ink_format(pts, np, 2, txt, sizeof txt) && !strcmp(txt, "100,500 300,100 500,900;600,500 900,450"));
+    ns = ink_parse(txt, back, nb, 32, 8);
+    CHECK(ns == 2 && nb[0] == 3 && nb[1] == 2 && fabs(back[8] - 0.9) < 1e-9);
+    CHECK(annot_ink_fit(d, 0, r, back, nb, ns, 1.5, 0x102080, "T"));
+    {
+      PObj *a = pdf_resolve(d, pdf_dget(d, d->pages[0], "Annots")->u.arr.v[0]), *rect = pdf_dget(d, a, "Rect");
+      CHECK(pobj_is_name(pdf_dget(d, a, "Subtype"), "Ink") && rect && pobj_num(rect->u.arr.v[0]) >= 45 && pobj_num(rect->u.arr.v[2]) <= 255 && pobj_num(rect->u.arr.v[3]) <= 105);
+    }
+    pdf_close(d);
+  }
+  /* ------------------------------------------------------------ colours to CMYK and RGB */
+  {
+    PDoc *d = doc_new_blank(400, 400, 1);
+    size_t jn;
+    u8 *jb = slurp(jpg, &jn);
+    double rect[4] = { 10, 10, 110, 110 };
+    PageImage *im;
+    pc_add_content(d, 0, "1 0 0 rg 0 0.5 1 RG 0.5 g 10 10 50 50 re B\n", 42, 0, NULL);
+    if (jb) page_add_image(d, 0, rect, jb, jn);
+    CHECK(convert_colors(d, CC_CMYK) == 1);
+    CHECK(count_op(d, 0, "rg") == 0 && count_op(d, 0, "RG") == 0 && count_op(d, 0, "g") == 0 && count_op(d, 0, "k") == 2 && count_op(d, 0, "K") == 1);
+    if (jb && page_images(d, 0, &im) == 1) { PObj *o = pdf_get(d, im[0].num); CHECK(pobj_is_name(pdf_dget(d, o, "ColorSpace"), "DeviceCMYK")); free(im); }
+    CHECK(convert_colors(d, CC_RGB) == 1);
+    CHECK(count_op(d, 0, "k") == 0 && count_op(d, 0, "rg") == 2 && count_op(d, 0, "RG") == 1);
+    if (jb && page_images(d, 0, &im) == 1) { PObj *o = pdf_get(d, im[0].num); CHECK(pobj_is_name(pdf_dget(d, o, "ColorSpace"), "DeviceRGB")); free(im); }
+    {
+      PDoc *r2 = again(d, "edit_colours.pdf");
+      CHECK(r2 != NULL);
+      if (r2) pdf_close(r2);
+    }
+    free(jb);
+    pdf_close(d);
+  }
+  /* ------------------------------------------------------------ PDF/A: fonts embedded */
+  {
+    char dir[600], cmd[700], probs[400];
+    PDoc *d, *r2;
+    snprintf(dir, sizeof dir, "%s/pdfafonts", outdir);
+    snprintf(cmd, sizeof cmd, "mkdir -p '%s'", dir);
+    if (system(cmd) == 0) {
+      fonts_from(argv[7], dir);
+      font_free_substitutes();
+      font_set_dir(dir);
+      d = doc_new_blank(595, 842, 1);
+      page_add_text(d, 0, 72, 700, "Kept for ever, its fonts inside.", 12, 0, 0);
+      page_add_text(d, 0, 72, 680, "A serif line as well.", 12, 0, 2);
+      CHECK(pdfa_convert(d, probs, sizeof probs));
+      if (probs[0]) fprintf(stderr, "  PDF/A: %s\n", probs);
+      r2 = again(d, "edit_pdfa.pdf");
+      CHECK(r2 != NULL);
+      if (r2) {
+        char *s = page_text(r2, 0, NULL);
+        CHECK(strstr(s, "Kept for ever") != NULL);
+        free(s);
+        pdf_close(r2);
+      }
+      pdf_close(d);
+      snprintf(cmd, sizeof cmd, "command -v pdffonts >/dev/null && pdffonts '%s/edit_pdfa.pdf' | tail -n +3 | grep -v ' yes ' | grep -q .", outdir);
+      CHECK(system(cmd) != 0);
+      font_free_substitutes();
+      font_set_dir(argv[6]);
+    }
   }
   printf("edit2test: %d checks, %d failed\n", checks, fails);
   return fails != 0;

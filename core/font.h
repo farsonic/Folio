@@ -41,7 +41,9 @@ typedef struct PdfFont {
 
 /* where the stand-in fonts are (e.g. "PROGDIR:TrueType"); call once at the start */
 void font_set_dir(const char *dir);
-void font_free_substitutes(void);   /* at the end */
+void font_free_substitutes(void);
+/* (PDF/A) the TrueType file a stand-in comes from, read again (malloc'd); NULL for an embedded font */
+u8  *font_subst_data(const PdfFont *f, size_t *len);   /* at the end */
 /* a font dictionary loaded; NULL if it can't be used at all */
 PdfFont *font_load(PDoc *d, PObj *dict);
 void font_free(PdfFont *f);

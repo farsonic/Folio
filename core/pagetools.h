@@ -124,4 +124,10 @@ PDoc *doc_from_text(const char *utf8, size_t n, double w, double h, double size,
 /* the XMP metadata stream written from the document information (title, author, subject,
    keywords, producer, dates) */
 int  xmp_update(PDoc *d);
+/* (round 2) drawn signatures and initials: strokes kept as text ("x,y x,y;x,y ...", 0-1000, y down),
+   read back into pts (0-1 pairs) and npts (points a stroke); strokes read */
+int  ink_parse(const char *s, double *pts, int *npts, int maxpts, int maxstrokes);
+int  ink_format(const double *pts, const int *npts, int nstrokes, char *out, int cap);
+/* the strokes (0-1, y down) drawn as an ink annotation fitted into rect, their shape kept */
+int  annot_ink_fit(PDoc *d, int page, const double *rect, const double *pts, const int *npts, int nstrokes, double width, u32 color, const char *author);
 #endif

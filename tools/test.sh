@@ -39,7 +39,7 @@ CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto
   # incremental saving (the keys are made at test time in $T by openssl; none are kept in the repository)
   $SAN $CORE tests/signtest.c -o $T/folio_signtest -lm && $T/folio_signtest $T 2>/dev/null | tail -1
   # (round 2) a page's own text and pictures edited, snapping, polygons, drawn signatures, colours, PDF/A fonts
-  $SAN $CORE tests/edit2test.c -o $T/folio_edit2test -lm && $T/folio_edit2test tests/pdfs/quill_tables.pdf tests/gen/graphics.pdf tests/gen/pic.jpg tests/gen/pic.png $T tests/fonts 2>/dev/null | tail -1
+  $SAN $CORE tests/edit2test.c -o $T/folio_edit2test -lm && $T/folio_edit2test tests/pdfs/quill_tables.pdf tests/gen/graphics.pdf tests/gen/pic.jpg tests/gen/pic.png $T tests/fonts tests/pdfs/tables.pdf 2>/dev/null | tail -1
   # (round 2) scans: CCITT G4 written, OCR of drawn and scanned text, straightening, cleaning
   $SAN $CORE tests/scantest.c -o $T/folio_scantest -lm && $T/folio_scantest $T tests/pdfs/tables.pdf tests/pdfs/angles.pdf tests/pdfs/quill_tables.pdf 2>/dev/null | tail -1
   if command -v qpdf >/dev/null 2>&1; then

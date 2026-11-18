@@ -44,6 +44,19 @@ static PFont *subst_font(int i)
   if (!subst[i] && i >= 12) return subst_font(i >= 16 ? 4 + i % 4 : i % 4);   /* (Carlito/Caladea missing: Sans/Serif) */
   return subst[i];
 }
+/* the file of the stand-in f is drawn with (read again: malloc'd), NULL if it hasn't one */
+u8 *font_subst_data(const PdfFont *f, size_t *len)
+{
+  int i;
+  if (!f || !f->substitute || !f->prog) return NULL;
+  for (i = 0; i < NSUBST; i++) if (subst[i] == f->prog) {
+    char path[300];
+    size_t n = strlen(fontdir);
+    snprintf(path, sizeof path, "%s%s%s", fontdir, n && fontdir[n - 1] != ':' && fontdir[n - 1] != '/' ? "/" : "", subst_files[i]);
+    return file_read(path, len);
+  }
+  return NULL;
+}
 static int has_word(const char *name, const char *w)
 {
   char a[64], b[32];
