@@ -4,7 +4,7 @@
 set -e
 cd "$(dirname "$0")/.."
 T=${TMP:-/tmp}
-CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto.c core/pdf.c core/func.c core/cmap.c core/pfont.c core/pdfenc.c core/font.c core/raster.c core/render.c core/pimage.c core/shade.c core/textpage.c core/pdfwrite.c core/pdfedit.c core/pngout.c core/xml.c core/pagecontent.c core/forms.c core/pagetools.c core/contentedit.c core/jpegout.c core/redact.c core/optimize.c core/export.c"
+CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto.c core/pdf.c core/func.c core/cmap.c core/pfont.c core/pdfenc.c core/font.c core/raster.c core/render.c core/pimage.c core/shade.c core/textpage.c core/pdfwrite.c core/pdfedit.c core/pngout.c core/xml.c core/pagecontent.c core/forms.c core/pagetools.c core/contentedit.c core/jpegout.c core/redact.c core/optimize.c core/export.c core/review.c"
   SAN="cc -std=c99 -O1 -g -Wall -Wextra -Wno-unused-parameter -fsanitize=address,undefined -I. -Icore"
   $SAN core/util.c core/filters.c core/crypto.c tests/filtertest.c -o $T/folio_filtertest -lm && $T/folio_filtertest | tail -1
   $SAN core/util.c core/geom.c core/pfont.c core/pdfenc.c tests/fonttest.c -o $T/folio_fonttest -lm && $T/folio_fonttest tests/fonts 20 1 | tail -1
@@ -27,8 +27,10 @@ CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto
   if python3 -c "import docx, pptx" 2>/dev/null; then
     python3 -c "import docx, pptx, sys; d = docx.Document(sys.argv[1]); p = pptx.Presentation(sys.argv[2]); assert d.paragraphs[0].style.name == 'Heading 1' and len(p.slides) == 2" $T/export.docx $T/export.pptx && echo "python-docx and python-pptx read the exported files"
   fi
+  # compare, accessibility (check, tagging, reading options), signatures (digest check), PDF/A
+  $SAN $CORE tests/reviewtest.c -o $T/folio_reviewtest -lm && $T/folio_reviewtest $T | tail -1
   if command -v qpdf >/dev/null 2>&1; then
-    for f in $T/save_*.pdf $T/form_*.pdf $T/page_*.pdf $T/redact_*.pdf $T/opt_*.pdf; do qpdf --check --password=secret "$f" >/dev/null 2>&1 || qpdf --check "$f" >/dev/null || { echo "qpdf rejects $f"; exit 1; }; done
+    for f in $T/save_*.pdf $T/form_*.pdf $T/page_*.pdf $T/redact_*.pdf $T/opt_*.pdf $T/review_*.pdf; do qpdf --check --password=secret "$f" >/dev/null 2>&1 || qpdf --check "$f" >/dev/null || { echo "qpdf rejects $f"; exit 1; }; done
     echo "qpdf --check: the saved files pass"
   fi
   $SAN $CORE tools/pdfrender.c -o $T/pdfrender -lm
