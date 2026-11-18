@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "pdf.h"
 #include "pdfwrite.h"
 #include "pdfedit.h"
@@ -209,9 +210,14 @@ int main(int argc, char **argv)
       u8 *b, *b2 = NULL, *b3 = NULL;
       char err[160];
       int ns;
+      /* signed a minute from now: the certificates were made just now, so a fixed time (it was
+         2026-11-18 10:00) fell before them once that day had passed 10:00 */
+      char when[16];
+      time_t t = time(NULL) + 60;
+      strftime(when, sizeof when, "%Y%m%d%H%M%S", gmtime(&t));
       memset(&o, 0, sizeof o);
       o.page = 0; o.rect[0] = 72; o.rect[1] = 600; o.rect[2] = 272; o.rect[3] = 660;
-      o.reason = "I agree"; o.location = "Amiga"; o.certify = 2; o.when = "20261118100000";
+      o.reason = "I agree"; o.location = "Amiga"; o.certify = 2; o.when = when;
       b = pdf_sign(d, &rsa, &o, &n, err, sizeof err);
       if (!b) fprintf(stderr, "  sign: %s\n", err);
       CHECK(b != NULL);
