@@ -15,15 +15,15 @@ Read it first, then `README.md` (what Folio does).
 |---|---|
 | `core/` | Portable C99, no AmigaOS calls: `pdf.c` (objects, xref, page tree), `filters.c` (Flate, LZW, ASCII85/Hex, RunLength, CCITT, DCT), `crypto.c` (RC4, AES, MD5, SHA-2, the standard security handler), `font.c`/`pfont.c`/`cmap.c`/`pdfenc.c`/`fonts.c`/`ttraster.c` (fonts), `render.c`/`raster.c`/`shade.c`/`pimage.c`/`func.c` (content interpreter and rasteriser), `textpage.c` (text extraction and search), `pdfwrite.c`/`pdfedit.c` (writing and editing), `pngout.c`. |
 | `amiga/` | The MUI front end: `main.c`, `view.c` (the page view: off-screen buffer, blitter scrolling, background rendering of the next page), `bars.c`, `panes.c`, `edits.c` (comments and page editing), `dialogs.c`, `lang.c`/`lang_table.h` (interface strings). |
-| `tests/` | Native tests (`filtertest.c`, `fonttest.c`, `edittest.c`, `annotdrawtest.c`), generated PDFs (`gen/`, made by `make_pdfs.py`), PDFs made by Quill (`pdfs/`), test fonts (`fonts/`), `compare.py` (compares rendered pages with poppler's). |
-| `tools/` | `test.sh` (the native tests; what CI runs), `pdfrender.c` (renders a page to PNG on the host), `Install-Folio` (Installer script), `mkicons.py`, `vbcc-aos68k-fpu` (the vbcc config for the 68040+FPU build). |
+| `tests/` | Native tests (`filtertest.c`, `fonttest.c`, `edittest.c`, `annotdrawtest.c`, `robusttest.c` (hostile PDFs), `allocfail.c` (out of memory everywhere)), generated PDFs (`gen/`, made by `make_pdfs.py`), PDFs made by Quill (`pdfs/`), test fonts (`fonts/`), `compare.py` (compares rendered pages with poppler's). |
+| `tools/` | `test.sh` (the native tests; what CI runs), `fuzz.c`/`fuzz.sh` (the fuzzer), `pdfrender.c` (renders a page to PNG on the host), `Install-Folio` (Installer script), `mkicons.py`, `vbcc-aos68k-fpu` (the vbcc config for the 68040+FPU build). |
 | `sample/` | `Welcome.pdf`, shipped in the package. |
 
 ## Build and test
 
 Native tests (need only a C compiler; CI runs them and they must stay green):
 
-    sh tools/test.sh            # TMP=<dir> to build somewhere other than /tmp
+    sh tools/test.sh            # TMP=<dir> to build somewhere other than /tmp; FUZZ=1 to fuzz a minute too
 
 Amiga binary: `./build.sh` (`./build.sh fast` skips the tests). It needs, at these default paths (or set
 `VBCC`, `NDK`, `MUI`):
@@ -62,21 +62,29 @@ for certificate or key material (`BEGIN CERTIFICATE`, `PRIVATE KEY`, `*.crt`, `*
 
 Folio 0.1.2 is released: viewing, finding, comments, page organising and saving, with smooth scrolling
 and comment drawing (0.1.1/0.1.2). Its PDF engine is also used, as a patched copy, by pdf.datatype
-(`farsonic/pdfdt`, where it was fuzzed). That work found bugs which are **not yet fixed here**; porting
-the fixes is the obvious next task:
+(`farsonic/pdfdt`, where it was fuzzed). The bugs that work found are fixed here too (after 0.1.2, not
+released yet), each with a test in `tests/robusttest.c` that failed before its fix:
 
-- heap overread while rebuilding the cross-reference table (`trailer` matched past the end of the buffer);
-- tokens freed uninitialised in `parse_at` (Folio crashes on a file with wrong object offsets);
-- use after free: a dangling pattern pointer after `sc`/`scn` with a name operand and no resources;
-- a dash pattern with a negative entry (endless loop), or far finer than the line (practically endless);
-- integer overflow in the number lexer with a 32-bit `long`;
-- a shift by 32 in the mesh shadings' bit reader (gives 0 on the 68k, the value on x86/ARM);
-- names lost when memory runs out (`expand_name` returning NULL; an array item retyped on failure);
-- an over-full JPEG Huffman table writing past its lookup table;
-- out-of-range double-to-integer conversions in the rasteriser, glyph cache, clip and shading code.
+- heap overread while rebuilding the cross-reference table (`xref_trailer_at_end`);
+- tokens freed uninitialised in `parse_at` (`parse_wrong_offset`; seen under valgrind);
+- a dangling pattern pointer after `sc`/`scn` with a name and no resources (`pattern_name_*`);
+- dash patterns with a negative entry or far finer than the line (`dash_negative`, `dash_too_fine`);
+- the number lexer's overflow with a 32-bit `long` (`lexer_big_numbers`, in the `-m32` build);
+- a shift by 32 in the mesh shadings' bit reader (`mesh_shift32`);
+- an over-full JPEG Huffman table (`jpeg_overfull_huffman`);
+- names lost when memory runs out (`tests/allocfail.c`);
+- out-of-range double-to-integer conversions (`huge_numbers*`; `dbl_int`/`dbl_long` in `core/util.h`);
+- found by Folio's own fuzzer: a long real overrunning the writer's buffer (`save_huge_real`).
 
-Each fix should come with a test that fails before it. A fuzzer (mutating the files in `tests/gen/`,
-with ASan/UBSan and a work bound per file) would be a good addition.
+Robustness tooling: `tests/robusttest.c` (hostile PDFs made in memory, each in a child with a time
+limit; every sanitizer report fatal, `float-cast-overflow` on; also built `-m32` where possible, and
+partly run under valgrind), `tests/allocfail.c` (the core built with `-DFOLIO_ALLOC_TEST`, each
+allocation failing in turn; `ALLOCFAIL_ALL=1` for every allocation of every file given), and the fuzzer
+`tools/fuzz.c` with `tools/fuzz.sh SECONDS` (`FUZZ=1 sh tools/test.sh` runs it for a minute; `M32=1`
+for a 32-bit build; crashes are kept as `$TMP/folio_fuzz/crash-<seed>.pdf`, replayed with
+`folio_fuzzer -r FILE`). Its work bound is the renderer's abort callback (a page stops after 1.5 s of
+CPU); Folio has no other per-document work counter. Each new fuzzer finding gets a robusttest case.
+Next: fuzz for longer (also with fonts given through `FUZZ_FONTS`, and seeds from `tests/pdfs/`).
 
 ## Issues
 
