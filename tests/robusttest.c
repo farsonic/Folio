@@ -353,6 +353,18 @@ static void t_huge_numbers_parser(void)
 }
 /* (tools/fuzz.c) a document saved again with a real too long for the writer's 40 characters
    (snprintf's length used as an index past them), and reals that can't be written at all */
+/* (tools/fuzz.c, -m32) a page far too big to draw: its pixel count overflowed a 32-bit long */
+static void t_huge_page(void)
+{
+  size_t len;
+  Obj o[4] = { { "<< /Type /Catalog /Pages 2 0 R >>", 0 }, { "<< /Type /Pages /Kids [3 0 R] /Count 1 >>", 0 },
+               { "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 3e9 300] /Contents 4 0 R >>", 0 },
+               { "<< /Length 0 >>\nstream\n\nendstream", 0 } };
+  u8 *pdf = mkpdf(o, 4, &len);
+  CHECK(draw_all(pdf, len, 1.0) == 0);
+  CHECK(draw_all(pdf, len, 1e-9) == 1);
+  free(pdf);
+}
 static int near(double a, double b) { return a / b > 0.999999 && a / b < 1.000001; }
 static void t_save_huge_real(void)
 {
@@ -389,6 +401,7 @@ static const Test tests[] = {
   { "huge_numbers", t_huge_numbers },
   { "huge_numbers_parser", t_huge_numbers_parser },
   { "save_huge_real", t_save_huge_real },
+  { "huge_page", t_huge_page },
 };
 static const char *current;
 static void on_alarm(int s)

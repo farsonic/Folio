@@ -1128,8 +1128,10 @@ int pdf_render(PDoc *d, RCache *c, int page, const RenderOpts *o, Pixmap *out)
   if (!mat_invert(r->base, &inv)) inv = mat_identity;
   r->page_inv = inv;
   if (!o->text_only) {
-    long npx = (long)r->W * r->H;
-    if (r->W <= 0 || r->H <= 0 || npx > 40000000L || !(r->rgb = (u8 *)malloc((size_t)npx * 3))) { free(r); return 0; }
+    long npx;
+    if (r->W <= 0 || r->H <= 0 || (double)r->W * r->H > 40000000.0) { free(r); return 0; }   /* (tested first: the product overflowed a 32-bit long) */
+    npx = (long)r->W * r->H;
+    if (!(r->rgb = (u8 *)malloc((size_t)npx * 3))) { free(r); return 0; }
     if (o->onto && o->w <= 0) memcpy(r->rgb, o->onto, (size_t)npx * 3);
     else for (i = 0; i < npx; i++) { r->rgb[i * 3] = (u8)(o->paper >> 16); r->rgb[i * 3 + 1] = (u8)(o->paper >> 8); r->rgb[i * 3 + 2] = (u8)o->paper; }
   }
