@@ -106,7 +106,28 @@ def rotated_and_encrypted():
     a = w.add_outline_item('Graphics', 0); w.add_outline_item('Shadings', 1, parent=a)
     with open(os.path.join(OUT, 'outline.pdf'), 'wb') as f: w.write(f)
 
-graphics(); fonts(); images(); rotated_and_encrypted()
+def forms():
+    # an AcroForm: text fields (one of several lines), a check box, radio buttons, a drop-down, a list box,
+    # and on page 2 blanks drawn without fields (underscores and boxes) for Detect Form Fields
+    c = canvas.Canvas(os.path.join(OUT, 'forms.pdf'), pagesize=(595, 842))
+    f = c.acroForm
+    c.setFont('Helvetica', 12)
+    c.drawString(50, 780, 'Name:'); f.textfield(name='name', x=120, y=770, width=250, height=22, value='', borderColor=toColor('black'), fillColor=toColor('white'))
+    c.drawString(50, 740, 'Notes:'); f.textfield(name='notes', x=120, y=680, width=250, height=70, fieldFlags='multiline', value='')
+    c.drawString(50, 650, 'Agree:'); f.checkbox(name='agree', x=120, y=645, size=16, checked=False, buttonStyle='check')
+    c.drawString(50, 610, 'Colour:')
+    for k, v in enumerate(['red', 'green', 'blue']):
+        f.radio(name='colour', value=v, x=120 + k * 60, y=605, size=16, selected=False); c.drawString(140 + k * 60, 608, v)
+    c.drawString(50, 570, 'Country:'); f.choice(name='country', x=120, y=560, width=150, height=20, options=['France', 'Germany', 'Italy'], value='France')
+    c.drawString(50, 530, 'Fruit:'); f.listbox(name='fruit', x=120, y=460, width=150, height=70, options=['Apple', 'Banana', 'Cherry'], value='Apple')
+    c.showPage()
+    c.setFont('Helvetica', 12)
+    c.drawString(50, 780, 'Surname: ____________________')
+    c.drawString(50, 750, '[ ] Tick here')
+    c.showPage()
+    c.save()
+
+graphics(); fonts(); images(); rotated_and_encrypted(); forms()
 # object streams + xref stream (pypdf compress)
 w = pypdf.PdfWriter(); w.append(os.path.join(OUT, 'graphics.pdf')); w.compress_identical_objects()
 for p in w.pages: p.compress_content_streams()
