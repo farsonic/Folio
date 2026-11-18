@@ -74,7 +74,11 @@ released yet), each with a test in `tests/robusttest.c` that failed before its f
 - an over-full JPEG Huffman table (`jpeg_overfull_huffman`);
 - names lost when memory runs out (`tests/allocfail.c`);
 - out-of-range double-to-integer conversions (`huge_numbers*`; `dbl_int`/`dbl_long` in `core/util.h`);
-- found by Folio's own fuzzer: a long real overrunning the writer's buffer (`save_huge_real`).
+- found by Folio's own fuzzer (or while reviewing what it found): a long real overrunning the writer's
+  buffer (`save_huge_real`), a page's pixel count overflowing a 32-bit long (`huge_page`), JPEG
+  coefficients overflowing the inverse DCT (`jpeg_huge_coefficients`), xref fields too big for a
+  32-bit long (`xref_out_of_range`), `idiv`/`mod` by -1 and `bitshift` in calculator functions
+  (`huge_numbers`). About 500,000 fuzzed inputs since (64- and 32-bit builds) found nothing more.
 
 Robustness tooling: `tests/robusttest.c` (hostile PDFs made in memory, each in a child with a time
 limit; every sanitizer report fatal, `float-cast-overflow` on; also built `-m32` where possible, and
