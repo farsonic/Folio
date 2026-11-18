@@ -90,6 +90,17 @@ static PDoc *a_document(void)
   return r;
 }
 
+/* a signing time a minute from now (UTC, YYYYMMDDHHMMSS): the certificates are made at run time,
+   so a fixed time falls before them once that hour has passed (the test failed after 10:00 and
+   12:00 on 2026-11-18, the day it was written) */
+static const char *sign_time(void)
+{
+  static char when[16];
+  time_t t = time(NULL) + 60;
+  strftime(when, sizeof when, "%Y%m%d%H%M%S", gmtime(&t));
+  return when;
+}
+
 int main(int argc, char **argv)
 {
   int have_ssl, ok;
@@ -153,13 +164,13 @@ int main(int argc, char **argv)
         size_t n;
         u8 *s;
         CmsResult r;
-        char f[40];
+        char f[40], when[16];
         if (!ids[i]->ncerts) continue;
-        s = cms_sign(&ids[i]->key, (const u8 *const *)ids[i]->certs, ids[i]->clen, ids[i]->ncerts, i == 2 ? HASH_SHA384 : HASH_SHA256, (const u8 *)msg, strlen(msg), "20261118120000", &n);
+        s = cms_sign(&ids[i]->key, (const u8 *const *)ids[i]->certs, ids[i]->clen, ids[i]->ncerts, i == 2 ? HASH_SHA384 : HASH_SHA256, (const u8 *)msg, strlen(msg), strcpy(when, sign_time()), &n);
         CHECK(s != NULL);
         if (!s) continue;
         CHECK(cms_verify(s, n, (const u8 *)msg, strlen(msg), NULL, NULL, 0, NULL, &r) && r.ok == 1 && r.digest_ok == 1);
-        CHECK(!strcmp(r.signed_at, "20261118120000") && r.time_ok == 1);
+        CHECK(!strcmp(r.signed_at, when) && r.time_ok == 1);
         CHECK(i == 1 ? r.chain == CHAIN_INCOMPLETE || r.chain == CHAIN_SELF || r.chain_len == 2 : r.chain == CHAIN_SELF);
         CHECK(cms_verify(s, n, (const u8 *)"Folio signs those bytes.", strlen(msg), NULL, NULL, 0, NULL, &r) && r.digest_ok == 0);
         snprintf(f, sizeof f, "%s.cms", names[i]); spill(f, s, n);
@@ -210,11 +221,7 @@ int main(int argc, char **argv)
       u8 *b, *b2 = NULL, *b3 = NULL;
       char err[160];
       int ns;
-      /* signed a minute from now: the certificates were made just now, so a fixed time (it was
-         2026-11-18 10:00) fell before them once that day had passed 10:00 */
-      char when[16];
-      time_t t = time(NULL) + 60;
-      strftime(when, sizeof when, "%Y%m%d%H%M%S", gmtime(&t));
+      const char *when = sign_time();
       memset(&o, 0, sizeof o);
       o.page = 0; o.rect[0] = 72; o.rect[1] = 600; o.rect[2] = 272; o.rect[3] = 660;
       o.reason = "I agree"; o.location = "Amiga"; o.certify = 2; o.when = when;
