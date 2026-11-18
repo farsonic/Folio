@@ -13,10 +13,11 @@ Read it first, then `README.md` (what Folio does).
 
 | Path | What |
 |---|---|
-| `core/` | Portable C99, no AmigaOS calls: `pdf.c` (objects, xref, page tree), `filters.c` (Flate, LZW, ASCII85/Hex, RunLength, CCITT, DCT), `crypto.c` (RC4, AES, MD5, SHA-2, the standard security handler), `font.c`/`pfont.c`/`cmap.c`/`pdfenc.c`/`fonts.c`/`ttraster.c` (fonts), `render.c`/`raster.c`/`shade.c`/`pimage.c`/`func.c` (content interpreter and rasteriser), `textpage.c` (text extraction and search), `pdfwrite.c`/`pdfedit.c` (writing and editing), `pngout.c`. |
-| `amiga/` | The MUI front end: `main.c`, `view.c` (the page view: off-screen buffer, blitter scrolling, background rendering of the next page), `bars.c`, `panes.c`, `edits.c` (comments and page editing), `dialogs.c`, `lang.c`/`lang_table.h` (interface strings). |
-| `tests/` | Native tests (`filtertest.c`, `fonttest.c`, `edittest.c`, `annotdrawtest.c`, `robusttest.c` (hostile PDFs), `allocfail.c` (out of memory everywhere)), generated PDFs (`gen/`, made by `make_pdfs.py`), PDFs made by Quill (`pdfs/`), test fonts (`fonts/`), `compare.py` (compares rendered pages with poppler's). |
-| `tools/` | `test.sh` (the native tests; what CI runs), `fuzz.c`/`fuzz.sh` (the fuzzer), `pdfrender.c` (renders a page to PNG on the host), `Install-Folio` (Installer script), `mkicons.py`, `vbcc-aos68k-fpu` (the vbcc config for the 68040+FPU build). |
+| `core/` | Portable C99, no AmigaOS calls: `pdf.c` (objects, xref, page tree), `filters.c` (Flate, LZW, ASCII85/Hex, RunLength, CCITT, DCT), `crypto.c` (RC4, AES, MD5, SHA-2, the standard security handler), `font.c`/`pfont.c`/`cmap.c`/`pdfenc.c`/`fonts.c`/`ttraster.c` (fonts), `render.c`/`raster.c`/`shade.c`/`pimage.c`/`func.c` (content interpreter and rasteriser), `textpage.c` (text extraction and search), `pdfwrite.c` (writing: compression, object streams, AES-128/256 password protection)/`pdfedit.c` (comments, pages), `pngout.c`; after 0.1.2: `pagecontent.c` (adding to page content, object helpers), `forms.c` (AcroForm fill, appearances, FDF/XFDF, preparing forms), `pagetools.c` (boxes, labels, headers/footers, watermarks, backgrounds, Bates, text, pictures, links, attachments, bookmarks, stamps, measuring, new documents, XMP), `contentedit.c` (content rewritten operator by operator), `redact.c` (redaction, hidden information), `optimize.c` (smaller files, print production), `jpegout.c`, `export.c` (HTML, RTF, .docx, .pptx, pictures), `review.c` (compare, accessibility, signatures, PDF/A). |
+| `amiga/` | The MUI front end: `main.c`, `view.c` (the page view: off-screen buffer, blitter scrolling, background rendering of the next page), `bars.c`, `panes.c`, `edits.c` (comments and page editing), `dialogs.c`, `doctools.c` (every tool added after 0.1.2: menus Document, Forms, Protect, the Tools page's groups, form filling by clicking, undo by snapshot), `lang.c`/`lang_table.h` (interface strings). |
+| `tests/` | Native tests (`filtertest.c`, `fonttest.c`, `edittest.c`, `annotdrawtest.c`, `robusttest.c` (hostile PDFs), `allocfail.c` (out of memory everywhere), `savetest.c`, `formtest.c`, `pagetest.c`, `redacttest.c`, `exporttest.c`, `reviewtest.c` (the tools after 0.1.2)), generated PDFs (`gen/`, made by `make_pdfs.py`), PDFs made by Quill (`pdfs/`), test fonts (`fonts/`), `compare.py` (compares rendered pages with poppler's). |
+| `docs/` | `pdfcraft-gap.md`: every PDFCraft tool, menu command and panel with Folio's status and evidence (recount with `tools/gapcount.py`). |
+| `tools/` | `test.sh` (the native tests; what CI runs), `gapcount.py`, `fuzz.c`/`fuzz.sh` (the fuzzer), `pdfrender.c` (renders a page to PNG on the host), `Install-Folio` (Installer script), `mkicons.py`, `vbcc-aos68k-fpu` (the vbcc config for the 68040+FPU build). |
 | `sample/` | `Welcome.pdf`, shipped in the package. |
 
 ## Build and test
@@ -51,8 +52,14 @@ for certificate or key material (`BEGIN CERTIFICATE`, `PRIVATE KEY`, `*.crt`, `*
 - The window fits 640x480. Rendering never blocks the interface: the view renders in steps and keeps
   what was drawn on screen until a later try gets further.
 - Every interface string goes through `amiga/lang.c`/`lang_table.h`.
-- Folio leaves out printing, ARexx, forms, JavaScript, sound/video and editing a page's own text or
-  pictures on purpose. JBIG2 and JPEG 2000 images show blank.
+- Folio leaves out on purpose: printing to printers, ARexx/scripting/MCP, JavaScript (so form
+  formats, validation and calculations aren't run), sound/video/3D, network, cloud and AI services,
+  and signing with certificates over the network. Filling and saving AcroForm forms (appearance
+  streams generated) and the page editing PDFCraft offers (text, pictures, headers and footers,
+  watermarks, redaction, cropping, labels, bookmarks, attachments, metadata, optimizing, splitting,
+  password protection) are in scope since the `pcsync` branch. JBIG2 and JPEG 2000 images show blank.
+- A new feature gets a native test and its line in `docs/pdfcraft-gap.md` (then
+  `python3 tools/gapcount.py docs/pdfcraft-gap.md --write`), and a README note.
 - Test documents must be ours or generated: don't commit PDFs made by others. (Two third-party PDFs
   used locally are listed in `.gitignore`.)
 - Don't use `rm -rf` in scripts or by hand on shared machines; move things aside.
@@ -89,6 +96,16 @@ for a 32-bit build; crashes are kept as `$TMP/folio_fuzz/crash-<seed>.pdf`, repl
 `folio_fuzzer -r FILE`). Its work bound is the renderer's abort callback (a page stops after 1.5 s of
 CPU); Folio has no other per-document work counter. Each new fuzzer finding gets a robusttest case.
 Next: fuzz for longer (also with fonts given through `FUZZ_FONTS`, and seeds from `tests/pdfs/`).
+
+PDFCraft parity (branch `pcsync`, not released yet): `docs/pdfcraft-gap.md` compares Folio with
+PDFCraft's tool catalogue at `2251a75` (2026-11-17): 105 of 131 applicable tools done, 14 partly, 12
+missing (OCR, signing with a certificate, editing page text in place, Action Wizard), 21 left out. New
+core files (forms, pagetools, contentedit, redact, optimize, export, review) have native tests; the
+Amiga side (`amiga/doctools.c`: menus Document, Forms, Protect, more in File/Tools/Pages, the Tools
+page's group cards, click-to-fill fields) builds with vbcc but has **not been tried on an Amiga or
+in an emulator yet**: that check comes first. The fuzzer doesn't cover the new editing code yet
+(`tools/fuzz.c` could run the redaction and form paths on fuzzed files). Next steps: section 3 of
+the gap document.
 
 ## Issues
 

@@ -65,7 +65,10 @@ static char lastdir[512];
 static char findtext[128];
 
 const char *const tool_names[TL_N] = {
-  "Select Text", "Hand", "Sticky Note", "Highlight Text", "Underline Text", "Strikethrough", "Add Text Box", "Draw", "Rectangle", "Oval", "Line"
+  "Select Text", "Hand", "Sticky Note", "Highlight Text", "Underline Text", "Strikethrough", "Add Text Box", "Draw", "Rectangle", "Oval", "Line",
+  "Squiggly Underline", "Arrow", "Cloud", "Stamp", "Measure Distance", "Measure Area", "Measure Perimeter",
+  "Add Text", "Add Picture", "Add Link", "Redact Area", "Add Form Field", "Crop Page",
+  "Fill In Text", "Checkmark", "Cross", "Dot", "Date", "Signature", "Initials"
 };
 
 /* ------------------------------------------------------------------ the menus */
@@ -77,11 +80,16 @@ const char *const tool_names[TL_N] = {
 #define BAR { NM_ITEM, NM_BARLABEL, 0, 0, 0, 0 }
 static struct NewMenu menus[] = {
   M("File"),
-  I("Open...", "O", ID_OPEN), I("Close", "W", ID_CLOSE), I("Close All", 0, ID_CLOSEALL), BAR,
-  I("Save", "S", ID_SAVE), I("Save As...", 0, ID_SAVEAS), BAR,
-  H("Export"), S("Page as PNG Picture...", 0, ID_EXPPAGE), S("Text...", 0, ID_EXPTEXT),
-  I("Extract Pages...", 0, ID_EXTRACT), BAR,
-  I("Properties...", "D", ID_PROPS), BAR,
+  I("Open...", "O", ID_OPEN), I("New Blank Document...", "N", ID_NEWBLANK),
+  H("Create PDF"), S("From Pictures...", 0, ID_FROMIMAGES), S("From a Text File...", 0, ID_FROMTEXT), S("From the Clipboard", 0, ID_FROMCLIP),
+  S("Pictures to Separate PDFs...", 0, ID_SEPARATE),
+  I("Close", "W", ID_CLOSE), I("Close All", 0, ID_CLOSEALL), BAR,
+  I("Save", "S", ID_SAVE), I("Save As...", 0, ID_SAVEAS), I("Revert to Saved", 0, ID_REVERT), BAR,
+  H("Export"), S("Page as PNG Picture...", 0, ID_EXPPAGE), S("Text...", 0, ID_EXPTEXT), S("Web Page (HTML)...", 0, ID_EXPHTML),
+  S("Rich Text (RTF)...", 0, ID_EXPRTF), S("Word (.docx)...", 0, ID_EXPDOCX), S("PowerPoint (.pptx)...", 0, ID_EXPPPTX), S("All Pictures...", 0, ID_EXPIMAGES),
+  I("Extract Pages...", 0, ID_EXTRACT), I("Split Document...", 0, ID_SPLIT), BAR,
+  I("Protect with Password...", 0, ID_SAVEPW), I("Reduce File Size...", 0, ID_REDUCE), I("Save as PDF/A...", 0, ID_PDFA), BAR,
+  I("Properties...", "D", ID_PROPS), I("Word Count", 0, ID_WORDCOUNT), BAR,
   I("Home", 0, ID_HOME), I("All Tools", 0, ID_TOOLS), BAR,
   I("About Folio...", "?", ID_ABOUT), I("Quit", "Q", ID_QUIT),
   M("Edit"),
@@ -98,15 +106,50 @@ static struct NewMenu menus[] = {
   T("Dark Interface", 0, ID_DARKUI),
   M("Tools"),
   I("Select Text", "V", ID_TOOL0 + TL_SELECT), I("Hand", "H", ID_TOOL0 + TL_HAND), BAR,
-  I("Comment", "K", ID_COMMENTMODE), I("Organize Pages", 0, ID_ORGANIZE), I("Combine Files...", 0, ID_COMBINE), BAR,
+  I("Comment", "K", ID_COMMENTMODE), I("Organize Pages", 0, ID_ORGANIZE), I("Combine Files...", 0, ID_COMBINE), I("Compare Files...", 0, ID_COMPARE), BAR,
   I("Sticky Note", 0, ID_TOOL0 + TL_NOTE), I("Highlight Text", 0, ID_TOOL0 + TL_HIGHLIGHT), I("Underline Text", 0, ID_TOOL0 + TL_UNDERLINE),
-  I("Strikethrough", 0, ID_TOOL0 + TL_STRIKE), I("Add Text Box", 0, ID_TOOL0 + TL_TEXTBOX), I("Draw", 0, ID_TOOL0 + TL_INK),
-  I("Rectangle", 0, ID_TOOL0 + TL_RECT), I("Oval", 0, ID_TOOL0 + TL_OVAL), I("Line", 0, ID_TOOL0 + TL_LINE), BAR,
+  I("Strikethrough", 0, ID_TOOL0 + TL_STRIKE), I("Squiggly Underline", 0, ID_TOOL0 + TL_SQUIGGLY), I("Add Text Box", 0, ID_TOOL0 + TL_TEXTBOX), I("Draw", 0, ID_TOOL0 + TL_INK),
+  I("Rectangle", 0, ID_TOOL0 + TL_RECT), I("Oval", 0, ID_TOOL0 + TL_OVAL), I("Line", 0, ID_TOOL0 + TL_LINE), I("Arrow", 0, ID_TOOL0 + TL_ARROW),
+  I("Cloud", 0, ID_TOOL0 + TL_CLOUD), I("Stamp...", 0, ID_STAMPPICK),
+  H("Measure"), S("Distance", 0, ID_TOOL0 + TL_MEASURE), S("Perimeter", 0, ID_TOOL0 + TL_PERIM), S("Area", 0, ID_TOOL0 + TL_AREA),
+  S("Drawing Scale...", 0, ID_SCALE), S("Measurements...", 0, ID_MEASINFO), S("Export Measurements...", 0, ID_MEASEXPORT),
+  I("Flatten Comments", 0, ID_FLATTENCOMMENTS), BAR,
+  H("Fill & Sign"), S("Add Text", 0, ID_TOOL0 + TL_FTEXT), S("Checkmark", 0, ID_TOOL0 + TL_CHECK), S("Cross", 0, ID_TOOL0 + TL_CROSS),
+  S("Dot", 0, ID_TOOL0 + TL_DOT), S("Line", 0, ID_TOOL0 + TL_LINE), S("Date", 0, ID_TOOL0 + TL_DATE), S("Signature", 0, ID_TOOL0 + TL_SIGN),
+  S("Initials", 0, ID_TOOL0 + TL_INITIALS), S("Change Signature...", 0, ID_SIGCHANGE), S("Change Initials...", 0, ID_INITCHANGE), BAR,
   I("Comment Colour...", 0, ID_COLOR),
   M("Pages"),
   I("Rotate Anticlockwise", 0, ID_ROTL), I("Rotate Clockwise", 0, ID_ROTR), BAR,
-  I("Delete Pages...", 0, ID_DELPAGES), I("Insert Blank Page...", 0, ID_INSBLANK), I("Insert Pages from File...", 0, ID_INSFILE), I("Extract Pages...", 0, ID_EXTRACT), BAR,
-  I("Move Page Earlier", 0, ID_MOVEUP), I("Move Page Later", 0, ID_MOVEDOWN),
+  I("Delete Pages...", 0, ID_DELPAGES), I("Insert Blank Page...", 0, ID_INSBLANK), I("Insert Pages from File...", 0, ID_INSFILE), I("Replace Pages...", 0, ID_REPLACE),
+  I("Extract Pages...", 0, ID_EXTRACT), I("Duplicate Page...", 0, ID_DUPLICATE), I("Reverse Pages", 0, ID_REVERSE), I("Split Document...", 0, ID_SPLIT), BAR,
+  I("Move Page Earlier", 0, ID_MOVEUP), I("Move Page Later", 0, ID_MOVEDOWN), BAR,
+  I("Crop Pages...", 0, ID_CROP), I("Crop Page to a Box", 0, ID_TOOL0 + TL_CROP), I("Set Page Boxes...", 0, ID_BOXES), I("Page Labels...", 0, ID_LABELS),
+  M("Document"),
+  I("Add Text", 0, ID_TOOL0 + TL_ADDTEXT), I("Add Picture", 0, ID_TOOL0 + TL_ADDIMAGE), I("Add Link", 0, ID_TOOL0 + TL_LINK), BAR,
+  H("Header & Footer"), S("Add or Update...", 0, ID_HEADER), S("Remove", 0, ID_HEADERDEL),
+  H("Watermark"), S("Add or Update...", 0, ID_WATERMARK), S("Remove", 0, ID_WATERMARKDEL),
+  H("Background"), S("Add or Update...", 0, ID_BACKGROUND), S("Remove", 0, ID_BACKGROUNDDEL),
+  H("Bates Numbering"), S("Add or Update...", 0, ID_BATES), S("Remove", 0, ID_BATESDEL), BAR,
+  I("Attach File...", 0, ID_ATTACH), I("Attachments...", 0, ID_ATTACHMENTS), BAR,
+  H("Bookmarks"), S("Add Bookmark...", 0, ID_BMADD), S("Rename Bookmark...", 0, ID_BMRENAME), S("Delete Bookmark...", 0, ID_BMDELETE), S("New Bookmarks from Headings", 0, ID_BMSTYLES), BAR,
+  H("Accessibility"), S("Check...", 0, ID_A11YCHECK), S("Reading Options...", 0, ID_READOPTS), S("Automatically Tag", 0, ID_AUTOTAG),
+  S("Find Untagged Content", 0, ID_UNTAGGED), S("Alternate Text...", 0, ID_ALTTEXT), S("Tags...", 0, ID_TAGTREE),
+  I("Signatures...", 0, ID_SIGNATURES), BAR,
+  H("Print Production"), S("Fix Hairlines...", 0, ID_HAIRLINES), S("Convert Colours to Grey", 0, ID_TOGRAY), S("Add Printer Marks...", 0, ID_MARKS), S("Set Page Boxes...", 0, ID_BOXES),
+  H("Optimize"), S("Reduce File Size...", 0, ID_REDUCE), S("Advanced Optimization...", 0, ID_ADVOPT), S("Audit Space Usage...", 0, ID_AUDIT),
+  M("Forms"),
+  I("Field List...", 0, ID_FIELDLIST), BAR,
+  H("Add Field"), S("Text Field", 0, ID_FIELDTOOL + 0), S("Text Field Table", 0, ID_FIELDTOOL + 8), S("Check Box", 0, ID_FIELDTOOL + 1),
+  S("Radio Button", 0, ID_FIELDTOOL + 2), S("Drop-down List", 0, ID_FIELDTOOL + 4), S("List Box", 0, ID_FIELDTOOL + 5), S("Button", 0, ID_FIELDTOOL + 3),
+  S("Picture Field", 0, ID_FIELDTOOL + 9), S("Date Field", 0, ID_FIELDTOOL + 7), S("Signature Field", 0, ID_FIELDTOOL + 6),
+  I("Detect Form Fields", 0, ID_DETECT), I("Field Properties...", 0, ID_FIELDPROPS), I("Tab Order by Rows", 0, ID_TABROWS), I("Tab Order by Columns", 0, ID_TABCOLS),
+  I("Calculation Order...", 0, ID_CALCORDER), BAR,
+  I("Clear Form", 0, ID_CLEARFORM), I("Flatten Form", 0, ID_FLATTENFORM), I("Import Data...", 0, ID_IMPORTDATA), I("Export Data...", 0, ID_EXPORTDATA),
+  M("Protect"),
+  I("Protect with Password...", 0, ID_SAVEPW), I("Security Properties...", 0, ID_SECPROPS), I("Remove Security", 0, ID_REMSEC), BAR,
+  I("Redact Area", 0, ID_TOOL0 + TL_REDACT), I("Find Text and Redact...", 0, ID_REDACTTEXT), I("Redact Page", 0, ID_REDACTPAGE),
+  I("Redaction Properties...", 0, ID_REDACTPROPS), I("Apply Redactions", 0, ID_REDACTAPPLY), BAR,
+  I("Remove Hidden Information...", 0, ID_HIDDEN), I("Sanitize Document...", 0, ID_SANITIZE),
   M("Window"),
   I("Next Document", "`", ID_NEXTDOC), I("Previous Document", 0, ID_PREVDOC),
   { NM_END, 0, 0, 0, 0, 0 }
@@ -561,6 +604,9 @@ static void doc_free(DocView *v)
   if (v->pdf) pdf_close(v->pdf);
   memset(v, 0, sizeof *v);
 }
+static int doc_show(PDoc *d, const char *path, int encrypted);
+/* (doctools.c) a document it made, shown in a tab */
+void doc_show_new(PDoc *d, const char *path, int encrypted) { add_recent(path); doc_show(d, path, encrypted); }
 static int doc_show(PDoc *d, const char *path, int encrypted)
 {
   DocView *v;
@@ -796,10 +842,12 @@ static void command(ULONG id)
     v = cur_view();
     if (v->mode == VM_ORGANIZE) set_mode(v, VM_READ);
     /* the comment tools open the comment bar, as PDFCraft does */
-    if (t >= TL_NOTE && !comment_mode) { comment_mode = 1; refresh_all(); }
+    if (((t >= TL_NOTE && t <= TL_LASTCOMMENT) || t >= TL_FTEXT) && !comment_mode) { comment_mode = 1; refresh_all(); }
+    if (t == TL_STAMP && !opt.stamp[0]) doc_command(ID_STAMPPICK);
     set_tool(t);
     return;
   }
+  if (doc_command(id)) return;
   switch (id) {
   case ID_OPEN: open_file(); return;
   case ID_HOME: page_mode = PM_HOME; refresh_all(); return;
@@ -1140,6 +1188,11 @@ static void opts_defaults(void)
   opt.color[TL_LINE] = 0xE02020; opt.color[TL_SELECT] = opt.color[TL_HAND] = 0xE02020;
   opt.width = 2; opt.text_size = 12;
   strcpy(opt.author, "Amiga User");
+  opt.color[TL_SQUIGGLY] = 0x20A020; opt.color[TL_ARROW] = 0xE02020; opt.color[TL_CLOUD] = 0x2050E0; opt.color[TL_STAMP] = 0x108020;
+  opt.color[TL_MEASURE] = opt.color[TL_AREA] = opt.color[TL_PERIM] = 0xC020C0; opt.color[TL_ADDTEXT] = 0x000000;
+  opt.color[TL_FTEXT] = opt.color[TL_CHECK] = opt.color[TL_CROSS] = opt.color[TL_DOT] = opt.color[TL_DATE] = 0x000000;
+  opt.color[TL_SIGN] = opt.color[TL_INITIALS] = 0x102080;
+  opt.scale = 72; strcpy(opt.unit, "in");
 }
 static void load_prefs(void)
 {
@@ -1156,6 +1209,10 @@ static void load_prefs(void)
     else if (!strncmp(line, "navmode=", 8)) nav_mode = atoi(line + 8) ? 1 : 0;
     else if (!strncmp(line, "tools=", 6)) show_tools = atoi(line + 6);
     else if (!strncmp(line, "width=", 6)) { double w = atof(line + 6); if (w > 0.1 && w < 20) opt.width = w; }
+    else if (!strncmp(line, "signature=", 10)) strncpy(opt.signature, line + 10, sizeof opt.signature - 1);
+    else if (!strncmp(line, "initials=", 9)) strncpy(opt.initials, line + 9, sizeof opt.initials - 1);
+    else if (!strncmp(line, "scale=", 6)) { double sc = atof(line + 6); if (sc > 0) opt.scale = sc; }
+    else if (!strncmp(line, "unit=", 5)) strncpy(opt.unit, line + 5, sizeof opt.unit - 1);
     else if (!strncmp(line, "recent=", 7) && nrecent < MAXRECENT) { strncpy(recent[nrecent], line + 7, sizeof recent[0] - 1); nrecent++; }
     else if (!strncmp(line, "color", 5) && line[5] >= '0' && line[5] <= '9') {
       int t = atoi(line + 5);
@@ -1175,6 +1232,9 @@ static void save_prefs(void)
   if (pub_screen[0]) fprintf(f, "screen=%s\n", pub_screen);
   if (lastdir[0]) fprintf(f, "dir=%s\n", lastdir);
   for (i = 0; i < TL_N; i++) fprintf(f, "color%d=%06lX\n", i, (unsigned long)opt.color[i]);
+  if (opt.signature[0]) fprintf(f, "signature=%s\n", opt.signature);
+  if (opt.initials[0]) fprintf(f, "initials=%s\n", opt.initials);
+  fprintf(f, "scale=%g\nunit=%s\n", opt.scale, opt.unit);
   for (i = 0; i < nrecent; i++) fprintf(f, "recent=%s\n", recent[i]);
   fclose(f);
 }

@@ -41,3 +41,40 @@ int clip_write(const char *s, long len)
   DeleteMsgPort(mp);
   return ok;
 }
+/* (after 0.1.2) the text on clipboard unit 0, if it holds an FTXT form: its CHRS chunks joined,
+   malloc'd and 0-terminated (Latin-1); NULL if there is none. The device is read to the end of
+   the clip (as it wants), whatever was found */
+char *clip_read(void)
+{
+  struct MsgPort *mp;
+  struct IOClipReq *io;
+  char *res = NULL;
+  if (!(mp = CreateMsgPort())) return NULL;
+  if ((io = (struct IOClipReq *)CreateIORequest(mp, sizeof(struct IOClipReq)))) {
+    if (!OpenDevice((STRPTR)"clipboard.device", 0, (struct IORequest *)io, 0)) {
+      ULONG hdr[3], ch[2];
+      long total, pos = 4, got = 0;
+      io->io_Offset = 0; io->io_Error = 0; io->io_ClipID = 0;
+      if (clip_io(io, CMD_READ, hdr, 12) && io->io_Actual == 12 && hdr[0] == 0x464F524DUL && hdr[2] == 0x46545854UL && hdr[1] < 0x1000000UL) {
+        total = (long)hdr[1];
+        res = (char *)malloc((size_t)total + 1);
+        while (res && pos + 8 <= total && clip_io(io, CMD_READ, ch, 8) && io->io_Actual == 8) {
+          long n = (long)ch[1];
+          pos += 8;
+          if (n < 0 || pos + n > total) break;
+          if (ch[0] == 0x43485253UL) { if (!clip_io(io, CMD_READ, res + got, (ULONG)n)) break; got += (long)io->io_Actual; }
+          else { char skip[256]; long k = n; while (k > 0) { long s = k > 256 ? 256 : k; if (!clip_io(io, CMD_READ, skip, (ULONG)s)) break; k -= s; } }
+          pos += n;
+          if (n & 1) { char p; clip_io(io, CMD_READ, &p, 1); pos++; }
+        }
+        if (res) res[got] = 0;
+      }
+      /* read on to the end, so the device knows this reader is done */
+      { char rest[256]; do { if (!clip_io(io, CMD_READ, rest, sizeof rest)) break; } while (io->io_Actual == sizeof rest); }
+      CloseDevice((struct IORequest *)io);
+    }
+    DeleteIORequest((struct IORequest *)io);
+  }
+  DeleteMsgPort(mp);
+  return res;
+}

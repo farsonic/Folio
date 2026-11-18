@@ -24,6 +24,47 @@ program.
   hung before its fix; also built with a 32-bit `long` as on the Amiga), `tests/allocfail.c`
   (running out of memory at every point while opening and drawing a page) and a fuzzer,
   `tools/fuzz.c` (`FUZZ=1 sh tools/test.sh`, or `sh tools/fuzz.sh SECONDS`).
+- PDFCraft's other tools, in the new Document, Forms and Protect menus, more items in File, Tools
+  and Pages, and as cards on the Tools page (each opens a list of its tools). `docs/pdfcraft-gap.md`
+  lists every PDFCraft tool with what Folio has.
+  - **Forms**: click a field with the Select tool to fill it in (text, check boxes, radio buttons,
+    drop-down and list boxes). Folio draws each value into the field's appearance, so every reader
+    shows it. Forms › Field List, Clear Form, Flatten Form, Import and Export Data (FDF or XFDF).
+    Preparing a form: add text fields (and tables of them), check boxes, radio buttons, drop-down
+    and list boxes, buttons, date, picture and signature fields by dragging a box; Detect Form
+    Fields turns drawn blanks (`____`, `[ ]`) into fields; Field Properties, tab order, calculation
+    order. Scripts in forms aren't run.
+  - **Fill & Sign**: type text anywhere, tick, cross, dot, line, today's date, your signature and
+    initials (typed, kept in Folio.prefs).
+  - **Page content**: add text and pictures (JPEG, PNG) to a page; headers and footers (page
+    number, page count, page label, date), Bates numbers, watermarks (text or picture, any angle,
+    see-through) and backgrounds, each updated by adding it again and removable; links to a page
+    or a web address; attached files (add, list, save, delete).
+  - **Pages**: replace, split (every so many pages, at bookmarks, or into so many files), duplicate,
+    reverse, crop (by margins, or to a box drawn), page boxes, page labels.
+  - **Comments**: squiggly underline, arrow, cloud, stamps (twelve kinds or your own text),
+    measuring distance, perimeter and area at a drawing scale (listed and exported as CSV), and
+    Flatten Comments.
+  - **Bookmarks**: add, rename, delete, and new bookmarks made from the headings (text set larger
+    than the body text).
+  - **Protect**: save a copy with a password (AES-256 or AES-128) and permissions; security
+    properties; redaction (areas, pages or every match of some text are marked, then Apply
+    Redactions removes the text and pixels under them for good and paints them over); Remove Hidden
+    Information and Sanitize (metadata, scripts, attachments, comments, form fields, hidden layers,
+    invisible text, thumbnails, private data, links).
+  - **Smaller files**: Reduce File Size and Advanced Optimization (pictures at a lower resolution,
+    identical data stored once, everything compressed, objects packed) and Audit Space Usage.
+  - **Create and export**: a new blank document, a PDF from pictures, a text file or the
+    clipboard; export as a web page, RTF, Word (.docx), PowerPoint (a picture of each page per
+    slide), or all the pictures a document holds.
+  - **Review**: Compare Files (the changes listed and highlighted); accessibility (check, reading
+    options, automatic tagging, untagged content, alternate text, tags); signatures checked (has
+    the signed part changed?); print production (fix hairlines, convert to grey, printer's marks);
+    Save as PDF/A (fonts that aren't embedded are reported); Word Count; Revert to Saved.
+  - Changes to the whole document (headers, redaction, optimizing...) are undone by Undo too: Folio
+    keeps a copy of the document from before the last three of them.
+  - Not tried on an Amiga yet: the native tests cover the core, and the Amiga build compiles and
+    links, but the new windows and tools still need checking on a real or emulated Amiga.
 
 ## New in 0.1.2
 
@@ -158,15 +199,20 @@ screen, and with file names to open them. `DEBUG=file` writes a log.
 
 ## Not included
 
-Folio leaves out printing and ARexx. It doesn't edit a page's own text or pictures, fill in
-forms, run JavaScript, or play sound and video. JBIG2 and JPEG 2000 pictures show as blank.
+Folio leaves out printing, ARexx and scripting, JavaScript (so forms' formats and calculations
+aren't run), sound, video and 3D, and anything needing a network (cloud, AI, signing through a
+server). It doesn't recognize text in scans (OCR), sign with a certificate, or edit the text and
+pictures a page already has (it adds to pages and redacts). JBIG2 and JPEG 2000 pictures show as
+blank.
 
 ## Source
 
 The Source drawer holds Folio's C source. `core/` is portable C99: the PDF reader (objects,
 cross-reference, filters, encryption), the fonts, the renderer, text extraction, and the writer
 and editor. It has native tests (`tests/filtertest.c`, `tests/fonttest.c`, `tests/edittest.c`,
-`tests/robusttest.c`, `tests/allocfail.c`, plus `tests/compare.py`, which compares pages with
+`tests/robusttest.c`, `tests/allocfail.c`, and for the tools after 0.1.2 `tests/savetest.c`,
+`tests/formtest.c`, `tests/pagetest.c`, `tests/redacttest.c`, `tests/exporttest.c`,
+`tests/reviewtest.c`, plus `tests/compare.py`, which compares pages with
 poppler's) run under the address and undefined-behaviour sanitizers, and a fuzzer
 (`tools/fuzz.c`, `tools/fuzz.sh`). `amiga/` is the MUI front end. `build.sh` runs the tests and
 builds Folio with vbcc.

@@ -300,11 +300,25 @@ static const ToolDef tooldefs[] = {
   { ID_COMMENTMODE, IC_F_COMMENTS, "Comment", "Add sticky notes, highlight, underline and strike out text, add text boxes, draw and add shapes." },
   { ID_ORGANIZE, IC_F_ORGANIZE, "Organize Pages", "See every page as a thumbnail: reorder, rotate, delete, insert and extract pages." },
   { ID_COMBINE, IC_F_COMBINE, "Combine Files", "Add the pages of another PDF to the end of this one." },
-  { ID_EXPORTTOOL, IC_F_EXPORT, "Export PDF", "Save a page as a PNG picture, or the document's text as a text file." },
+  { ID_GROUP0 + 10, IC_F_EXPORT, "Export PDF", "As pictures, text, a web page, RTF, Word or PowerPoint, or every picture it holds." },
   { ID_EXTRACT, IC_F_EXTRACT, "Extract Pages", "Save some of the pages as a new PDF file." },
   { ID_INSBLANK, IC_F_INSERT, "Insert Blank Page", "Add an empty page after the one in view." },
   { ID_FIND, IC_F_FIND, "Find Text", "Search the document for words." },
   { ID_PROPS, IC_F_PROPS, "Properties", "The document's title, author, subject and keywords, and what it is made of." },
+  /* (after 0.1.2) PDFCraft's other tool groups: each offers its tools in a list */
+  { ID_GROUP0 + 0, IC_F_TEXTBOX, "Edit a PDF", "Add text, pictures, links, headers and footers, watermarks, backgrounds, Bates numbers and attachments." },
+  { ID_GROUP0 + 2, IC_F_INK, "Fill & Sign", "Type into a form without fields, tick, cross, date and sign." },
+  { ID_GROUP0 + 3, IC_F_RECT, "Prepare a Form", "Add form fields, find them, set their properties and tab order, clear, flatten, import and export data." },
+  { ID_GROUP0 + 4, IC_F_PROPS, "Protect a PDF", "Password protection with permissions, hidden information, security." },
+  { ID_GROUP0 + 5, IC_F_DELETE, "Redact a PDF", "Mark areas, pages or text found, then remove what is under them for good." },
+  { ID_GROUP0 + 6, IC_F_EXTRACT, "Compress a PDF", "Make the file smaller: pictures at a lower resolution, streams compressed, objects packed." },
+  { ID_GROUP0 + 1, IC_F_BLANK, "Create a PDF", "A blank document, or one from pictures, a text file or the clipboard." },
+  { ID_GROUP0 + 11, IC_F_ORGANIZE, "More Page Tools", "Replace, split, duplicate, reverse and crop pages; page boxes and labels." },
+  { ID_STAMPPICK, IC_F_NOTE, "Add a Stamp", "Approved, Draft, Confidential and other stamps, or your own text." },
+  { ID_GROUP0 + 7, IC_F_LINE, "Measure", "Distances, perimeters and areas at a drawing scale." },
+  { ID_GROUP0 + 8, IC_F_PROPS, "Accessibility", "Tag the document, check it, reading options and alternate text." },
+  { ID_GROUP0 + 9, IC_F_EXPORT, "Print Production", "Hairlines, grey, printer's marks and page boxes." },
+  { ID_GROUP0 + 12, IC_F_FIND, "Compare, Sign, Standards", "Compare two versions, check signatures, save as PDF/A." },
 };
 #define NTOOLDEFS (int)(sizeof tooldefs / sizeof tooldefs[0])
 typedef struct { int page, index, kind; char who[48], date[24], text[160]; } CRow;
@@ -596,11 +610,16 @@ struct MUI_CustomClass *home_class(void)
 /* ================================================================== the Tools page */
 struct GData { struct MUI_EventHandlerNode ehn; int shown, hot; };
 #define GCOLS 3
+/* (after 0.1.2) the cards shrink to fit the page: shorter (their description cut, then left out)
+   and, when wide enough, four to a row, so every tool shows on a 640 x 480 screen */
 static void card_box(Object *obj, int i, LONG *r)
 {
-  LONG l = _mleft(obj) + 16, w = (_mwidth(obj) - 32 - (GCOLS - 1) * 12) / GCOLS, h = fh() * 4 + 44;
-  LONG top = _mtop(obj) + 22 + theme_big()->tf_YSize;
-  r[0] = l + (i % GCOLS) * (w + 12); r[1] = top + (i / GCOLS) * (h + 12); r[2] = r[0] + w - 1; r[3] = r[1] + h - 1;
+  LONG top = _mtop(obj) + 22 + theme_big()->tf_YSize, avail = _mbottom(obj) - top, l = _mleft(obj) + 16;
+  int cols = _mwidth(obj) >= 760 ? 4 : GCOLS, rows = (NTOOLDEFS + cols - 1) / cols;
+  LONG gap = 12, w = (_mwidth(obj) - 32 - (cols - 1) * gap) / cols, h = fh() * 4 + 44;
+  if (rows * (h + gap) > avail) { gap = 6; h = avail / rows - gap; }
+  if (h < fh() + 22) h = fh() + 22;
+  r[0] = l + (i % cols) * (w + gap); r[1] = top + (i / cols) * (h + gap); r[2] = r[0] + w - 1; r[3] = r[1] + h - 1;
 }
 static void grid_draw(struct GData *d, Object *obj)
 {
@@ -617,7 +636,7 @@ static void grid_draw(struct GData *d, Object *obj)
     theme_rect(rp, r[0], r[1], r[2], r[3], tpen(i == d->hot ? T_ACCENT : T_BORDER));
     theme_icon(rp, tooldefs[i].icon, r[0] + 10, r[1] + 10, 24, 0);
     text_fit(rp, theme_bold(), r[0] + 42, r[1] + 10 + (24 - fh()) / 2, tr(tooldefs[i].name), r[2] - r[0] - 50, tpen(T_TEXT));
-    wrap_text(rp, theme_font(), r[0] + 10, r[1] + 42, r[2] - r[0] - 20, tr(tooldefs[i].help), tpen(T_DIM), 3);
+    if (r[3] - r[1] >= fh() + 44) wrap_text(rp, theme_font(), r[0] + 10, r[1] + 42, r[2] - r[0] - 20, tr(tooldefs[i].help), tpen(T_DIM), (int)((r[3] - r[1] - 44) / fh()) < 3 ? (int)((r[3] - r[1] - 44) / fh()) : 3);
     (void)st;
   }
 }

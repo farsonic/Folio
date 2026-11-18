@@ -896,7 +896,7 @@ static void choose_annot(struct Data *d, Object *obj, int page, int index)
   if (page >= 0 && page != old) redraw_page(d, obj, page);
   tell(obj, MUIA_View_Picked);
 }
-static int is_markup_tool(int t) { return t == TL_HIGHLIGHT || t == TL_UNDERLINE || t == TL_STRIKE; }
+static int is_markup_tool(int t) { return t == TL_HIGHLIGHT || t == TL_UNDERLINE || t == TL_STRIKE || t == TL_SQUIGGLY; }
 static void press(struct Data *d, Object *obj, LONG mx, LONG my, UWORD qual, ULONG secs, ULONG micros)
 {
   DocView *v = d->lv;
@@ -940,8 +940,11 @@ static void press(struct Data *d, Object *obj, LONG mx, LONG my, UWORD qual, ULO
   d->dpage = i; d->ax = d->bx = x; d->ay = d->by = y;
   switch (tool) {
   case TL_SELECT: {
-    int an = annot_at(v->pdf, i, x, y), c;
+    int an, c;
     TextPage *t;
+    /* (after 0.1.2) a form field is filled in by clicking it */
+    if (form_click(v, i, x, y)) { d->drag = DR_NONE; return; }
+    an = annot_at(v->pdf, i, x, y);
     if (an >= 0) {
       choose_annot(d, obj, i, an);
       if (v->sel_page >= 0) sel_clear(d, obj);
@@ -973,7 +976,7 @@ static void press(struct Data *d, Object *obj, LONG mx, LONG my, UWORD qual, ULO
     if (v->sel_page >= 0) sel_clear(d, obj);
     d->drag = DR_CLICK;
     return; }
-  case TL_HIGHLIGHT: case TL_UNDERLINE: case TL_STRIKE: {
+  case TL_HIGHLIGHT: case TL_UNDERLINE: case TL_STRIKE: case TL_SQUIGGLY: {
     TextPage *t = page_text(v, i);
     int c = t ? textpage_hit(t, x, y, 6) : -1;
     if (c < 0) { d->drag = DR_PAN; return; }
@@ -986,13 +989,18 @@ static void press(struct Data *d, Object *obj, LONG mx, LONG my, UWORD qual, ULO
   case TL_RECT: d->drag = DR_RECT; break;
   case TL_OVAL: d->drag = DR_OVAL; break;
   case TL_LINE: d->drag = DR_LINE; break;
+  /* (after 0.1.2) the tools of doctools.c: a drag makes a box or a line, or a click */
+  case TL_ARROW: case TL_MEASURE: d->drag = DR_LINE; break;
+  case TL_CLOUD: case TL_AREA: case TL_PERIM: case TL_ADDIMAGE: case TL_LINK: case TL_REDACT: case TL_FIELD: case TL_CROP: d->drag = DR_RECT; break;
   case TL_INK:
     d->nink = 0;
     if (d->capink < 64) { free(d->ink); d->ink = (double *)malloc(64 * 2 * sizeof(double)); d->capink = d->ink ? 64 : 0; }
     if (d->ink) { d->ink[0] = x; d->ink[1] = y; d->nink = 1; }
     d->drag = DR_INK;
     break;
-  default: d->drag = DR_PAN; return;
+  default:
+    if (TL_IS_CLICK(tool)) { d->drag = DR_CLICK; return; }
+    d->drag = DR_PAN; return;
   }
   ov_show(d, obj);
 }
@@ -1076,6 +1084,7 @@ static void release(struct Data *d, Object *obj, LONG mx, LONG my)
       if (i >= 0) {
         to_page(d, obj, i, mx, my, &x, &y);
         if (tool == TL_NOTE && drag == DR_CLICK) { edit_note(v, i, x, y); return; }
+        if (TL_IS_CLICK(tool) && drag == DR_CLICK) { tool_click(v, i, tool, x, y); return; }
         if (tool == TL_SELECT || tool == TL_HAND) follow_link(d, obj, i, x, y, 1);
       }
     }
@@ -1097,7 +1106,7 @@ static void release(struct Data *d, Object *obj, LONG mx, LONG my)
       int page = v->sel_page;
       if (n > 0) {
         v->sel_page = -1;
-        edit_markup(v, page, tool == TL_HIGHLIGHT ? AN_HIGHLIGHT : tool == TL_UNDERLINE ? AN_UNDERLINE : AN_STRIKE, q, n);
+        edit_markup(v, page, tool == TL_HIGHLIGHT ? AN_HIGHLIGHT : tool == TL_UNDERLINE ? AN_UNDERLINE : tool == TL_SQUIGGLY ? AN_SQUIGGLY : AN_STRIKE, q, n);
       }
       free(q);
       return;
@@ -1107,6 +1116,7 @@ static void release(struct Data *d, Object *obj, LONG mx, LONG my)
   case DR_RECT: case DR_OVAL: case DR_LINE: case DR_BOX: {
     double c[4];
     c[0] = d->ax; c[1] = d->ay; c[2] = d->bx; c[3] = d->by;
+    if (tool > TL_LINE) { tool_drag(v, d->dpage, tool, c, moved); return; }
     if (!moved) {
       if (drag != DR_BOX) return;
       /* a click: a text box of a usual size there */

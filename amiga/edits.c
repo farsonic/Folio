@@ -156,7 +156,7 @@ void undo_push(DocView *v, int kind, int page, int index, int a, int b, PObj *ob
 static void undo_end(void) { grp_open = 0; }
 const char *undo_name(DocView *v)
 {
-  static const char *const names[] = { "Add Comment", "Delete Comment", "Edit Comment", "Rotate Pages", "Delete Pages", "Move Page", "Insert Pages" };
+  static const char *const names[] = { "Add Comment", "Delete Comment", "Edit Comment", "Rotate Pages", "Delete Pages", "Move Page", "Insert Pages", "Change Document" };
   if (!v || !v->nundo) return "";
   return names[v->undo[v->nundo - 1].kind];
 }
@@ -177,6 +177,7 @@ int undo_last(DocView *v)
     case U_DELPAGE: pdf_restore_page(d, u->page, u->obj); pages = 1; break;
     case U_MOVEPAGE: pdf_move_page(d, u->b, u->a); pages = 1; break;
     case U_INSERT: for (k = u->a - 1; k >= 0; k--) pdf_delete_page(d, u->page + k); pages = 1; break;
+    case U_SNAPSHOT: doc_restore(v, u); undo_free(u); return 1;   /* (the document was replaced: nothing else to do) */
     }
     undo_free(u);
   }
@@ -206,7 +207,7 @@ static void added(DocView *v, int page)
 }
 void edit_markup(DocView *v, int page, int kind, const double *quads, int nquads)
 {
-  int t = kind == AN_HIGHLIGHT ? TL_HIGHLIGHT : kind == AN_UNDERLINE ? TL_UNDERLINE : TL_STRIKE;
+  int t = kind == AN_HIGHLIGHT ? TL_HIGHLIGHT : kind == AN_UNDERLINE ? TL_UNDERLINE : kind == AN_SQUIGGLY ? TL_SQUIGGLY : TL_STRIKE;
   if (annot_markup(v->pdf, page, kind, quads, nquads, opt.color[t], author(), NULL)) added(v, page);
 }
 void edit_note(DocView *v, int page, double x, double y)

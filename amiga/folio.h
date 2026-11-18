@@ -26,7 +26,16 @@ extern struct Library *MUIMasterBase, *CyberGfxBase;
 #define QTAG (TAG_USER | 0x464F0000UL)
 
 /* ------------------------------------------------------------------ tools */
-enum { TL_SELECT, TL_HAND, TL_NOTE, TL_HIGHLIGHT, TL_UNDERLINE, TL_STRIKE, TL_TEXTBOX, TL_INK, TL_RECT, TL_OVAL, TL_LINE, TL_N };
+enum { TL_SELECT, TL_HAND, TL_NOTE, TL_HIGHLIGHT, TL_UNDERLINE, TL_STRIKE, TL_TEXTBOX, TL_INK, TL_RECT, TL_OVAL, TL_LINE,
+       /* (after 0.1.2) comment tools: */
+       TL_SQUIGGLY, TL_ARROW, TL_CLOUD, TL_STAMP, TL_MEASURE, TL_AREA, TL_PERIM,
+       /* page tools (doctools.c): */
+       TL_ADDTEXT, TL_ADDIMAGE, TL_LINK, TL_REDACT, TL_FIELD, TL_CROP,
+       /* Fill & Sign: */
+       TL_FTEXT, TL_CHECK, TL_CROSS, TL_DOT, TL_DATE, TL_SIGN, TL_INITIALS, TL_N };
+#define TL_LASTCOMMENT TL_PERIM
+/* tools that take a click (the others a drag) */
+#define TL_IS_CLICK(t) ((t) == TL_STAMP || (t) == TL_ADDTEXT || ((t) >= TL_FTEXT && (t) <= TL_INITIALS))
 extern int tool;                       /* TL_ */
 extern const char *const tool_names[TL_N];
 typedef struct {
@@ -34,6 +43,12 @@ typedef struct {
   double width;                        /* drawing and shapes: line width (points) */
   double text_size;                    /* text boxes: points */
   char author[64];                     /* written into new comments (Latin-1) */
+  /* (after 0.1.2) */
+  int field_kind;                      /* the form field Add Field makes (FF_, 7 date, 8 table, 9 picture) */
+  char stamp[32];                      /* the stamp's text */
+  char signature[64], initials[16];    /* Fill & Sign (typed) */
+  double scale;                        /* measuring: points per unit */
+  char unit[8];
 } Opts;
 extern Opts opt;
 void set_tool(int t);                  /* (main.c) the tool chosen: view and toolbars told */
@@ -42,7 +57,7 @@ void set_tool(int t);                  /* (main.c) the tool chosen: view and too
 enum { VM_READ, VM_ORGANIZE };
 enum { FIT_NONE, FIT_WIDTH, FIT_PAGE };
 /* one step that can be undone */
-enum { U_ADDANNOT, U_DELANNOT, U_ANNOTTEXT, U_ROTATE, U_DELPAGE, U_MOVEPAGE, U_INSERT };
+enum { U_ADDANNOT, U_DELANNOT, U_ANNOTTEXT, U_ROTATE, U_DELPAGE, U_MOVEPAGE, U_INSERT, U_SNAPSHOT };
 typedef struct { int kind, page, index, a, b, grp; PObj *obj; char *text; } Undo;
 #define MAXUNDO 40
 /* the text of a page, kept by the page's dictionary (so it survives pages moving) */
@@ -225,6 +240,16 @@ u8    *read_file(const char *path, size_t *len);
 int    write_file(const char *path, const u8 *data, size_t len);
 /* a PDF read and opened, asking for its password if it has one; NULL (said why) if it can't be */
 PDoc  *open_pdf(const char *path, int *encrypted);
+
+/* doctools.c: PDFCraft's other tools */
+int  doc_command(ULONG id);            /* 1 if it was one of its commands */
+int  form_click(DocView *v, int page, double x, double y);   /* a form field there filled in: 1 */
+void tool_click(DocView *v, int page, int t, double x, double y);
+void tool_drag(DocView *v, int page, int t, const double *c, int moved);
+void doc_snapshot(DocView *v);         /* before a change undo can only take back by the whole document */
+void doc_restore(DocView *v, Undo *u); /* (edits.c's undo) */
+ULONG doc_strip_state(ULONG id);       /* SS_ for its commands */
+void doc_redraw_all(DocView *v);       /* every page's picture, text and thumbnail made again */
 
 /* dialogs.c */
 void dlg_properties(void);
