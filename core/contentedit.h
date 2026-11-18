@@ -16,6 +16,11 @@ typedef struct {
   double ctm[6];
   PdfFont *font; double size, tc, tw, th, tl, rise; int tmode;
   double lw;
+  /* (round 2: for editing text in place) the glyph being shown: its rendering matrix (text space at
+     the glyph's origin onto the page, the font size in it), the font's resource name, its bytes in
+     the string; the fill colour (1 grey, 3 RGB or 4 CMYK components); whether it is in a form XObject */
+  double trm[6]; char fname[40]; const u8 *bytes; int nbytes;
+  double fill[4]; int nfill; int in_form;
 } CEState;
 typedef struct {
   void *ud;
@@ -24,6 +29,8 @@ typedef struct {
   /* an image drawn (an XObject, or an inline image when inline_img): m takes its unit square
      onto the page. Return 0 to keep it, 1 to remove it, 2 to draw instead the image object *newnum */
   int (*image)(void *ud, PObj *img, int inline_img, const double *m, int *newnum);
+  /* (the image XObject's name in the resources, for image: set before each call) */
+  char xname[40];
   /* any other operator with its operands (which it may change in place, or replace: args has
      room for 8; *nargs may change); kw may be changed to another operator of up to 3 letters
      (kw has room for 4 bytes). Returns 0 to keep it, 1 to drop it, 2 when it changed it */

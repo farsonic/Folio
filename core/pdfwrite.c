@@ -600,3 +600,227 @@ done:
   free(w.map); free(w.queue); free(w.xtype); free(w.xf2); free(w.xf3); free(w.pages); free(w.page_new);
   return res;
 }
+
+/* ------------------------------------------------------------------ incremental updates */
+/* the object written into b with its own numbers (no renumbering, no encryption) */
+static void put_keep(W *w, Buf *b, const PObj *o, int depth)
+{
+  int i;
+  if (!o || depth > 64) { buf_adds(b, "null"); return; }
+  if (o->type == PO_REF) { buf_printf(b, "%d %d R", o->u.ref.num, o->u.ref.gen); return; }
+  if (o->type == PO_ARRAY) {
+    buf_addc(b, '[');
+    for (i = 0; i < o->u.arr.n; i++) { if (i) buf_addc(b, ' '); put_keep(w, b, o->u.arr.v[i], depth + 1); }
+    buf_addc(b, ']');
+    return;
+  }
+  if (o->type == PO_DICT || o->type == PO_STREAM) {
+    buf_adds(b, "<<");
+    for (i = 0; i < o->u.dict.n; i++) {
+      if (o->type == PO_STREAM && !strcmp(o->u.dict.k[i], "Length")) continue;
+      put_name(b, o->u.dict.k[i], (int)strlen(o->u.dict.k[i]));
+      buf_addc(b, ' ');
+      put_keep(w, b, o->u.dict.v[i], depth + 1);
+      buf_addc(b, '\n');
+    }
+    buf_adds(b, ">>");
+    return;
+  }
+  w->b = b;
+  put_obj(w, o, depth);
+}
+/* where the last cross-reference section starts (from startxref), -1 if not found */
+static long last_startxref(const u8 *p, size_t n)
+{
+  size_t i = n > 1100 ? n - 1100 : 0, at = (size_t)-1;
+  for (; i + 9 <= n; i++) if (p[i] == 's' && !memcmp(p + i, "startxref", 9)) at = i;
+  if (at == (size_t)-1) return -1;
+  for (at += 9; at < n && (p[at] == ' ' || p[at] == '\r' || p[at] == '\n'); at++) ;
+  if (at >= n || p[at] < '0' || p[at] > '9') return -1;
+  {
+    long v = 0;
+    for (; at < n && p[at] >= '0' && p[at] <= '9' && v < 100000000L; at++) v = v * 10 + (p[at] - '0');
+    return v < (long)n ? v : -1;
+  }
+}
+/* the object's number in d's cache, 0 if it isn't one */
+static int cached_num(PDoc *d, const PObj *o)
+{
+  int k;
+  for (k = 1; k < d->nxref; k++) if (d->xref[k].obj == o) return k;
+  return 0;
+}
+/* whether object k of d differs from the same object of the file as it was (orig) */
+static int obj_changed(W *w, PDoc *d, PDoc *orig, int k)
+{
+  PObj *a = d->xref[k].obj, *b;
+  Buf x, y;
+  int ch;
+  if (!a) return 0;
+  if (k >= orig->nxref || orig->xref[k].type == 0 || !(b = pdf_get(orig, k))) return 1;
+  buf_init(&x); buf_init(&y);
+  w->d = d; put_keep(w, &x, a, 0);
+  w->d = orig; put_keep(w, &y, b, 0);
+  w->d = d;
+  ch = x.oom || y.oom || x.len != y.len || memcmp(x.data, y.data, x.len) || a->type != b->type;
+  buf_free(&x); buf_free(&y);
+  if (!ch && a->type == PO_STREAM) {
+    size_t la = 0, lb = 0;
+    u8 *da = pdf_stream_bytes(d, a, &la), *db = pdf_stream_bytes(orig, b, &lb);
+    ch = !da || !db || la != lb || memcmp(da, db, la);
+    free(da); free(db);
+  }
+  return ch;
+}
+int pdf_can_save_incremental(PDoc *d)
+{
+  return d && d->data && d->len > 16 && !d->crypt && !d->repaired && last_startxref(d->data, d->len) > 0;
+}
+u8 *pdf_save_incremental(PDoc *d, size_t *outlen, long *update_at)
+{
+  W w;
+  PDoc *orig;
+  char err[160];
+  Buf out;
+  int k, i, *nums = NULL, nn = 0, reorder = 0, xstream;
+  long prev, xref_at;
+  u8 *res = NULL;
+  PObj *root;
+  if (!pdf_can_save_incremental(d)) return NULL;
+  prev = last_startxref(d->data, d->len);
+  xstream = !((size_t)prev + 4 <= d->len && !memcmp(d->data + prev, "xref", 4));
+  if (!(orig = pdf_open(d->data, d->len, err, sizeof err))) return NULL;
+  if (orig->repaired) { pdf_close(orig); return NULL; }
+  pdf_ensure_pages(orig);
+  memset(&w, 0, sizeof w);
+  w.d = d;
+  /* pages deleted, inserted or moved: a new page tree of the pages as they are now */
+  root = pdf_dget(d, d->trailer, "Root");
+  if (!root || root->type != PO_DICT) { pdf_close(orig); return NULL; }
+  if (orig->npages != d->npages) reorder = 1;
+  for (i = 0; i < d->npages && !reorder; i++) if (cached_num(d, d->pages[i]) != cached_num(orig, orig->pages[i]) || !cached_num(d, d->pages[i])) reorder = 1;
+  if (reorder) {
+    PObj *t = pobj_new(PO_DICT), *kids = pobj_new(PO_ARRAY), *r;
+    int tn;
+    if (!t || !kids) { pobj_free(t); pobj_free(kids); pdf_close(orig); return NULL; }
+    pobj_dict_set(t, "Type", pobj_name("Pages"));
+    pobj_dict_set(t, "Count", pobj_int(d->npages));
+    pobj_dict_set(t, "Kids", kids);
+    tn = pdf_new_object(d, t);
+    for (i = 0; i < d->npages; i++) {
+      static const char *const inh[] = { "Resources", "MediaBox", "CropBox", "Rotate" };
+      PObj *pg = d->pages[i];
+      int a, pn = cached_num(d, pg);
+      if (!pn) pn = pdf_new_object(d, pg);
+      for (a = 0; a < 4; a++) if (!pobj_dict_get(pg, inh[a])) { PObj *v = pdf_page_attr(d, pg, inh[a]); if (v) pobj_dict_set(pg, inh[a], pobj_copy(v)); }
+      if ((r = pobj_new(PO_REF))) { r->u.ref.num = tn; pobj_dict_set(pg, "Parent", r); }
+      if ((r = pobj_new(PO_REF))) { r->u.ref.num = pn; pobj_array_add(kids, r); }
+    }
+    if ((r = pobj_new(PO_REF))) { r->u.ref.num = tn; pobj_dict_set(root, "Pages", r); }
+  }
+  /* the objects that changed or are new */
+  if (!(nums = (int *)malloc(sizeof(int) * (size_t)(d->nxref + 2)))) { pdf_close(orig); return NULL; }
+  for (k = 1; k < d->nxref; k++) if (obj_changed(&w, d, orig, k)) nums[nn++] = k;
+  if (!nn) {
+    /* nothing changed: the file as it is */
+    free(nums); pdf_close(orig);
+    if (!(res = (u8 *)malloc(d->len))) return NULL;
+    memcpy(res, d->data, d->len);
+    *outlen = d->len;
+    if (update_at) *update_at = (long)d->len;
+    return res;
+  }
+  buf_init(&out);
+  buf_add(&out, d->data, d->len);
+  if (d->data[d->len - 1] != '\n' && d->data[d->len - 1] != '\r') buf_addc(&out, '\n');
+  if (update_at) *update_at = (long)out.len;
+  {
+    long *offs = (long *)malloc(sizeof(long) * (size_t)(nn + 2));
+    int *gens = (int *)malloc(sizeof(int) * (size_t)(nn + 2));
+    int size = d->nxref > orig->nxref ? d->nxref : orig->nxref, xnum = 0;
+    PObj *id = pdf_dget(d, d->trailer, "ID"), *info = pobj_dict_get(d->trailer, "Info"), *rootref = pobj_dict_get(d->trailer, "Root");
+    u8 id1[16];
+    if (!offs || !gens) { free(offs); free(gens); goto fail; }
+    for (i = 0; i < nn; i++) {
+      PObj *o = d->xref[nums[i]].obj;
+      gens[i] = nums[i] < orig->nxref && orig->xref[nums[i]].type == 1 ? orig->xref[nums[i]].gen : 0;
+      offs[i] = (long)out.len;
+      buf_printf(&out, "%d %d obj\n", nums[i], gens[i]);
+      put_keep(&w, &out, o, 0);
+      if (o->type == PO_STREAM) {
+        size_t sl = 0;
+        u8 *sd = pdf_stream_bytes(d, o, &sl);
+        out.len -= 2;                                /* (the ">>" put back after the length) */
+        buf_printf(&out, "/Length %ld\n>>\nstream\n", (long)sl);
+        if (sd) buf_add(&out, sd, sl);
+        free(sd);
+        buf_adds(&out, "\nendstream");
+      }
+      buf_adds(&out, "\nendobj\n");
+    }
+    pdf_random(id1, 16, out.data + out.len - (out.len > 64 ? 64 : out.len), out.len > 64 ? 64 : out.len);
+    xref_at = (long)out.len;
+    if (!xstream) {
+      buf_adds(&out, "xref\n");
+      for (i = 0; i < nn; ) {
+        int j = i;
+        while (j + 1 < nn && nums[j + 1] == nums[j] + 1) j++;
+        buf_printf(&out, "%d %d\n", nums[i], j - i + 1);
+        for (; i <= j; i++) buf_printf(&out, "%010ld %05d n \n", offs[i], gens[i]);
+      }
+      buf_printf(&out, "trailer\n<</Size %d /Prev %ld", size, prev);
+    } else {
+      /* a cross-reference stream, as the file's own last section is */
+      Buf xb;
+      xnum = size++;
+      buf_init(&xb);
+      buf_printf(&out, "%d 0 obj\n<</Type /XRef /Size %d /Prev %ld /W [1 4 2] /Index [", xnum, size, prev);
+      for (i = 0; i < nn; ) {
+        int j = i;
+        while (j + 1 < nn && nums[j + 1] == nums[j] + 1) j++;
+        buf_printf(&out, "%d %d ", nums[i], j - i + 1);
+        for (; i <= j; i++) {
+          buf_addc(&xb, 1);
+          buf_addc(&xb, (int)((offs[i] >> 24) & 255)); buf_addc(&xb, (int)((offs[i] >> 16) & 255)); buf_addc(&xb, (int)((offs[i] >> 8) & 255)); buf_addc(&xb, (int)(offs[i] & 255));
+          buf_addc(&xb, (gens[i] >> 8) & 255); buf_addc(&xb, gens[i] & 255);
+        }
+      }
+      buf_addc(&xb, 1);
+      buf_addc(&xb, (int)((xref_at >> 24) & 255)); buf_addc(&xb, (int)((xref_at >> 16) & 255)); buf_addc(&xb, (int)((xref_at >> 8) & 255)); buf_addc(&xb, (int)(xref_at & 255));
+      buf_addc(&xb, 0); buf_addc(&xb, 0);
+      if (xb.oom) out.oom = 1;
+      buf_printf(&out, "%d 1] /Length %ld", xnum, (long)xb.len);
+      w.b = &out;
+      /* (the stream's data follows the dictionary closed below) */
+      buf_adds(&out, " /Root ");
+      put_keep(&w, &out, rootref, 0);
+      if (info) { buf_adds(&out, " /Info "); put_keep(&w, &out, info, 0); }
+      if (id && id->type == PO_ARRAY && id->u.arr.n >= 1 && pdf_resolve(d, id->u.arr.v[0]) && pdf_resolve(d, id->u.arr.v[0])->type == PO_STRING) {
+        PObj *e = pdf_resolve(d, id->u.arr.v[0]);
+        buf_adds(&out, " /ID ["); put_hex(&out, (const u8 *)e->u.str.s, (size_t)e->u.str.len); buf_addc(&out, ' '); put_hex(&out, id1, 16); buf_addc(&out, ']');
+      }
+      buf_adds(&out, ">>\nstream\n");
+      buf_add(&out, xb.data, xb.len);
+      buf_adds(&out, "\nendstream\nendobj\n");
+      buf_free(&xb);
+      buf_printf(&out, "startxref\n%ld\n%%%%EOF\n", xref_at);
+      free(offs); free(gens);
+      goto written;
+    }
+    buf_adds(&out, " /Root "); put_keep(&w, &out, rootref, 0);
+    if (info) { buf_adds(&out, " /Info "); put_keep(&w, &out, info, 0); }
+    if (id && id->type == PO_ARRAY && id->u.arr.n >= 1 && pdf_resolve(d, id->u.arr.v[0]) && pdf_resolve(d, id->u.arr.v[0])->type == PO_STRING) {
+      PObj *e = pdf_resolve(d, id->u.arr.v[0]);
+      buf_adds(&out, " /ID ["); put_hex(&out, (const u8 *)e->u.str.s, (size_t)e->u.str.len); buf_addc(&out, ' '); put_hex(&out, id1, 16); buf_addc(&out, ']');
+    }
+    buf_printf(&out, ">>\nstartxref\n%ld\n%%%%EOF\n", xref_at);
+    free(offs); free(gens);
+  }
+written:
+  if (!out.oom) { *outlen = out.len; res = (u8 *)buf_take(&out); }
+fail:
+  buf_free(&out);
+  free(nums);
+  pdf_close(orig);
+  return res;
+}

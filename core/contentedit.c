@@ -12,6 +12,7 @@
 #include "jpegout.h"
 
 #define MAXARGS 64
+static int ce_nest;         /* (forms being walked inside the page) */
 #define MAXGS 64
 typedef struct { char name[64]; PdfFont *f; } FCache;
 typedef struct {
@@ -173,6 +174,7 @@ static void show_string(CE *c, PObj *str, Buf *tj, int *removed)
       box[0] = box[2] = xs[0]; box[1] = box[3] = ys[0];
       for (k = 1; k < 4; k++) { if (xs[k] < box[0]) box[0] = xs[k]; if (xs[k] > box[2]) box[2] = xs[k]; if (ys[k] < box[1]) box[1] = ys[k]; if (ys[k] > box[3]) box[3] = ys[k]; }
     }
+    memcpy(s->trm, trm, sizeof s->trm); s->bytes = p; s->nbytes = nb; s->in_form = ce_nest > 0;
     if (c->ops->drop_invisible && s->tmode == 3) rm = 1;
     else if (c->ops->glyph) rm = c->ops->glyph(c->ops->ud, box, code, s);
     if (rm) {
@@ -225,7 +227,7 @@ static void do_xobject(CE *c, PObj **args, int nargs)
   st = pdf_dname(c->d, x, "Subtype");
   if (st && !strcmp(st, "Image")) {
     int nn = 0, r = 0;
-    if (c->ops->image) r = c->ops->image(c->ops->ud, x, 0, gst(c)->ctm, &nn);
+    if (c->ops->image) { snprintf(((CEOps *)c->ops)->xname, sizeof c->ops->xname, "%s", args[0]->u.str.s); r = c->ops->image(c->ops->ud, x, 0, gst(c)->ctm, &nn); }
     if (r == 1) { c->changed = 1; return; }
     if (r == 2 && nn) {
       char name[40];
@@ -243,7 +245,9 @@ static void do_xobject(CE *c, PObj **args, int nargs)
     if (fm && fm->type == PO_ARRAY && fm->u.arr.n >= 6) for (i = 0; i < 6; i++) m[i] = pobj_num(pdf_resolve(c->d, fm->u.arr.v[i]));
     mul(m, gst(c)->ctm, ctm);
     if (!data) { emit(c, args, nargs, "Do"); return; }
+    ce_nest++;
     nd = ce_rewrite(c->d, data, len, fres ? fres : c->res, ctm, c->ops, &nl, &ro);
+    ce_nest--;
     free(data);
     if (nd) {
       /* a copy of the form with the new content */
@@ -346,7 +350,7 @@ static void run(CE *c, const u8 *data, size_t len)
       emit(c, args, nargs, kw);
     } else if (!strcmp(kw, "BT")) { double id[6] = { 1, 0, 0, 1, 0, 0 }; memcpy(c->tm, id, sizeof id); memcpy(c->tlm, id, sizeof id); emit(c, args, nargs, kw); }
     else if (!strcmp(kw, "Tf") && nargs >= 2) {
-      if (args[nargs - 2]->type == PO_NAME) s->font = font_of(c, args[nargs - 2]->u.str.s);
+      if (args[nargs - 2]->type == PO_NAME) { s->font = font_of(c, args[nargs - 2]->u.str.s); snprintf(s->fname, sizeof s->fname, "%s", args[nargs - 2]->u.str.s); }
       s->size = pobj_num(args[nargs - 1]);
       emit(c, args, nargs, kw);
     } else if (!strcmp(kw, "Tc") && nargs) { s->tc = pobj_num(args[nargs - 1]); emit(c, args, nargs, kw); }
@@ -395,6 +399,12 @@ static void run(CE *c, const u8 *data, size_t len)
     else {
       int drop = 0, na = nargs;
       if (!strcmp(kw, "w") && nargs) s->lw = pobj_num(args[nargs - 1]);
+      if ((!strcmp(kw, "g") && nargs >= 1) || (!strcmp(kw, "rg") && nargs >= 3) || (!strcmp(kw, "k") && nargs >= 4) ||
+          ((!strcmp(kw, "sc") || !strcmp(kw, "scn")) && (nargs == 1 || nargs == 3 || nargs == 4) && pobj_isnum(args[0]))) {
+        int nc = kw[0] == 'g' ? 1 : kw[0] == 'r' ? 3 : kw[0] == 'k' ? 4 : nargs, q;
+        for (q = 0; q < nc; q++) s->fill[q] = pobj_num(args[nargs - nc + q]);
+        s->nfill = nc;
+      }
       if (c->ops->op) {
         char before[8];
         strcpy(before, kw);

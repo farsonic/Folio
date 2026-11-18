@@ -422,3 +422,89 @@ void sha384(const u8 *in, size_t n, u8 out[48])
                0x67332667ffc00b31ULL, 0x8eb44a8768581511ULL, 0xdb0c2e0d64f98fa7ULL, 0x47b5481dbefa4fa4ULL };
   sha512_run(h, in, n, out, 48);
 }
+
+/* ------------------------------------------------------------------ SHA-1, HMAC, PBKDF2 */
+/* SHA-1 (FIPS 180-1): older signatures hash with it */
+void sha1(const u8 *in, size_t n, u8 out[20])
+{
+  u32 h[5] = { 0x67452301u, 0xEFCDAB89u, 0x98BADCFEu, 0x10325476u, 0xC3D2E1F0u }, w[80];
+  size_t total = ((n + 8) / 64 + 1) * 64, off, i;
+  for (off = 0; off < total; off += 64) {
+    u32 a, b, c, dd, e, t;
+    int k;
+    for (k = 0; k < 64; k++) {
+      size_t pos = off + (size_t)k;
+      u8 byte = pos < n ? in[pos] : pos == n ? 0x80 : 0;
+      if (pos >= total - 8) { unsigned long long bits = (unsigned long long)n * 8; byte = (u8)(bits >> (8 * (total - 1 - pos))); }
+      if (k % 4 == 0) w[k / 4] = 0;
+      w[k / 4] |= (u32)byte << (24 - 8 * (k % 4));
+    }
+    for (k = 16; k < 80; k++) { t = w[k - 3] ^ w[k - 8] ^ w[k - 14] ^ w[k - 16]; w[k] = (t << 1) | (t >> 31); }
+    a = h[0]; b = h[1]; c = h[2]; dd = h[3]; e = h[4];
+    for (k = 0; k < 80; k++) {
+      u32 f, kk;
+      if (k < 20) { f = (b & c) | (~b & dd); kk = 0x5A827999u; }
+      else if (k < 40) { f = b ^ c ^ dd; kk = 0x6ED9EBA1u; }
+      else if (k < 60) { f = (b & c) | (b & dd) | (c & dd); kk = 0x8F1BBCDCu; }
+      else { f = b ^ c ^ dd; kk = 0xCA62C1D6u; }
+      t = ((a << 5) | (a >> 27)) + f + e + kk + w[k];
+      e = dd; dd = c; c = (b << 30) | (b >> 2); b = a; a = t;
+    }
+    h[0] += a; h[1] += b; h[2] += c; h[3] += dd; h[4] += e;
+  }
+  for (i = 0; i < 20; i++) out[i] = (u8)(h[i / 4] >> (24 - 8 * (i % 4)));
+}
+/* a hash by its HASH_ id: the digest's length (0 for an unknown id) */
+int hash_len(int alg) { return alg == HASH_SHA1 ? 20 : alg == HASH_SHA256 ? 32 : alg == HASH_SHA384 ? 48 : alg == HASH_SHA512 ? 64 : alg == HASH_MD5 ? 16 : 0; }
+int hash_of(int alg, const u8 *in, size_t n, u8 *out)
+{
+  switch (alg) {
+  case HASH_SHA1: sha1(in, n, out); return 20;
+  case HASH_SHA256: sha256(in, n, out); return 32;
+  case HASH_SHA384: sha384(in, n, out); return 48;
+  case HASH_SHA512: sha512(in, n, out); return 64;
+  case HASH_MD5: md5(in, n, out); return 16;
+  }
+  return 0;
+}
+/* HMAC (RFC 2104) with hash alg: out gets hash_len(alg) bytes; 0 if out of memory or alg unknown */
+int hmac(int alg, const u8 *key, size_t klen, const u8 *msg, size_t mlen, u8 *out)
+{
+  int bs = alg == HASH_SHA384 || alg == HASH_SHA512 ? 128 : 64, hl = hash_len(alg), i;
+  u8 k[128], ih[64], *buf;
+  if (!hl) return 0;
+  memset(k, 0, sizeof k);
+  if (klen > (size_t)bs) hash_of(alg, key, klen, k); else if (klen) memcpy(k, key, klen);
+  if (!(buf = (u8 *)malloc((size_t)bs + (mlen > 64 ? mlen : 64)))) return 0;
+  for (i = 0; i < bs; i++) buf[i] = k[i] ^ 0x36;
+  if (mlen) memcpy(buf + bs, msg, mlen);
+  hash_of(alg, buf, (size_t)bs + mlen, ih);
+  for (i = 0; i < bs; i++) buf[i] = k[i] ^ 0x5C;
+  memcpy(buf + bs, ih, (size_t)hl);
+  hash_of(alg, buf, (size_t)(bs + hl), out);
+  free(buf);
+  return 1;
+}
+/* PBKDF2 (RFC 8018) with HMAC over alg: dklen bytes into out; 0 on failure */
+int pbkdf2(int alg, const u8 *pw, size_t pwlen, const u8 *salt, size_t slen, long iter, u8 *out, int dklen)
+{
+  int hl = hash_len(alg), blk = 1, i, k;
+  u8 u[64], t[64], *s;
+  long it;
+  if (!hl || iter < 1 || !(s = (u8 *)malloc(slen + 4))) return 0;
+  if (slen) memcpy(s, salt, slen);
+  while (dklen > 0) {
+    s[slen] = (u8)(blk >> 24); s[slen + 1] = (u8)(blk >> 16); s[slen + 2] = (u8)(blk >> 8); s[slen + 3] = (u8)blk;
+    if (!hmac(alg, pw, pwlen, s, slen + 4, u)) { free(s); return 0; }
+    memcpy(t, u, (size_t)hl);
+    for (it = 1; it < iter; it++) {
+      if (!hmac(alg, pw, pwlen, u, (size_t)hl, u)) { free(s); return 0; }
+      for (k = 0; k < hl; k++) t[k] ^= u[k];
+    }
+    i = dklen < hl ? dklen : hl;
+    memcpy(out, t, (size_t)i);
+    out += i; dklen -= i; blk++;
+  }
+  free(s);
+  return 1;
+}

@@ -36,4 +36,11 @@ void sha256(const u8 *in, size_t n, u8 out[32]);
 void sha384(const u8 *in, size_t n, u8 out[48]);
 void sha512(const u8 *in, size_t n, u8 out[64]);
 
+/* SHA-1 (older signatures), and the hashes by id for signatures: HMAC and PBKDF2 (certificate files) */
+enum { HASH_NONE, HASH_MD5, HASH_SHA1, HASH_SHA256, HASH_SHA384, HASH_SHA512 };
+void sha1(const u8 *in, size_t n, u8 out[20]);
+int  hash_len(int alg);
+int  hash_of(int alg, const u8 *in, size_t n, u8 *out);
+int  hmac(int alg, const u8 *key, size_t klen, const u8 *msg, size_t mlen, u8 *out);
+int  pbkdf2(int alg, const u8 *pw, size_t pwlen, const u8 *salt, size_t slen, long iter, u8 *out, int dklen);
 #endif

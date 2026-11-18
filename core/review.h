@@ -50,8 +50,17 @@ typedef struct {
   int covers_all;           /* the signed byte ranges reach the end of the file (nothing appended) */
   int digest_ok;            /* the signed bytes hash to the signature's message digest: 1 yes, 0 no, -1 couldn't tell */
   int certify;              /* a certification (DocMDP) signature */
+  /* (after 0.1.2, round 2) the CMS signature and certificates checked (core/pki.c) */
+  int sig_ok;               /* the signature matches the signer's certificate: 1, 0, -1 couldn't tell */
+  int chain;                /* CHAIN_: how far the certificates lead (to one trusted: CHAIN_TRUSTED) */
+  int time_ok;              /* signed within the certificate's validity: 1, 0, -1 not known */
+  char signer[96], issuer[96], valid_to[16], why[120];
+  u8 *cert; size_t certlen; /* the signer's certificate (malloc'd copy; sig_free) */
 } SigInfo;
 int  sig_list(PDoc *d, SigInfo **out);
+void sig_free(SigInfo *si, int n);
+/* the certificates (DER) trusted when signatures are checked: borrowed until changed */
+void sig_trust(const u8 *const *certs, const size_t *lens, int n);
 
 /* ------------------------------------------------------------------ PDF/A */
 /* the document prepared for PDF/A-2B; what can't be fixed listed in problems (cap bytes); 1 if

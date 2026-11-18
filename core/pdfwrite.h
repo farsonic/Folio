@@ -38,6 +38,12 @@ typedef struct {
 u8 *pdf_save(PDoc *d, const int *order, int n, size_t *len);
 /* the same with options (o NULL: as pdf_save) */
 u8 *pdf_save_opts(PDoc *d, const int *order, int n, const SaveOpts *o, size_t *len);
+/* an incremental update: the file as it was opened with only what changed appended (new and changed
+   objects, a page tree if pages were moved, added or deleted, a cross-reference section with /Prev),
+   so the signatures over the file as it was stay valid. Not for encrypted or repaired files
+   (pdf_can_save_incremental). *update_at (may be NULL): where the appended part starts */
+int pdf_can_save_incremental(PDoc *d);
+u8 *pdf_save_incremental(PDoc *d, size_t *len, long *update_at);
 /* bytes that are hard to guess (for keys, salts and file identifiers): SHA-256 of the clock, a counter and seed */
 void pdf_random(u8 *out, int n, const void *seed, size_t seedlen);
 #endif

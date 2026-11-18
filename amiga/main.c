@@ -44,6 +44,7 @@
 #define MUIKEYF_WINDOW_CLOSE (1UL << MUIKEY_WINDOW_CLOSE)
 #endif
 
+size_t __stack = 131072;     /* (signatures' big numbers and the OCR want more than the 4K a Shell gives) */
 const char verstag[] = "$VER: Folio 0.1.2 (28.10.2026) a PDF viewer and editor for the Amiga (MUI)";
 
 struct IntuitionBase *IntuitionBase;

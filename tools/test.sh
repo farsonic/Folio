@@ -4,7 +4,7 @@
 set -e
 cd "$(dirname "$0")/.."
 T=${TMP:-/tmp}
-CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto.c core/pdf.c core/func.c core/cmap.c core/pfont.c core/pdfenc.c core/font.c core/raster.c core/render.c core/pimage.c core/shade.c core/textpage.c core/pdfwrite.c core/pdfedit.c core/pngout.c core/xml.c core/pagecontent.c core/forms.c core/pagetools.c core/contentedit.c core/jpegout.c core/redact.c core/optimize.c core/export.c core/review.c"
+CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto.c core/pdf.c core/func.c core/cmap.c core/pfont.c core/pdfenc.c core/font.c core/raster.c core/render.c core/pimage.c core/shade.c core/textpage.c core/pdfwrite.c core/pdfedit.c core/pngout.c core/xml.c core/pagecontent.c core/forms.c core/pagetools.c core/contentedit.c core/jpegout.c core/redact.c core/optimize.c core/export.c core/review.c core/pki.c core/sign.c core/editpage.c"
   # the interface's words: amiga/lang_table.h made from lang/strings.txt, and every string in amiga/
   # translated into German, French, Spanish and Italian and used (tools/langcheck.py)
   python3 tools/mklang.py --check
@@ -35,8 +35,13 @@ CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto
   fi
   # compare, accessibility (check, tagging, reading options), signatures (digest check), PDF/A
   $SAN $CORE tests/reviewtest.c -o $T/folio_reviewtest -lm && $T/folio_reviewtest $T | tail -1
+  # (round 2) signatures: RSA/ECDSA, X.509, CMS against OpenSSL, PKCS #12/PEM, signing and checking PDFs,
+  # incremental saving (the keys are made at test time in $T by openssl; none are kept in the repository)
+  $SAN $CORE tests/signtest.c -o $T/folio_signtest -lm && $T/folio_signtest $T 2>/dev/null | tail -1
+  # (round 2) a page's own text and pictures edited, snapping, polygons, drawn signatures, colours, PDF/A fonts
+  $SAN $CORE tests/edit2test.c -o $T/folio_edit2test -lm && $T/folio_edit2test tests/pdfs/quill_tables.pdf tests/gen/graphics.pdf tests/gen/pic.jpg tests/gen/pic.png $T tests/fonts 2>/dev/null | tail -1
   if command -v qpdf >/dev/null 2>&1; then
-    for f in $T/save_*.pdf $T/form_*.pdf $T/page_*.pdf $T/redact_*.pdf $T/opt_*.pdf $T/review_*.pdf; do qpdf --check --password=secret "$f" >/dev/null 2>&1 || qpdf --check "$f" >/dev/null || { echo "qpdf rejects $f"; exit 1; }; done
+    for f in $T/save_*.pdf $T/form_*.pdf $T/page_*.pdf $T/redact_*.pdf $T/opt_*.pdf $T/review_*.pdf $T/edit_*.pdf $T/signed*.pdf; do qpdf --check --password=secret "$f" >/dev/null 2>&1 || qpdf --check "$f" >/dev/null || { echo "qpdf rejects $f"; exit 1; }; done
     echo "qpdf --check: the saved files pass"
   fi
   $SAN $CORE tools/pdfrender.c -o $T/pdfrender -lm

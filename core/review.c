@@ -12,6 +12,7 @@
 #include "pdfedit.h"
 #include "redact.h"
 #include "crypto.h"
+#include "pki.h"
 
 /* ------------------------------------------------------------------ compare */
 typedef struct { char *s; int page; u32 h; double box[4]; } Line;
@@ -393,37 +394,37 @@ char *a11y_tags(PDoc *d)
 }
 
 /* ------------------------------------------------------------------ signatures */
-/* SHA-1 (FIPS 180-1): older signatures hash with it */
-static void sha1(const u8 *in, size_t n, u8 out[20])
-{
-  u32 h[5] = { 0x67452301u, 0xEFCDAB89u, 0x98BADCFEu, 0x10325476u, 0xC3D2E1F0u }, w[80];
-  size_t total = ((n + 8) / 64 + 1) * 64, off, i;
-  for (off = 0; off < total; off += 64) {
-    u32 a, b, c, dd, e, t;
-    int k;
-    for (k = 0; k < 64; k++) {
-      size_t pos = off + (size_t)k;
-      u8 byte = pos < n ? in[pos] : pos == n ? 0x80 : 0;
-      if (pos >= total - 8) { unsigned long long bits = (unsigned long long)n * 8; byte = (u8)(bits >> (8 * (total - 1 - pos))); }
-      if (k % 4 == 0) w[k / 4] = 0;
-      w[k / 4] |= (u32)byte << (24 - 8 * (k % 4));
-    }
-    for (k = 16; k < 80; k++) { t = w[k - 3] ^ w[k - 8] ^ w[k - 14] ^ w[k - 16]; w[k] = (t << 1) | (t >> 31); }
-    a = h[0]; b = h[1]; c = h[2]; dd = h[3]; e = h[4];
-    for (k = 0; k < 80; k++) {
-      u32 f, kk;
-      if (k < 20) { f = (b & c) | (~b & dd); kk = 0x5A827999u; }
-      else if (k < 40) { f = b ^ c ^ dd; kk = 0x6ED9EBA1u; }
-      else if (k < 60) { f = (b & c) | (b & dd) | (c & dd); kk = 0x8F1BBCDCu; }
-      else { f = b ^ c ^ dd; kk = 0xCA62C1D6u; }
-      t = ((a << 5) | (a >> 27)) + f + e + kk + w[k];
-      e = dd; dd = c; c = (b << 30) | (b >> 2); b = a; a = t;
-    }
-    h[0] += a; h[1] += b; h[2] += c; h[3] += dd; h[4] += e;
-  }
-  for (i = 0; i < 20; i++) out[i] = (u8)(h[i / 4] >> (24 - 8 * (i % 4)));
-}
 static void sig_walk(PDoc *d, PObj *f, SigInfo **out, int *n, int depth, const char *parent);
+static const u8 *const *trust_c; static const size_t *trust_l; static int trust_n;
+void sig_trust(const u8 *const *certs, const size_t *lens, int n) { trust_c = certs; trust_l = lens; trust_n = n; }
+void sig_free(SigInfo *si, int n) { int i; for (i = 0; i < n; i++) free(si[i].cert); free(si); }
+/* the signer's certificate from a CMS signature: the one its SignerInfo names (a copy) */
+static u8 *signer_cert(const u8 *sig, size_t n, size_t *len)
+{
+  Der in, ci, w, ex, sd, set, c, wh, si, sid, iss, ser;
+  int t, t2;
+  Cert cert;
+  u8 *r;
+  in.p = sig; in.n = n;
+  if (!der_expect(&in, 0x30, &ci) || !der_next(&ci, &t, &c, &w) || !der_expect(&ci, 0xA0, &ex) || !der_expect(&ex, 0x30, &sd)) return NULL;
+  der_next(&sd, &t, &c, &w); der_next(&sd, &t, &c, &w); der_next(&sd, &t, &c, &w);
+  if (!der_expect(&sd, 0xA0, &set)) return NULL;
+  while (der_next(&sd, &t, &c, &w)) if (t == 0x31) break;
+  if (t != 0x31 || !der_expect(&c, 0x30, &si) || !der_next(&si, &t, &c, &w) || !der_next(&si, &t, &sid, &w)) return NULL;
+  while (set.n && der_next(&set, &t2, &c, &wh)) {
+    if (!cert_parse(wh.p, wh.n, &cert)) continue;
+    if (t == 0x30) {
+      Der s2 = sid, wi;
+      if (!der_next(&s2, &t2, &iss, &wi) || !der_next(&s2, &t2, &ser, &w)) continue;
+      if (wi.n != cert.issuer.n || memcmp(wi.p, cert.issuer.p, wi.n) || ser.n != cert.serial.n || memcmp(ser.p, cert.serial.p, ser.n)) continue;
+    } else if (t != 0x80 || sid.n != cert.ski.n || memcmp(sid.p, cert.ski.p, sid.n)) continue;
+    if (!(r = (u8 *)malloc(wh.n))) return NULL;
+    memcpy(r, wh.p, wh.n);
+    *len = wh.n;
+    return r;
+  }
+  return NULL;
+}
 static void sig_one(PDoc *d, PObj *field, PObj *v, const char *name, SigInfo **out, int *n)
 {
   SigInfo *si, *ns;
@@ -454,7 +455,25 @@ static void sig_one(PDoc *d, PObj *field, PObj *v, const char *name, SigInfo **o
       if (o + l > end) end = o + l;
     }
     si->covers_all = ok && (size_t)end >= d->len - 2;   /* (a final end of line may follow %%EOF) */
+    si->sig_ok = si->time_ok = -1;
     if (ok && !data.oom) {
+      CmsResult r;
+      char when[16] = "";
+      int k2 = 0;
+      const char *m = si->date;
+      if (m[0] == 'D' && m[1] == ':') m += 2;
+      while (k2 < 14 && m[k2] >= '0' && m[k2] <= '9') { when[k2] = m[k2]; k2++; }
+      when[k2 < 14 ? 0 : 14] = 0;
+      if (cms_verify((const u8 *)ct->u.str.s, (size_t)ct->u.str.len, (const u8 *)data.data, data.len, trust_c, trust_l, trust_n, when[0] ? when : NULL, &r)) {
+        si->sig_ok = r.ok; si->chain = r.chain; si->time_ok = r.time_ok;
+        snprintf(si->signer, sizeof si->signer, "%s", r.signer); snprintf(si->issuer, sizeof si->issuer, "%s", r.issuer);
+        snprintf(si->valid_to, sizeof si->valid_to, "%s", r.not_after); snprintf(si->why, sizeof si->why, "%s", r.why);
+        if (!si->name[0]) snprintf(si->name, sizeof si->name, "%s", r.signer);
+        if (r.digest_ok >= 0) si->digest_ok = r.digest_ok;
+        si->cert = signer_cert((const u8 *)ct->u.str.s, (size_t)ct->u.str.len, &si->certlen);
+      }
+    }
+    if (ok && !data.oom && si->digest_ok < 0) {
       /* the messageDigest attribute (1.2.840.113549.1.9.4) in the CMS signed attributes */
       static const u8 oid[11] = { 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x09, 0x04 };
       const u8 *c = (const u8 *)ct->u.str.s;
