@@ -334,6 +334,7 @@ int image_replace(PDoc *d, int page, int index, const u8 *file, size_t n)
   return num && image_act(d, page, index, 2, num);
 }
 int image_delete(PDoc *d, int page, int index) { return image_act(d, page, index, 1, 0); }
+int image_replace_num(PDoc *d, int page, int index, int num) { return num && image_act(d, page, index, 2, num); }
 int image_set_matrix(PDoc *d, int page, int index, const double *m)
 {
   PageImage *im;

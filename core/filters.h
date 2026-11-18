@@ -40,4 +40,7 @@ u8 *flt_ccitt(const u8 *in, size_t n, int K, int columns, int rows, int black_is
    smaller), Adler-32 trailer. level 1-9 trades speed for size (1 is fast, for the 68040). NULL if out of memory */
 u8 *flt_deflate(const u8 *in, size_t n, int level, size_t *outlen);
 
+/* a bitonal picture (w x h bytes, non-zero black) encoded as CCITT Group 4 (K -1, BlackIs1 false,
+   EncodedByteAlign false, with EOFB); malloc'd, *outlen; NULL if out of memory */
+u8 *flt_ccitt_g4_encode(const u8 *px, int w, int h, size_t *outlen);
 #endif

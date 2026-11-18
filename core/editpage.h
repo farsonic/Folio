@@ -25,6 +25,8 @@ int image_replace(PDoc *d, int page, int index, const u8 *file, size_t n);
    drawn again (on top of the page) */
 int image_set_matrix(PDoc *d, int page, int index, const double *m);
 int image_delete(PDoc *d, int page, int index);
+/* picture index drawn as image XObject num instead */
+int image_replace_num(PDoc *d, int page, int index, int num);
 
 /* the ends and corners of the page's paths (x, y pairs, page units; malloc'd), how many points */
 int page_snap_points(PDoc *d, int page, double **pts);

@@ -1195,3 +1195,75 @@ u8 *flt_deflate(const u8 *in, size_t n, int level, size_t *outlen)
   free(d);
   return r;
 }
+
+/* ------------------------------------------------------------------ CCITT Group 4 encoding (T.6) */
+typedef struct { Buf b; u32 acc; int nacc; } Bits;
+static void bits_put(Bits *w, const char *code)
+{
+  for (; *code; code++) {
+    w->acc = (w->acc << 1) | (u32)(*code == '1');
+    if (++w->nacc == 8) { buf_addc(&w->b, (int)(w->acc & 255)); w->acc = 0; w->nacc = 0; }
+  }
+}
+static void fax_put_run(Bits *w, int len, int black)
+{
+  while (len >= 2560) { bits_put(w, fax_xmake[12]); len -= 2560; }
+  if (len >= 64) {
+    int m = len / 64;
+    if (m <= 27) bits_put(w, black ? fax_bmake[m - 1] : fax_wmake[m - 1]);
+    else bits_put(w, fax_xmake[m - 28]);
+    len -= m * 64;
+  }
+  bits_put(w, black ? fax_bterm[len] : fax_wterm[len]);
+}
+/* the next changing element after a0 on a line (colour of x: line[x], white before the line): w if none */
+static int fax_next_change(const u8 *line, int w, int a0)
+{
+  int x = a0 < 0 ? 0 : a0 + 1, prev;
+  if (x >= w) return w;
+  prev = x == 0 ? 0 : line[x - 1] != 0;
+  for (; x < w; x++) { int c = line[x] != 0; if (c != prev) return x; prev = c; }
+  return w;
+}
+u8 *flt_ccitt_g4_encode(const u8 *px, int w, int h, size_t *outlen)
+{
+  Bits bw;
+  u8 *ref, *res;
+  int y;
+  if (w < 1 || h < 1 || !(ref = (u8 *)calloc((size_t)w, 1))) return NULL;
+  memset(&bw, 0, sizeof bw);
+  buf_init(&bw.b);
+  for (y = 0; y < h; y++) {
+    const u8 *cur = px + (size_t)y * (size_t)w;
+    int a0 = -1, colour = 0;
+    while (a0 < w) {
+      int a1 = fax_next_change(cur, w, a0), b1, b2;
+      /* b1: the first change on the reference line right of a0 to the colour opposite a0's */
+      b1 = fax_next_change(ref, w, a0);
+      while (b1 < w && (ref[b1] != 0) == colour) b1 = fax_next_change(ref, w, b1);
+      b2 = fax_next_change(ref, w, b1);
+      if (b2 < a1) { bits_put(&bw, "0001"); a0 = b2; continue; }
+      if (a1 - b1 >= -3 && a1 - b1 <= 3) {
+        static const char *const v[7] = { "0000010", "000010", "010", "1", "011", "000011", "0000011" };
+        bits_put(&bw, v[a1 - b1 + 3]);
+        a0 = a1; colour = !colour;
+        continue;
+      }
+      {
+        int a2 = fax_next_change(cur, w, a1);
+        bits_put(&bw, "001");
+        fax_put_run(&bw, a1 - (a0 < 0 ? 0 : a0), colour);
+        fax_put_run(&bw, a2 - a1, !colour);
+        a0 = a2;
+      }
+    }
+    memcpy(ref, cur, (size_t)w);
+  }
+  bits_put(&bw, "000000000001000000000001");
+  while (bw.nacc) bits_put(&bw, "0");
+  free(ref);
+  if (bw.b.oom) { buf_free(&bw.b); return NULL; }
+  *outlen = bw.b.len;
+  res = (u8 *)buf_take(&bw.b);
+  return res;
+}
