@@ -2,6 +2,10 @@
 # Folio's native tests (no Amiga toolchain needed): the interface strings, the filters, fonts, editing and annotation tests with
 # ASan/UBSan, the same steps build.sh runs before the Amiga build. TMP=<dir> to build elsewhere than /tmp.
 set -e
+# Each test's output goes through a pipe into tail, which would hide a failing test's exit status: run
+# under bash with pipefail so a failure stops the script (and CI). bash is on every Linux and macOS.
+if [ -z "$BASH_VERSION" ] && command -v bash >/dev/null 2>&1; then exec bash "$0" "$@"; fi
+if [ -n "$BASH_VERSION" ]; then set -o pipefail; fi
 cd "$(dirname "$0")/.."
 T=${TMP:-/tmp}
 CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto.c core/pdf.c core/func.c core/cmap.c core/pfont.c core/pdfenc.c core/font.c core/raster.c core/render.c core/pimage.c core/shade.c core/textpage.c core/pdfwrite.c core/pdfedit.c core/pngout.c core/xml.c core/pagecontent.c core/forms.c core/pagetools.c core/contentedit.c core/jpegout.c core/redact.c core/optimize.c core/export.c core/review.c core/pki.c core/sign.c core/editpage.c core/scan.c"
