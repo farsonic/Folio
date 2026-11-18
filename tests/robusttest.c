@@ -365,6 +365,30 @@ static void t_huge_page(void)
   CHECK(draw_all(pdf, len, 1e-9) == 1);
   free(pdf);
 }
+/* cross-reference streams and tables with fields too big for a 32-bit long (8-byte offsets, object
+   numbers near 2^31, negative offsets), which overflowed it or converted out of range */
+static void t_xref_out_of_range(void)
+{
+  Buf b;
+  long x;
+  int k, v;
+  for (v = 0; v < 2; v++) {
+    buf_init(&b);
+    buf_adds(&b, "%PDF-1.5\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\n");
+    x = (long)b.len;
+    if (!v) {
+      buf_adds(&b, "3 0 obj\n<< /Type /XRef /Root 1 0 R /W [1 8 1] /Index [0 1 2147483000 1] /Size 3 /XRefStm -5 /Prev -3 /Length 20 >>\nstream\n");
+      for (k = 0; k < 2; k++) { int i; buf_addc(&b, 1); for (i = 0; i < 8; i++) buf_addc(&b, 0xFF); buf_addc(&b, 0); }
+      buf_adds(&b, "\nendstream\nendobj\n");
+    } else {
+      buf_adds(&b, "xref\n2147483640 3\n0000000009 00000 n \n0000000009 00000 n \n0000000009 00000 n \n"
+                   "trailer\n<< /Size 3 /Root 1 0 R /XRefStm -7 /Prev 99999999999999999999 >>\n");
+    }
+    buf_printf(&b, "startxref\n%ld\n%%%%EOF\n", x);
+    draw_all((const u8 *)b.data, b.len, 1.0);
+    buf_free(&b);
+  }
+}
 static int near(double a, double b) { return a / b > 0.999999 && a / b < 1.000001; }
 static void t_save_huge_real(void)
 {
@@ -402,6 +426,7 @@ static const Test tests[] = {
   { "huge_numbers_parser", t_huge_numbers_parser },
   { "save_huge_real", t_save_huge_real },
   { "huge_page", t_huge_page },
+  { "xref_out_of_range", t_xref_out_of_range },
 };
 static const char *current;
 static void on_alarm(int s)

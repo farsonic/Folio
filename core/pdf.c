@@ -780,7 +780,7 @@ static PObj *read_xref_table(PDoc *d, size_t off)
     if (lex_next(&l, &b) != TK_INT) { tok_free(&a); tok_free(&b); return NULL; }
     start = a.i; count = b.i;
     tok_free(&a); tok_free(&b);
-    if (start < 0 || count < 0 || count > 8000000) return NULL;
+    if (start < 0 || count < 0 || count > 8000000 || start > 8000000) return NULL;   /* (start + count overflowed a 32-bit long) */
     for (k = 0; k < count; k++) {
       Token o, g, f;
       int ok = lex_next(&l, &o) == TK_INT;
@@ -806,8 +806,8 @@ static PObj *read_xref_stream(PDoc *d, size_t off)
   if (!s || s->type != PO_STREAM || !pobj_is_name(pobj_dict_get(s, "Type"), "XRef")) { pobj_free(s); return NULL; }
   wa = pobj_dict_get(s, "W");
   if (!wa || wa->type != PO_ARRAY || wa->u.arr.n < 3) { pobj_free(s); return NULL; }
-  for (i = 0; i < 3; i++) { w[i] = (int)pobj_num(wa->u.arr.v[i]); if (w[i] < 0 || w[i] > 8) { pobj_free(s); return NULL; } }
-  size = (long)pobj_num(pobj_dict_get(s, "Size"));
+  for (i = 0; i < 3; i++) { w[i] = dbl_int(pobj_num(wa->u.arr.v[i])); if (w[i] < 0 || w[i] > 8) { pobj_free(s); return NULL; } }
+  size = dbl_long(pobj_num(pobj_dict_get(s, "Size")));
   /* its own data (an xref stream is never encrypted; filters are direct objects) */
   if (!(data = pdf_stream_data(d, s, &n))) { pobj_free(s); return NULL; }
   idx = pobj_dict_get(s, "Index");
@@ -815,17 +815,18 @@ static PObj *read_xref_stream(PDoc *d, size_t off)
     long start, count, k;
     if (idx && idx->type == PO_ARRAY) {
       if (j + 1 >= idx->u.arr.n) break;
-      start = (long)pobj_num(idx->u.arr.v[j]); count = (long)pobj_num(idx->u.arr.v[j + 1]);
+      start = dbl_long(pobj_num(idx->u.arr.v[j])); count = dbl_long(pobj_num(idx->u.arr.v[j + 1]));
     } else { if (j) break; start = 0; count = size; }
-    if (start < 0 || count < 0 || count > 8000000) break;
+    if (start < 0 || count < 0 || count > 8000000 || start > 8000000) break;
     for (k = 0; k < count; k++) {
       long f[3];
       int c;
       if (pos + (size_t)(w[0] + w[1] + w[2]) > n) break;
       for (c = 0; c < 3; c++) {
         int b;
-        f[c] = 0;
-        for (b = 0; b < w[c]; b++) f[c] = (f[c] << 8) | data[pos++];
+        unsigned long u = 0;                  /* (unsigned: 8 bytes overflowed a long on the Amiga) */
+        for (b = 0; b < w[c]; b++) u = (u << 8) | data[pos++];
+        f[c] = u > (unsigned long)LONG_MAX ? LONG_MAX : (long)u;
       }
       if (!w[0]) f[0] = 1;
       if (f[0] == 1 && f[1] > 0) xref_set(d, dbl_int(start + k), 1, f[1], dbl_int(f[2]));
@@ -853,7 +854,7 @@ static int read_xrefs(PDoc *d)
     tr = read_xref_table(d, (size_t)off);
     if (tr) {
       PObj *xs = pobj_dict_get(tr, "XRefStm");      /* a hybrid file: the stream's entries come before the table's older ones */
-      if (pobj_isnum(xs)) { PObj *t2 = read_xref_stream(d, (size_t)pobj_num(xs)); pobj_free(t2); }
+      if (pobj_isnum(xs) && pobj_num(xs) >= 0) { PObj *t2 = read_xref_stream(d, (size_t)dbl_long(pobj_num(xs))); pobj_free(t2); }
     } else tr = read_xref_stream(d, (size_t)off);
     if (!tr) return d->trailer != NULL;
     off = pobj_isnum(pobj_dict_get(tr, "Prev")) ? dbl_long(pobj_num(pobj_dict_get(tr, "Prev"))) : -1;
