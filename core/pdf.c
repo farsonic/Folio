@@ -1269,8 +1269,9 @@ PDoc *pdf_open(const u8 *data, size_t len, char *err, size_t errcap)
   d->len = len - i;
   d->data[d->len] = 0;
   ok = read_xrefs(d);
-  if (ok) {
-    /* sanity: the catalog must be there and say so */
+  if (ok && !pobj_dict_get(d->trailer, "Encrypt")) {
+    /* sanity: the catalog must be there and say so (not tried yet when the file is encrypted: the
+       catalog may be in an object stream, which can't be read before the key is known) */
     PObj *root = pdf_dget(d, d->trailer, "Root");
     if (!root || root->type != PO_DICT) ok = 0;
   }

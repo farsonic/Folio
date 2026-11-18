@@ -13,4 +13,10 @@ CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto
   $T/folio_edittest tests/gen/enc_aes256.pdf tests/gen/enc_rc4_128.pdf $T/folio_e2.pdf | tail -1
   # 0.1.1: a comment drawn over the page drawn before comes out as drawing the page again
   $SAN $CORE tests/annotdrawtest.c -o $T/folio_annotdraw -lm && $T/folio_annotdraw tests/gen/graphics.pdf | tail -1 && $T/folio_annotdraw tests/pdfs/quill_tables.pdf | tail -1
+  # saving with options: compression, object streams, password protection (checked with qpdf where installed)
+  $SAN $CORE tests/savetest.c -o $T/folio_savetest -lm && $T/folio_savetest tests/gen/fonts.pdf $T | tail -1
+  if command -v qpdf >/dev/null 2>&1; then
+    for f in $T/save_*.pdf; do qpdf --check --password=secret "$f" >/dev/null 2>&1 || qpdf --check "$f" >/dev/null || { echo "qpdf rejects $f"; exit 1; }; done
+    echo "qpdf --check: the saved files pass"
+  fi
   $SAN $CORE tools/pdfrender.c -o $T/pdfrender -lm
