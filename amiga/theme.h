@@ -21,6 +21,10 @@ enum {
   T_NPENS
 };
 
+/* (Bureau) the shared drawers, found once at the start by theme_find_resources (core/respath.c's
+   order: beside the program, then Bureau:, then FONTS: for screen fonts); res_tt_dir NULL if none */
+extern const char *res_fonts_dir, *res_tt_dir;
+void theme_find_resources(void);
 /* the pens on obj's screen (obtained on first use, kept until theme_release with the last user) */
 void theme_setup(Object *obj);
 /* one of Quill's bitmap fonts (QuillSans.font...) at a pixel height; NULL if it can't be opened */

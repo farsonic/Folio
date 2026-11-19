@@ -37,6 +37,7 @@
 #include "../core/font.h"
 #include "../core/pdfwrite.h"
 #include "../core/review.h"
+#include "../core/respath.h"
 
 #ifndef MUIA_Window_DisableKeys
 #define MUIA_Window_DisableKeys 0x80424c36UL
@@ -1214,7 +1215,16 @@ static int home_has_fonts(BPTR dir)
   if (l) UnLock(l);
   return l != 0;
 }
-/* PROGDIR: made right if a shell started Folio without it (it holds Fonts and TrueType) */
+/* QuillSans.font in a fonts dir (no requester asked for by the caller) */
+static int fonts_in(const char *dir)
+{
+  char path[64];
+  BPTR l = res_join(path, sizeof path, dir, "QuillSans.font") ? Lock((STRPTR)path, ACCESS_READ) : 0;
+  if (l) UnLock(l);
+  return l != 0;
+}
+/* PROGDIR: made right if a shell started Folio without it (it holds Fonts and TrueType, or the
+   Bureau suite's drawers or FONTS: hold the screen fonts and PROGDIR: only the prefs) */
 static void find_home(const char *argv0)
 {
   char name[256];
@@ -1222,10 +1232,10 @@ static void find_home(const char *argv0)
   int i;
   struct Process *me = (struct Process *)FindTask(NULL);
   APTR pw = me->pr_WindowPtr;
-  BPTR l;
+  int shared;
   me->pr_WindowPtr = (APTR)-1;
-  l = GetProgramDir() ? Lock((STRPTR)"PROGDIR:Fonts/QuillSans.font", ACCESS_READ) : 0;
-  if (l) { UnLock(l); me->pr_WindowPtr = pw; return; }
+  shared = fonts_in("Bureau:Fonts") || fonts_in("FONTS:");
+  if (GetProgramDir() && (shared || fonts_in("PROGDIR:Fonts"))) { me->pr_WindowPtr = pw; return; }
   tries[0] = argv0;
   tries[1] = GetProgramName((STRPTR)name, sizeof name) ? name : NULL;
   for (i = 0; i < 2 && !home_lock; i++) {
@@ -1233,7 +1243,7 @@ static void find_home(const char *argv0)
     if (!tries[i] || !tries[i][0] || !(f = Lock((STRPTR)tries[i], ACCESS_READ))) continue;
     d = ParentDir(f);
     UnLock(f);
-    if (d && home_has_fonts(d)) home_lock = d; else if (d) UnLock(d);
+    if (d && (shared || home_has_fonts(d))) home_lock = d; else if (d) UnLock(d);
   }
   if (home_lock) home_old = SetProgramDir(home_lock);
   me->pr_WindowPtr = pw;
@@ -1247,11 +1257,12 @@ static void free_home(void)
 }
 static void add_fonts(void)
 {
-  BPTR l = Lock((STRPTR)"PROGDIR:Fonts", ACCESS_READ), sys;
   struct Process *me = (struct Process *)FindTask(NULL);
   APTR pw = me->pr_WindowPtr;
-  if (!l) return;
+  BPTR l, sys;
+  if (!strcmp(res_fonts_dir, "FONTS:")) return;          /* already where diskfont.library looks */
   me->pr_WindowPtr = (APTR)-1;
+  if (!(l = Lock((STRPTR)res_fonts_dir, ACCESS_READ))) { me->pr_WindowPtr = pw; return; }
   if ((sys = Lock((STRPTR)"FONTS:", ACCESS_READ))) {
     LONG same = SameLock(l, sys);
     UnLock(sys);
@@ -1264,7 +1275,7 @@ static void remove_fonts(void)
 {
   BPTR l;
   if (!fonts_assigned) return;
-  if ((l = Lock((STRPTR)"PROGDIR:Fonts", ACCESS_READ))) { RemAssignList((STRPTR)"FONTS", l); UnLock(l); }
+  if ((l = Lock((STRPTR)res_fonts_dir, ACCESS_READ))) { RemAssignList((STRPTR)"FONTS", l); UnLock(l); }
   fonts_assigned = 0;
 }
 static void opts_defaults(void)
@@ -1348,6 +1359,7 @@ int main(int argc, char **argv)
   if (!(MUIMasterBase = OpenLibrary((STRPTR)MUIMASTER_NAME, 19))) { printf("Folio needs MUI (muimaster.library 19 or later).\n"); goto done; }
   CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 40);
   find_home(argc > 0 ? argv[0] : NULL);
+  theme_find_resources();
   for (i = 1; i < argc; i++) {
     if (!strncmp(argv[i], "DEBUG=", 6)) qlog = fopen(argv[i] + 6, "w");
     else if (!Strnicmp((STRPTR)argv[i], (STRPTR)"PUBSCREEN=", 10)) strncpy(arg_screen, argv[i] + 10, sizeof arg_screen - 1);
@@ -1378,7 +1390,7 @@ int main(int argc, char **argv)
   splash_step(5, tr("Adding Folio's fonts drawer"));
   DiskfontBase = OpenLibrary((STRPTR)"diskfont.library", 39);
   add_fonts();
-  font_set_dir("PROGDIR:TrueType");
+  font_set_dir(res_tt_dir ? res_tt_dir : "PROGDIR:TrueType");
   splash_step(40, tr("Preparing"));
   if (!view_class() || !strip_class() || !tabs_class() || !status_class() || !flatscroll_class() || !nav_class() || !pane_class() ||
       !home_class() || !grid_class() || !qbutton_class()) { printf("Folio: MUI couldn't make its classes\n"); goto done; }
@@ -1401,7 +1413,7 @@ int main(int argc, char **argv)
   }
   splash_close();
   refresh_all();
-  if (!theme_fonts_ok()) ask("OK", "%s", tr("Folio couldn't open its own screen fonts, so text is drawn in the\nsystem font. Keep the Fonts drawer next to Folio."));
+  if (!theme_fonts_ok()) ask("OK", "%s", tr("Folio couldn't open its own screen fonts, so text is drawn in the\nsystem font. Keep the Fonts drawer next to Folio (or in Bureau:)."));
   for (i = 0; i < ncmd; i++) {
     LOG("CMD=%lu", (unsigned long)arg_cmd[i]);
     command(arg_cmd[i]);

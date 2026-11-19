@@ -8,7 +8,7 @@ if [ -z "$BASH_VERSION" ] && command -v bash >/dev/null 2>&1; then exec bash "$0
 if [ -n "$BASH_VERSION" ]; then set -o pipefail; fi
 cd "$(dirname "$0")/.."
 T=${TMP:-/tmp}
-CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto.c core/pdf.c core/func.c core/cmap.c core/pfont.c core/pdfenc.c core/font.c core/raster.c core/render.c core/pimage.c core/shade.c core/textpage.c core/pdfwrite.c core/pdfedit.c core/pngout.c core/xml.c core/pagecontent.c core/forms.c core/pagetools.c core/contentedit.c core/jpegout.c core/redact.c core/optimize.c core/export.c core/review.c core/pki.c core/sign.c core/editpage.c core/scan.c"
+CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto.c core/pdf.c core/func.c core/cmap.c core/pfont.c core/pdfenc.c core/font.c core/raster.c core/render.c core/pimage.c core/shade.c core/textpage.c core/pdfwrite.c core/pdfedit.c core/pngout.c core/xml.c core/pagecontent.c core/forms.c core/pagetools.c core/contentedit.c core/jpegout.c core/redact.c core/optimize.c core/export.c core/review.c core/pki.c core/sign.c core/editpage.c core/scan.c core/respath.c"
   # the interface's words: amiga/lang_table.h made from lang/strings.txt, and every string in amiga/
   # translated into German, French, Spanish and Italian and used (tools/langcheck.py)
   python3 tools/mklang.py --check
@@ -16,6 +16,8 @@ CORE="core/util.c core/geom.c core/zip.c core/image.c core/filters.c core/crypto
   if grep -q 'unused:' $T/folio_langcheck.log; then cat $T/folio_langcheck.log; exit 1; fi
   tail -1 $T/folio_langcheck.log
   SAN="cc -std=c99 -O1 -g -Wall -Wextra -Wno-unused-parameter -fsanitize=address,undefined -I. -Icore"
+  # (Bureau) where the shared Fonts, TrueType and Dict drawers are found: beside Folio, in Bureau:, FONTS:
+  $SAN core/respath.c tests/restest.c -o $T/folio_restest && $T/folio_restest | tail -1
   $SAN core/util.c core/filters.c core/crypto.c tests/filtertest.c -o $T/folio_filtertest -lm && $T/folio_filtertest | tail -1
   $SAN core/util.c core/geom.c core/pfont.c core/pdfenc.c tests/fonttest.c -o $T/folio_fonttest -lm && $T/folio_fonttest tests/fonts 20 1 | tail -1
   $SAN $CORE tests/edittest.c -o $T/folio_edittest -lm

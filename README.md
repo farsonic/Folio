@@ -12,6 +12,10 @@ program.
 
 ## Since 0.1.2 (not released yet)
 
+- Bureau: Folio finds its screen and TrueType fonts beside itself, else in the Bureau suite's
+  drawers (`Bureau:Fonts`, `FONTS:`, `Bureau:TrueType`), so one copy of the shared files serves
+  every program of the suite (see Installing).
+
 - Damaged or hostile PDFs can no longer crash Folio, hang it or make it draw differently on the
   Amiga than on other machines. The fixes come from fuzzing Folio's PDF engine inside
   pdf.datatype, and from Folio's own fuzzer: a file whose table of contents points to the wrong
@@ -137,6 +141,22 @@ Open the Folio drawer and double-click **Install-Folio** (Commodore's Installer 
 It copies Folio into a drawer of your choosing, or updates or removes an installed copy. You can
 also just drag the Folio drawer wherever you like. Folio finds its Fonts and TrueType drawers
 next to itself.
+
+### Bureau
+
+Folio is also part of **Bureau**, the suite of Quill, Ledger, Easel, Folio and Dispatch, which
+installs the files they share once (with `Install-Bureau`) under the assign `Bureau:`: the screen
+fonts go to `FONTS:`, the TrueType fonts to `Bureau:TrueType`, and Folio to `Bureau:Folio`, with
+no Fonts or TrueType drawer of its own. For each kind Folio takes the first that is there:
+
+| Kind | 1st | 2nd | 3rd |
+|---|---|---|---|
+| Screen fonts | `PROGDIR:Fonts` (beside Folio) | `Bureau:Fonts` | `FONTS:` |
+| TrueType fonts | `PROGDIR:TrueType` | `Bureau:TrueType` | - |
+
+So Folio unpacked on its own works as before, and in the suite it needs nothing beside it. Its
+settings (`Folio.prefs`), signature and certificates stay in its own drawer. Install-Folio
+offers `Bureau:Folio` when the suite is installed and then leaves out the fonts it already has.
 
 ## The window
 

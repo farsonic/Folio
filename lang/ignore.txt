@@ -25,6 +25,7 @@ Creator
 Deutsch
 English
 Español
+FONTS:
 Folio
 Folio - %s%s
 Français

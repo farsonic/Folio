@@ -8,6 +8,9 @@
 ;            the example documents (optional) and the source code (optional), all with their
 ;            icons; the Folio drawer gets Folio's own icon. The example documents' icons are set
 ;            to open in the Folio just installed.
+; Bureau:    if the Bureau suite is installed (a Bureau: assign), Folio goes into Bureau:Folio by
+;            default, and the Fonts and TrueType drawers are left out when Bureau:TrueType and
+;            FONTS:QuillSans.font are already there (Folio finds them there itself).
 ; Keeps:     your settings (Folio.prefs) when updating.
 ; Needs:     a 68040 or better, MUI 3.8 or later (muimaster.library 19).
 ;
@@ -17,6 +20,10 @@
 
 (set @app-name "Folio")
 (set #version "0.1.2")
+
+; the Bureau suite: its assign, and whether it already holds the fonts Folio shares with it
+(set #bureau (<> (getassign "Bureau" "a") ""))
+(set #shared (if #bureau (and (exists "Bureau:TrueType" (noreq)) (exists "FONTS:QuillSans.font" (noreq))) 0))
 
 ; ------------------------------------------------------------------ install or remove
 
@@ -40,13 +47,18 @@
     (askdir
       (prompt "Which Folio drawer should be removed?")
       (help "Choose the Folio drawer itself: the one holding\n"
-            "the Folio program and its Fonts drawer.")
-      (default (if (exists "Work:Folio" (noreq)) "Work:Folio" "SYS:"))))
+            "the Folio program and its Fonts drawer (or, in\n"
+            "the Bureau suite, Bureau:Folio).")
+      (default (if (exists "Bureau:Folio/Folio" (noreq)) "Bureau:Folio" (if (exists "Work:Folio" (noreq)) "Work:Folio" "SYS:")))))
   ; only a drawer that really is Folio's
-  (if (not (and (exists (tackon #old "Folio")) (exists (tackon #old "Fonts/QuillSans.font"))))
+  ; (in the Bureau suite the fonts are in the suite's drawers instead, beside it)
+  (if (not (and (exists (tackon #old "Folio"))
+                (or (exists (tackon #old "Fonts/QuillSans.font"))
+                    (exists (tackon (pathonly #old) "TrueType/LiberationSans-Regular.ttf"))
+                    #shared)))
     (abort (cat "\"" #old "\"\n"
                 "doesn't look like a Folio drawer (there is no\n"
-                "Folio program with a Fonts drawer in it),\n"
+                "Folio program with its fonts),\n"
                 "so nothing was removed.")))
   (if (askbool
         (prompt (cat "Delete the whole drawer\n\n" #old "\n\n"
@@ -110,8 +122,10 @@
     (help "Choose the drawer or disk to put Folio in, for\n"
           "example Work:. Folio goes into a drawer of its own,\n"
           "Folio, inside the one you choose. If an older Folio\n"
-          "is there, it is updated and your settings are kept.")
-    (default (if (exists "Work:" (noreq)) "Work:" "SYS:"))
+          "is there, it is updated and your settings are kept.\n\n"
+          "With the Bureau suite installed, Bureau: is offered:\n"
+          "Folio then uses the suite's shared fonts.")
+    (default (if #bureau "Bureau:" (if (exists "Work:" (noreq)) "Work:" "SYS:")))
     (disk)))
 (set #dest (tackon #where "Folio"))
 (set @default-dest #dest)
@@ -123,7 +137,9 @@
   (askoptions
     (prompt "Which parts should be installed?")
     (help "Folio itself (the program, its screen fonts and\n"
-          "the stand-in fonts for PDFs) is always installed.\n\n"
+          "the stand-in fonts for PDFs) is always installed;\n"
+          "the fonts are left out if the Bureau suite already\n"
+          "has them (Bureau:TrueType and FONTS:QuillSans.font).\n\n"
           "Example documents: sample PDFs showing\n"
           "what Folio can do (a few KB).\n\n"
           "Source code: Folio's C source, for programmers\n"
@@ -162,6 +178,9 @@
     (infos)
     (nogauge))
   (complete 10)
+  ; the shared fonts: not again when the Bureau suite has them
+  (if (not #shared)
+  (
   (copyfiles
     (prompt "Copying Folio's screen fonts")
     (help @copyfiles-help)
@@ -177,6 +196,7 @@
     (dest (tackon #dest "TrueType"))
     (all))
   (if (exists "TrueType.info" (noreq)) (copyfiles (source "TrueType.info") (dest #dest) (nogauge)))
+  ))
   (complete 80)
   (complete 85)
 
